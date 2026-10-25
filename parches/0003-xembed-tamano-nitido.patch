@@ -1,0 +1,471 @@
+diff --git a/README.md b/README.md
+index e35a3db..edcc58c 100644
+--- a/README.md
++++ b/README.md
+@@ -134,6 +134,11 @@ ocupa unos 7 MB de RAM.
+   `/usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy --verbose` (con la
+   opción desactivada y sin otra bandeja clásica activa).
+ - Las apps antiguas no informan su tooltip; se muestra su nombre.
++- Cada app antigua se redibuja al tamaño exacto en que se muestra (panel o
++  ventana emergente), así que se ve nítida como en la bandeja nativa. Las
++  apps GTK dibujan a tamaños estándar: con **16, 24, 32 o 48 px** ocupan
++  todo el espacio; con otros valores (por ejemplo 22) usan el tamaño
++  estándar inmediatamente menor, nítido pero algo más chico.
+ 
+ El proxy también sirve con otros escritorios que muestren StatusNotifier
+ (por ejemplo, otros paneles): basta con ejecutarlo al iniciar sesión.
+diff --git a/meson.build b/meson.build
+index 58486a4..52fdd20 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.0',
++  version: '0.2.1',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 09ba859..e9933f7 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.0\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.1\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-25 03:30-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 7dd2cfa..007aeda 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -42,7 +42,13 @@
+ #include <string.h>
+ 
+ #define PROXY_NAME                "trayoverflow-xembed-proxy"
+-#define EMBED_SIZE                32
++/* Tamaño de cada ícono: el host puede pedir otro con SetIconSize (la app
++ * se redibuja a ese tamaño, nítida); sin pedido se usa el por defecto */
++#define DEFAULT_SIZE              32
++#define MIN_SIZE                  8
++#define MAX_SIZE                  256
++
++#define TO_IFACE                  "org.xfce.TrayOverflow.XEmbedItem"
+ 
+ #define SYSTEM_TRAY_REQUEST_DOCK  0
+ #define XEMBED_EMBEDDED_NOTIFY    0
+@@ -76,6 +82,9 @@ static const gchar item_xml[] =
+   "    <signal name='NewToolTip'/>"
+   "    <signal name='NewStatus'><arg type='s'/></signal>"
+   "  </interface>"
++  "  <interface name='" TO_IFACE "'>"
++  "    <method name='SetIconSize'><arg type='i' name='pixels' direction='in'/></method>"
++  "  </interface>"
+   "</node>";
+ 
+ 
+@@ -88,6 +97,7 @@ typedef struct
+ {
+   Window           win;          /* ventana del ícono (de la app) */
+   Window           container;    /* nuestra ventana invisible */
++  gint             size;         /* lado en píxeles al que se dibuja */
+   Damage           damage;
+   gint             ignore_unmaps;
+   gboolean         xembed_mapped;
+@@ -107,6 +117,7 @@ typedef struct
+    * watcher sabe que el ícono desapareció */
+   GDBusConnection *conn;
+   guint            reg_id;
++  guint            reg_size_id;
+ 
+   /* Clic pendiente (se espera a que se suelte el botón físico) */
+   guint            click_id;
+@@ -564,8 +575,8 @@ icon_update (gpointer user_data)
+   if (!XGetWindowAttributes (P.dpy, icon->win, &wa) || trap_pop () != 0)
+     return G_SOURCE_REMOVE;
+ 
+-  w = MIN (wa.width, EMBED_SIZE);
+-  h = MIN (wa.height, EMBED_SIZE);
++  w = MIN (wa.width, icon->size);
++  h = MIN (wa.height, icon->size);
+   if (w <= 0 || h <= 0)
+     return G_SOURCE_REMOVE;
+ 
+@@ -662,8 +673,8 @@ click_point (Icon *icon, gint *cx, gint *cy)
+   gint best = G_MAXINT;
+ 
+   memset (&wa, 0, sizeof (wa));
+-  *cx = EMBED_SIZE / 2;
+-  *cy = EMBED_SIZE / 2;
++  *cx = icon->size / 2;
++  *cy = icon->size / 2;
+ 
+   if (XGetWindowAttributes (P.dpy, icon->win, &wa))
+     {
+@@ -778,6 +789,33 @@ click_try (gpointer user_data)
+ 
+ 
+ 
++/* El host pide otro tamaño (p. ej. el del panel o el del popup, por la
++ * escala HiDPI): redimensionar la ventana para que la app se redibuje
++ * nítida a ese tamaño, como haría con una bandeja normal */
++static void
++icon_set_size (Icon *icon, gint size)
++{
++  size = CLAMP (size, MIN_SIZE, MAX_SIZE);
++  if (size == icon->size)
++    return;
++
++  LOG ("tamaño de 0x%lx: %d → %d px\n", icon->win, icon->size, size);
++  icon->size = size;
++
++  trap_push ();
++  XResizeWindow (P.dpy, icon->container, size, size);
++  XResizeWindow (P.dpy, icon->win, size, size);
++  trap_pop ();
++
++  /* La app tarda un poco en redibujarse: capturar ahora y un rato después */
++  icon_schedule_update (icon, 60);
++  if (icon->late_update_id != 0)
++    g_source_remove (icon->late_update_id);
++  icon->late_update_id = g_timeout_add (400, icon_late_update, icon);
++}
++
++
++
+ static void
+ icon_click (Icon *icon, gint button)
+ {
+@@ -805,7 +843,14 @@ item_method_call (GDBusConnection       *conn,
+ {
+   Icon *icon = user_data;
+ 
+-  if (g_strcmp0 (method, "Activate") == 0)
++  if (g_strcmp0 (iface, TO_IFACE) == 0 && g_strcmp0 (method, "SetIconSize") == 0)
++    {
++      gint size = 0;
++
++      g_variant_get (params, "(i)", &size);
++      icon_set_size (icon, size);
++    }
++  else if (g_strcmp0 (method, "Activate") == 0)
+     icon_click (icon, 1);
+   else if (g_strcmp0 (method, "SecondaryActivate") == 0)
+     icon_click (icon, 2);
+@@ -945,6 +990,12 @@ icon_publish (Icon *icon)
+       return;
+     }
+ 
++  /* Interfaz propia para que Tray Overflow pida el tamaño de dibujo;
++   * otros hosts simplemente no la usan */
++  icon->reg_size_id = g_dbus_connection_register_object (icon->conn, ITEM_PATH,
++                                                         P.node->interfaces[1], &item_vtable,
++                                                         icon, NULL, NULL);
++
+   LOG ("publicado 0x%lx como %s\n", icon->win, g_dbus_connection_get_unique_name (icon->conn));
+   icon_register_with_watcher (icon);
+ }
+@@ -959,7 +1010,10 @@ icon_unpublish (Icon *icon)
+ 
+   if (icon->reg_id != 0)
+     g_dbus_connection_unregister_object (icon->conn, icon->reg_id);
++  if (icon->reg_size_id != 0)
++    g_dbus_connection_unregister_object (icon->conn, icon->reg_size_id);
+   icon->reg_id = 0;
++  icon->reg_size_id = 0;
+ 
+   /* Cerrar la conexión hace desaparecer su nombre único del bus: así el
+    * watcher (el nuestro, el de XFCE o el de KDE) da de baja el ícono */
+@@ -1062,6 +1116,7 @@ dock (Window win)
+ 
+   icon = g_new0 (Icon, 1);
+   icon->win = win;
++  icon->size = DEFAULT_SIZE;
+   icon->xembed_mapped = read_xembed_mapped (win);
+   icon->ignore_unmaps = wa.map_state != IsUnmapped ? 1 : 0;
+ 
+@@ -1074,7 +1129,7 @@ dock (Window win)
+   attrs.override_redirect = True;
+   attrs.colormap = P.colormap;
+   attrs.event_mask = SubstructureNotifyMask | SubstructureRedirectMask;
+-  icon->container = XCreateWindow (P.dpy, P.root, 0, 0, EMBED_SIZE, EMBED_SIZE, 0,
++  icon->container = XCreateWindow (P.dpy, P.root, 0, 0, icon->size, icon->size, 0,
+                                    P.depth, InputOutput, P.visual,
+                                    CWBackPixel | CWBorderPixel | CWOverrideRedirect
+                                    | CWColormap | CWEventMask, &attrs);
+@@ -1093,9 +1148,9 @@ dock (Window win)
+   XCompositeRedirectWindow (P.dpy, win, CompositeRedirectManual);
+   icon->damage = XDamageCreate (P.dpy, win, XDamageReportNonEmpty);
+ 
+-  /* Tamaño razonable: algunas apps piden ventanas enormes o de 0 px */
+-  if (wa.width <= 1 || wa.height <= 1 || wa.width > EMBED_SIZE || wa.height > EMBED_SIZE)
+-    XResizeWindow (P.dpy, win, EMBED_SIZE, EMBED_SIZE);
++  /* Darle siempre el tamaño de destino: así la app (como con una bandeja
++   * normal) elige y dibuja el ícono a ese tamaño, sin reescalados */
++  XResizeWindow (P.dpy, win, icon->size, icon->size);
+ 
+   send_xembed_message (win, XEMBED_EMBEDDED_NOTIFY, 0, icon->container, XEMBED_VERSION);
+   XMapWindow (P.dpy, win);
+@@ -1155,7 +1210,7 @@ try_claim (void)
+ {
+   XEvent ev;
+   VisualID visual_id;
+-  gulong orientation = 0, icon_size = EMBED_SIZE;
++  gulong orientation = 0;
+ 
+   if (P.owner || XGetSelectionOwner (P.dpy, P.a_selection) != None)
+     return;
+@@ -1173,8 +1228,11 @@ try_claim (void)
+                    PropModeReplace, (guchar *) &visual_id, 1);
+   XChangeProperty (P.dpy, P.manager, P.a_tray_orientation, XA_CARDINAL, 32,
+                    PropModeReplace, (guchar *) &orientation, 1);
+-  XChangeProperty (P.dpy, P.manager, P.a_tray_icon_size, XA_CARDINAL, 32,
+-                   PropModeReplace, (guchar *) &icon_size, 1);
++
++  /* _NET_SYSTEM_TRAY_ICON_SIZE NO se publica a propósito: si existe, GTK
++   * dibuja siempre a ese tamaño e ignora el de la ventana, y cada ícono
++   * necesita el suyo (ver icon_set_size) */
++  XDeleteProperty (P.dpy, P.manager, P.a_tray_icon_size);
+ 
+   /* Anunciar la nueva bandeja: las apps se anclan solas */
+   memset (&ev, 0, sizeof (ev));
+@@ -1289,9 +1347,9 @@ handle_event (XEvent *ev)
+       icon = icon_for (ev->xconfigurerequest.window);
+       if (icon != NULL && (ev->xconfigurerequest.value_mask & (CWWidth | CWHeight)))
+         {
+-          /* Se aceptan cambios de tamaño (sin pasar de EMBED_SIZE), no de posición */
+-          gint w = CLAMP (ev->xconfigurerequest.width, 1, EMBED_SIZE);
+-          gint h = CLAMP (ev->xconfigurerequest.height, 1, EMBED_SIZE);
++          /* Se aceptan cambios de tamaño (sin pasar del de destino), no de posición */
++          gint w = CLAMP (ev->xconfigurerequest.width, 1, icon->size);
++          gint h = CLAMP (ev->xconfigurerequest.height, 1, icon->size);
+ 
+           trap_push ();
+           XResizeWindow (P.dpy, icon->win, w, h);
+diff --git a/src/to-button.c b/src/to-button.c
+index 2237049..97e4e26 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -15,6 +15,7 @@ struct _TrayButton
+   TrayItem  *item;
+   GtkWidget *image;
+   gint       icon_size;
++  gboolean   sized;            /* ya recibió su tamaño real */
+ 
+   guint      pressed_button;   /* botón presionado sobre nosotros, 0 si ninguno */
+   gdouble    scroll_x;         /* acumuladores de scroll suave */
+@@ -281,6 +282,7 @@ tray_button_dispose (GObject *object)
+ 
+   if (button->item != NULL)
+     {
++      tray_item_release_size (button->item, button);
+       g_clear_signal_handler (&button->changed_id, button->item);
+       g_clear_signal_handler (&button->fallback_id, button->item);
+       g_clear_object (&button->item);
+@@ -380,9 +382,10 @@ tray_button_set_icon_size (TrayButton *button,
+   g_return_if_fail (TRAY_IS_BUTTON (button));
+ 
+   size = MAX (size, 1);
+-  if (button->icon_size != size)
++  if (button->icon_size != size || !button->sized)
+     {
+       button->icon_size = size;
++      button->sized = TRUE;
+       tray_button_update (button);
+     }
+ }
+@@ -408,6 +411,12 @@ tray_button_update (TrayButton *button)
+   button->drawn_scale = scale;
+   current_color (widget, &button->drawn_color);
+ 
++  /* Avisar a qué tamaño se muestra (apps XEmbed: se redibujan a ese
++   * tamaño y llegan nítidas, sin reescalar). Solo una vez ubicado: el
++   * tamaño provisional de un botón recién creado no es el real. */
++  if (button->sized)
++    tray_item_request_size (button->item, button, button->icon_size * scale);
++
+   pixbuf = tray_item_render_icon (button->item, button->icon_size, scale,
+                                   gtk_widget_get_style_context (widget));
+   if (pixbuf != NULL)
+diff --git a/src/to-item.c b/src/to-item.c
+index 6a5ede3..bfeb937 100644
+--- a/src/to-item.c
++++ b/src/to-item.c
+@@ -23,6 +23,9 @@ typedef struct
+ 
+   gchar          *tooltip_title;
+   gchar          *tooltip_text;
++
++  GHashTable     *size_requests;   /* requester → píxeles */
++  gint            size_sent;       /* último tamaño pasado al backend */
+ } TrayItemPrivate;
+ 
+ G_DEFINE_TYPE_WITH_PRIVATE (TrayItem, tray_item, G_TYPE_OBJECT)
+@@ -58,6 +61,7 @@ tray_item_finalize (GObject *object)
+   g_clear_object (&priv->path_theme);
+   g_free (priv->tooltip_title);
+   g_free (priv->tooltip_text);
++  g_clear_pointer (&priv->size_requests, g_hash_table_unref);
+ 
+   G_OBJECT_CLASS (tray_item_parent_class)->finalize (object);
+ }
+@@ -492,6 +496,62 @@ tray_item_scroll (TrayItem *item, gint delta, gboolean horizontal)
+ 
+ 
+ 
++static void
++apply_size_requests (TrayItem *item)
++{
++  TrayItemPrivate *priv = PRIV (item);
++  TrayItemClass *klass = TRAY_ITEM_GET_CLASS (item);
++  GHashTableIter iter;
++  gpointer value;
++  gint size = 0;
++
++  if (klass->set_icon_size == NULL || priv->size_requests == NULL)
++    return;
++
++  g_hash_table_iter_init (&iter, priv->size_requests);
++  while (g_hash_table_iter_next (&iter, NULL, &value))
++    size = MAX (size, GPOINTER_TO_INT (value));
++
++  if (size > 0 && size != priv->size_sent)
++    {
++      priv->size_sent = size;
++      klass->set_icon_size (item, size);
++    }
++}
++
++
++
++void
++tray_item_request_size (TrayItem *item, gpointer requester, gint pixels)
++{
++  TrayItemPrivate *priv;
++
++  g_return_if_fail (TRAY_IS_ITEM (item));
++  priv = PRIV (item);
++
++  if (priv->size_requests == NULL)
++    priv->size_requests = g_hash_table_new (g_direct_hash, g_direct_equal);
++
++  g_hash_table_insert (priv->size_requests, requester, GINT_TO_POINTER (MAX (pixels, 1)));
++  apply_size_requests (item);
++}
++
++
++
++void
++tray_item_release_size (TrayItem *item, gpointer requester)
++{
++  TrayItemPrivate *priv;
++
++  g_return_if_fail (TRAY_IS_ITEM (item));
++  priv = PRIV (item);
++
++  if (priv->size_requests != NULL && g_hash_table_remove (priv->size_requests, requester))
++    apply_size_requests (item);
++}
++
++
++
+ /* ── Setters para backends ───────────────────────────────────────────── */
+ 
+ static void
+diff --git a/src/to-item.h b/src/to-item.h
+index 8cb3d00..44a902f 100644
+--- a/src/to-item.h
++++ b/src/to-item.h
+@@ -43,6 +43,9 @@ struct _TrayItemClass
+   void       (*secondary_activate) (TrayItem *item, gint x, gint y);
+   void       (*context_menu)       (TrayItem *item, gint x, gint y);
+   void       (*scroll)             (TrayItem *item, gint delta, gboolean horizontal);
++  /* Opcional: el backend puede pedirle a la app que dibuje a ese tamaño
++   * (en píxeles de dispositivo), para no tener que reescalar */
++  void       (*set_icon_size)      (TrayItem *item, gint pixels);
+ };
+ 
+ /* ── API pública (vista) ─────────────────────────────────────────────── */
+@@ -70,6 +73,11 @@ void            tray_item_secondary_activate (TrayItem *item, gint x, gint y);
+ void            tray_item_context_menu       (TrayItem *item, gint x, gint y);
+ void            tray_item_scroll             (TrayItem *item, gint delta, gboolean horizontal);
+ 
++/* Cada vista que muestra el ítem declara a qué tamaño lo dibuja
++ * (@requester la identifica); se usa el mayor de los pedidos */
++void            tray_item_request_size       (TrayItem *item, gpointer requester, gint pixels);
++void            tray_item_release_size       (TrayItem *item, gpointer requester);
++
+ /* ── API para backends ───────────────────────────────────────────────── */
+ 
+ void tray_item_set_key             (TrayItem *item, const gchar *key);
+diff --git a/src/to-sni.c b/src/to-sni.c
+index e014219..c23d184 100644
+--- a/src/to-sni.c
++++ b/src/to-sni.c
+@@ -25,6 +25,10 @@
+ #define DBUS_PATH     "/org/freedesktop/DBus"
+ #define PROPS_IFACE   "org.freedesktop.DBus.Properties"
+ 
++/* Proxy XEmbed propio (proxy/xembed-proxy.c) */
++#define PROXY_IFACE    "org.xfce.TrayOverflow.XEmbedItem"
++#define PROXY_EXE_NAME "xembed-proxy"
++
+ static const gchar watcher_xml[] =
+   "<node>"
+   "  <interface name='" WATCHER_IFACE "'>"
+@@ -119,6 +123,9 @@ struct _SniItem
+   gchar        *exe;
+   gchar        *menu_path;
+   GtkWidget    *menu;
++
++  /* Ítem publicado por nuestro proxy XEmbed: acepta SetIconSize */
++  gboolean      from_proxy;
+ };
+ 
+ G_DEFINE_TYPE (SniItem, sni_item, TRAY_TYPE_ITEM)
+@@ -267,6 +274,24 @@ sni_item_scroll (TrayItem *tray_item, gint delta, gboolean horizontal)
+ 
+ 
+ 
++/* Solo para ítems de nuestro proxy XEmbed: que la app antigua se dibuje
++ * al tamaño exacto en que se va a mostrar */
++static void
++sni_item_set_icon_size (TrayItem *tray_item, gint pixels)
++{
++  SniItem *item = SNI_ITEM (tray_item);
++
++  if (!item->from_proxy || item->owner == NULL || item->removed || backend == NULL)
++    return;
++
++  g_dbus_connection_call (backend->conn, item->owner, item->object_path,
++                          PROXY_IFACE, "SetIconSize", g_variant_new ("(i)", pixels),
++                          NULL, G_DBUS_CALL_FLAGS_NONE, -1, item->cancellable,
++                          NULL, NULL);
++}
++
++
++
+ /* Deja el ítem inerte: sin señales, sin llamadas pendientes */
+ static void
+ sni_item_shutdown (SniItem *item)
+@@ -325,6 +350,7 @@ sni_item_class_init (SniItemClass *klass)
+   item_class->secondary_activate = sni_item_secondary_activate;
+   item_class->context_menu = sni_item_context_menu;
+   item_class->scroll = sni_item_scroll;
++  item_class->set_icon_size = sni_item_set_icon_size;
+ }
+ 
+ 
+@@ -778,6 +804,7 @@ sni_item_pid_done (GObject      *source,
+       g_variant_get (reply, "(u)", &pid);
+       if (pid > 0)
+         item->exe = exe_name_from_pid (pid);
++      item->from_proxy = g_strcmp0 (item->exe, PROXY_EXE_NAME) == 0;
+       g_variant_unref (reply);
+     }
+   g_clear_error (&error);

@@ -1,0 +1,3 @@
+src/to-dialog.c
+src/to-plugin.c
+src/to-legacy.c

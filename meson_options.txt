@@ -1,0 +1,4 @@
+option('plugin-libdir', type: 'string', value: '',
+       description: 'Carpeta de plugins del panel (por defecto: la del libxfce4panel instalado)')
+option('xembed-proxy', type: 'feature', value: 'auto',
+       description: 'Compilar el proxy que muestra apps antiguas (bandeja XEmbed)')

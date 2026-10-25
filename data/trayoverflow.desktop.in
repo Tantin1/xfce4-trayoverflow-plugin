@@ -1,0 +1,13 @@
+[Xfce Panel]
+Type=X-XFCE-PanelPlugin
+Encoding=UTF-8
+Name=Tray Overflow
+Name[es]=Bandeja con desborde
+Comment=Status notifier area with a popup for hidden icons
+Comment[es]=Área de notificación con una ventana emergente para los íconos ocultos
+Icon=org.xfce.panel.systray
+X-XFCE-Module=trayoverflow
+X-XFCE-Module-Path=@PLUGIN_LIBDIR@
+X-XFCE-API=2.0
+X-XFCE-Internal=TRUE
+X-XFCE-Unique=FALSE

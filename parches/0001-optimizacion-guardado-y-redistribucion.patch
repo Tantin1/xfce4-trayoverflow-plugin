@@ -1,0 +1,427 @@
+diff --git a/meson.build b/meson.build
+index 966f10f..2c056c7 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.1.0',
++  version: '0.1.1',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index f68aa7d..ce784b6 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.1.0\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.1.1\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-25 03:30-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 2be2a00..4490e6d 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -334,7 +334,10 @@ popup_show (TrayPlugin *p)
+             gtk_window_group_add_window (group, GTK_WINDOW (p->popup));
+         }
+ 
+-      tray_plugin_relayout (p);
++      /* La distribución se mantiene al día sola; solo aplicar un cambio
++       * que esté esperando su turno */
++      if (p->relayout_id != 0 || !p->layout_valid)
++        tray_plugin_relayout (p);
+       popup_reposition (p);
+       gtk_widget_show (p->popup);
+ 
+@@ -1048,18 +1051,32 @@ clear_grid (GtkWidget *grid)
+ 
+ 
+ 
++static gboolean
++same_order (GPtrArray *a, GPtrArray *b)
++{
++  guint i;
++
++  if (a->len != b->len)
++    return FALSE;
++
++  for (i = 0; i < a->len; i++)
++    if (g_ptr_array_index (a, i) != g_ptr_array_index (b, i))
++      return FALSE;
++
++  return TRUE;
++}
++
++
++
+ static void
+ tray_plugin_relayout (TrayPlugin *p)
+ {
+   GPtrArray *items = tray_model_get_items (p->model);
++  GPtrArray *new_panel, *new_popup;
+   GArray *entries;
+-  gboolean horizontal = is_horizontal (p);
+-  gint nrows = MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
+-  gint panel_size = tray_plugin_get_panel_icon_size (p);
+-  gint popup_size = tray_settings_get_popup_icon_size (p->settings);
+-  gint columns = tray_settings_get_popup_columns (p->settings);
+-  gint spacing;
++  TrayLayoutParams params;
+   gboolean attention = FALSE;
++  gboolean rebuild;
+   guint i;
+ 
+   if (p->relayout_id != 0)
+@@ -1068,6 +1085,15 @@ tray_plugin_relayout (TrayPlugin *p)
+       p->relayout_id = 0;
+     }
+ 
++  memset (&params, 0, sizeof (params));
++  params.horizontal = is_horizontal (p);
++  params.nrows = MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
++  params.panel_size = tray_plugin_get_panel_icon_size (p);
++  params.popup_size = tray_settings_get_popup_icon_size (p->settings);
++  params.columns = tray_settings_get_popup_columns (p->settings);
++  params.panel_spacing = tray_settings_get_panel_spacing (p->settings);
++  params.popup_spacing = tray_settings_get_popup_spacing (p->settings);
++
+   /* Ordenar los ítems listos según la configuración */
+   entries = g_array_new (FALSE, FALSE, sizeof (SortEntry));
+   for (i = 0; i < items->len; i++)
+@@ -1085,10 +1111,9 @@ tray_plugin_relayout (TrayPlugin *p)
+     }
+   g_array_sort (entries, sort_entries);
+ 
+-  clear_grid (p->panel_grid);
+-  clear_grid (p->popup_grid);
+-  g_ptr_array_set_size (p->panel_order, 0);
+-  g_ptr_array_set_size (p->popup_order, 0);
++  /* Calcular la distribución nueva sin tocar todavía los widgets */
++  new_panel = g_ptr_array_new ();
++  new_popup = g_ptr_array_new ();
+ 
+   for (i = 0; i < entries->len; i++)
+     {
+@@ -1097,72 +1122,102 @@ tray_plugin_relayout (TrayPlugin *p)
+ 
+       if (item_is_hidden (p, entry->item))
+         {
+-          g_ptr_array_add (p->popup_order, button);
++          g_ptr_array_add (new_popup, button);
+           if (tray_item_get_status (entry->item) == TRAY_ITEM_STATUS_ATTENTION)
+             attention = TRUE;
+         }
+       else
+         {
+-          g_ptr_array_add (p->panel_order, button);
++          g_ptr_array_add (new_panel, button);
+         }
+     }
+   g_array_unref (entries);
+ 
+-  /* Panel: horizontal se llena por columnas de @nrows filas;
+-   * vertical/deskbar, por filas de @nrows columnas */
+-  for (i = 0; i < p->panel_order->len; i++)
++  params.drag_empty = p->dragging && new_panel->len == 0;
++
++  /* Si nada cambió (caso típico: una app actualizó su ícono o su
++   * título), no se reconstruyen las cuadrículas: el botón ya se
++   * redibujó solo. Se actualiza solo la flecha. */
++  rebuild = !p->layout_valid
++            || memcmp (&params, &p->layout_params, sizeof (params)) != 0
++            || !same_order (new_panel, p->panel_order)
++            || !same_order (new_popup, p->popup_order);
++
++  if (rebuild)
+     {
+-      GtkWidget *button = g_ptr_array_index (p->panel_order, i);
+-      gint major = i / nrows, minor = i % nrows;
++      clear_grid (p->panel_grid);
++      clear_grid (p->popup_grid);
++
++      g_ptr_array_unref (p->panel_order);
++      g_ptr_array_unref (p->popup_order);
++      p->panel_order = g_steal_pointer (&new_panel);
++      p->popup_order = g_steal_pointer (&new_popup);
++
++      /* Panel: horizontal se llena por columnas de @nrows filas;
++       * vertical/deskbar, por filas de @nrows columnas */
++      for (i = 0; i < p->panel_order->len; i++)
++        {
++          GtkWidget *button = g_ptr_array_index (p->panel_order, i);
++          gint major = i / params.nrows, minor = i % params.nrows;
+ 
+-      tray_button_set_icon_size (TRAY_BUTTON (button), panel_size);
+-      if (horizontal)
+-        gtk_grid_attach (GTK_GRID (p->panel_grid), button, major, minor, 1, 1);
++          tray_button_set_icon_size (TRAY_BUTTON (button), params.panel_size);
++          if (params.horizontal)
++            gtk_grid_attach (GTK_GRID (p->panel_grid), button, major, minor, 1, 1);
++          else
++            gtk_grid_attach (GTK_GRID (p->panel_grid), button, minor, major, 1, 1);
++          gtk_widget_show (button);
++        }
++
++      gtk_grid_set_row_spacing (GTK_GRID (p->panel_grid), params.panel_spacing);
++      gtk_grid_set_column_spacing (GTK_GRID (p->panel_grid), params.panel_spacing);
++      gtk_box_set_spacing (GTK_BOX (p->box), params.panel_spacing);
++
++      /* Con el panel vacío durante un arrastre, dejar una zona para soltar */
++      if (params.drag_empty)
++        gtk_widget_set_size_request (p->panel_grid, params.panel_size + 2,
++                                     params.panel_size + 2);
+       else
+-        gtk_grid_attach (GTK_GRID (p->panel_grid), button, minor, major, 1, 1);
+-      gtk_widget_show (button);
+-    }
++        gtk_widget_set_size_request (p->panel_grid, -1, -1);
+ 
+-  spacing = tray_settings_get_panel_spacing (p->settings);
+-  gtk_grid_set_row_spacing (GTK_GRID (p->panel_grid), spacing);
+-  gtk_grid_set_column_spacing (GTK_GRID (p->panel_grid), spacing);
+-  gtk_box_set_spacing (GTK_BOX (p->box), spacing);
++      /* Popup: cuadrícula por filas */
++      for (i = 0; i < p->popup_order->len; i++)
++        {
++          GtkWidget *button = g_ptr_array_index (p->popup_order, i);
+ 
+-  /* Con el panel vacío durante un arrastre, dejar una zona para soltar */
+-  if (p->dragging && p->panel_order->len == 0)
+-    gtk_widget_set_size_request (p->panel_grid, panel_size + 2, panel_size + 2);
+-  else
+-    gtk_widget_set_size_request (p->panel_grid, -1, -1);
++          tray_button_set_icon_size (TRAY_BUTTON (button), params.popup_size);
++          gtk_grid_attach (GTK_GRID (p->popup_grid), button,
++                           i % params.columns, i / params.columns, 1, 1);
++          gtk_widget_show (button);
++        }
+ 
+-  /* Popup: cuadrícula por filas */
+-  for (i = 0; i < p->popup_order->len; i++)
+-    {
+-      GtkWidget *button = g_ptr_array_index (p->popup_order, i);
++      gtk_grid_set_row_spacing (GTK_GRID (p->popup_grid), params.popup_spacing);
++      gtk_grid_set_column_spacing (GTK_GRID (p->popup_grid), params.popup_spacing);
++      gtk_widget_set_visible (p->popup_empty, p->popup_order->len == 0);
++      gtk_widget_set_visible (p->popup_grid, p->popup_order->len > 0);
+ 
+-      tray_button_set_icon_size (TRAY_BUTTON (button), popup_size);
+-      gtk_grid_attach (GTK_GRID (p->popup_grid), button, i % columns, i / columns, 1, 1);
+-      gtk_widget_show (button);
+-    }
++      gtk_orientable_set_orientation (GTK_ORIENTABLE (p->box),
++                                      params.horizontal ? GTK_ORIENTATION_HORIZONTAL
++                                                        : GTK_ORIENTATION_VERTICAL);
++      arrow_update_icon (p);
+ 
+-  spacing = tray_settings_get_popup_spacing (p->settings);
+-  gtk_grid_set_row_spacing (GTK_GRID (p->popup_grid), spacing);
+-  gtk_grid_set_column_spacing (GTK_GRID (p->popup_grid), spacing);
+-  gtk_widget_set_visible (p->popup_empty, p->popup_order->len == 0);
+-  gtk_widget_set_visible (p->popup_grid, p->popup_order->len > 0);
++      p->layout_params = params;
++      p->layout_valid = TRUE;
++    }
++  else
++    {
++      g_ptr_array_unref (new_panel);
++      g_ptr_array_unref (new_popup);
++    }
+ 
+   /* Flecha: solo si hay ocultos, o durante un arrastre (como destino) */
+-  gtk_orientable_set_orientation (GTK_ORIENTABLE (p->box),
+-                                  horizontal ? GTK_ORIENTATION_HORIZONTAL
+-                                             : GTK_ORIENTATION_VERTICAL);
+   gtk_widget_set_visible (p->arrow, p->popup_order->len > 0 || p->dragging);
+   gtk_widget_set_visible (p->arrow_dot, attention);
+-  arrow_update_icon (p);
+ 
+   if (p->popup != NULL && gtk_widget_get_visible (p->popup))
+     {
+       if (p->popup_order->len == 0 && !p->dragging)
+         popup_hide (p);
+-      else
++      else if (rebuild)
+         popup_reposition (p);
+     }
+ }
+@@ -1327,6 +1382,9 @@ model_item_removed (TrayModel  *model,
+   g_ptr_array_remove (p->popup_order, button);
+   g_hash_table_remove (p->buttons, item);
+ 
++  /* El botón destruido deja un hueco en la cuadrícula: rearmarla */
++  p->layout_valid = FALSE;
++
+   tray_plugin_schedule_relayout (p);
+ }
+ 
+@@ -1612,6 +1670,10 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+   xfce_panel_plugin_menu_show_about (panel_plugin);
+ 
+   g_signal_connect (panel_plugin, "free-data", G_CALLBACK (plugin_free), p);
++  /* El panel pide guardar (p. ej. al cerrar sesión): escribir lo pendiente */
++  g_signal_connect_swapped (panel_plugin, "save", G_CALLBACK (tray_settings_flush), p->settings);
++  /* Quitado del panel: su configuración se borra, no volver a escribirla */
++  g_signal_connect_swapped (panel_plugin, "removed", G_CALLBACK (tray_settings_discard), p->settings);
+   g_signal_connect (panel_plugin, "size-changed", G_CALLBACK (plugin_size_changed), p);
+   g_signal_connect (panel_plugin, "mode-changed", G_CALLBACK (plugin_mode_changed), p);
+   g_signal_connect (panel_plugin, "nrows-changed", G_CALLBACK (plugin_nrows_changed), p);
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index c0a0b74..81182b0 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -14,6 +14,19 @@ G_BEGIN_DECLS
+ 
+ typedef struct _TrayPlugin TrayPlugin;
+ 
++/* Todo lo que, además del orden de los íconos, decide la distribución */
++typedef struct
++{
++  gboolean horizontal;
++  gboolean drag_empty;
++  gint     nrows;
++  gint     panel_size;
++  gint     popup_size;
++  gint     columns;
++  gint     panel_spacing;
++  gint     popup_spacing;
++} TrayLayoutParams;
++
+ struct _TrayPlugin
+ {
+   XfcePanelPlugin *panel_plugin;
+@@ -65,6 +78,8 @@ struct _TrayPlugin
+   guint            drag_open_id;
+ 
+   guint            relayout_id;
++  TrayLayoutParams layout_params;   /* con qué se armaron las cuadrículas */
++  gboolean         layout_valid;
+   gulong           theme_changed_id;
+ 
+   GtkWidget       *dialog;
+diff --git a/src/to-settings.c b/src/to-settings.c
+index b567728..74a9db8 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -16,6 +16,7 @@
+ #define DEFAULT_POPUP_COLUMNS    4
+ #define DEFAULT_PASSIVE_IN_POPUP TRUE
+ #define MAX_KNOWN                200
++#define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
+ 
+ struct _TraySettings
+ {
+@@ -38,6 +39,9 @@ struct _TraySettings
+   gint           freeze_count;
+   gboolean       pending_changed;
+   gboolean       pending_known;
++
++  guint          save_id;     /* guardado diferido pendiente */
++  gboolean       discarded;   /* el plugin fue quitado: no volver a escribir */
+ };
+ 
+ G_DEFINE_TYPE (TraySettings, tray_settings, G_TYPE_OBJECT)
+@@ -272,7 +276,61 @@ load_all (TraySettings *s)
+ 
+ 
+ 
+-/* ── Notificación ────────────────────────────────────────────────────── */
++/* ── Notificación y guardado diferido ────────────────────────────────── */
++
++static gboolean
++save_timeout (gpointer user_data)
++{
++  TraySettings *s = user_data;
++
++  s->save_id = 0;
++  save_all (s);
++  return G_SOURCE_REMOVE;
++}
++
++
++
++/* Los cambios se aplican al instante (señales), pero se escriben en
++ * xfconf como mucho una vez cada SAVE_DELAY_SECONDS: apps que cambian
++ * su título o ícono a menudo no deben provocar una escritura por cambio */
++static void
++schedule_save (TraySettings *s)
++{
++  if (s->save_id == 0 && !s->discarded)
++    s->save_id = g_timeout_add_seconds (SAVE_DELAY_SECONDS, save_timeout, s);
++}
++
++
++
++void
++tray_settings_flush (TraySettings *s)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  if (s->save_id != 0)
++    {
++      g_source_remove (s->save_id);
++      s->save_id = 0;
++      save_all (s);
++    }
++}
++
++
++
++void
++tray_settings_discard (TraySettings *s)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  if (s->save_id != 0)
++    {
++      g_source_remove (s->save_id);
++      s->save_id = 0;
++    }
++  s->discarded = TRUE;
++}
++
++
+ 
+ static void
+ notify (TraySettings *s, gboolean layout)
+@@ -285,7 +343,7 @@ notify (TraySettings *s, gboolean layout)
+       return;
+     }
+ 
+-  save_all (s);
++  schedule_save (s);
+   if (layout)
+     g_signal_emit (s, signals[SIGNAL_CHANGED], 0);
+   g_signal_emit (s, signals[SIGNAL_KNOWN_CHANGED], 0);
+@@ -331,6 +389,10 @@ tray_settings_finalize (GObject *object)
+ {
+   TraySettings *s = TRAY_SETTINGS (object);
+ 
++  /* Escribir lo pendiente antes de cerrar (salvo que el plugin se haya
++   * quitado del panel: ahí su configuración ya no debe existir) */
++  tray_settings_flush (s);
++
+   g_hash_table_unref (s->hidden);
+   g_hash_table_unref (s->visible);
+   g_ptr_array_unref (s->known);
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 7b16534..44936ab 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -68,4 +68,9 @@ void     tray_settings_move                  (TraySettings *s, const gchar *key,
+ void     tray_settings_freeze                (TraySettings *s);
+ void     tray_settings_thaw                  (TraySettings *s);
+ 
++/* El guardado en xfconf es diferido: escribir ya lo pendiente */
++void     tray_settings_flush                 (TraySettings *s);
++/* El plugin se quitó del panel: descartar lo pendiente y no escribir más */
++void     tray_settings_discard               (TraySettings *s);
++
+ G_END_DECLS
