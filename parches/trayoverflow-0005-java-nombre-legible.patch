@@ -1,0 +1,214 @@
+diff --git a/meson.build b/meson.build
+index 1155cae..61917c2 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.2',
++  version: '0.2.3',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 8fd1100..46fbf86 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.2\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.3\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-25 03:30-0300\n"
++"PO-Revision-Date: 2026-10-25 19:30-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 6819fad..0f3d676 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -319,13 +319,144 @@ exe_from_pid (gulong pid)
+ 
+ 
+ 
++/* Títulos que ponen los toolkits y no dicen nada de la app */
++static gboolean
++title_is_generic (const gchar *title)
++{
++  /* Java (AWT) usa este nombre en el ícono de todas sus apps */
++  return g_strcmp0 (title, "JavaEmbeddedFrame") == 0;
++}
++
++
++
++/* Opciones de java que llevan su valor en el argumento siguiente */
++static gboolean
++java_option_takes_value (const gchar *option)
++{
++  static const gchar *const options[] = {
++    "-cp", "-classpath", "--class-path", "-p", "--module-path",
++    "--upgrade-module-path", "--add-modules", "--limit-modules",
++    "--add-reads", "--add-exports", "--add-opens", "--patch-module", NULL
++  };
++
++  return g_strv_contains (options, option);
++}
++
++
++
++/* "com.frostwire.gui.Main" → "Frostwire": el primer tramo del paquete
++ * que no sea un dominio genérico; si no hay paquete, la clase */
++static gchar *
++java_name_from_class (const gchar *klass)
++{
++  static const gchar *const skip[] = {
++    "com", "org", "net", "io", "de", "me", "edu", "gov", "fr", "uk", "it", "nl", NULL
++  };
++  gchar **parts = g_strsplit (klass, ".", -1);
++  guint n = g_strv_length (parts), i;
++  gchar *name = NULL;
++
++  for (i = 0; i + 1 < n && name == NULL; i++)
++    if (*parts[i] != '\0' && !g_strv_contains (skip, parts[i]))
++      name = g_strdup (parts[i]);
++
++  if (name == NULL && n > 0 && *parts[n - 1] != '\0')
++    name = g_strdup (parts[n - 1]);
++  g_strfreev (parts);
++
++  if (name != NULL)
++    name[0] = g_ascii_toupper (name[0]);
++  return name;
++}
++
++
++
++/* Nombre de una app Java a partir de su línea de comandos:
++ * "java -jar JDownloader.jar" → "JDownloader". NULL si no es Java. */
++static gchar *
++java_app_name (gulong pid)
++{
++  gchar *path, *contents = NULL, *name = NULL, *argv0;
++  const gchar *arg, *end;
++  gsize length = 0;
++  gboolean is_java;
++
++  if (pid == 0)
++    return NULL;
++
++  path = g_strdup_printf ("/proc/%lu/cmdline", pid);
++  if (!g_file_get_contents (path, &contents, &length, NULL) || length == 0)
++    {
++      g_free (path);
++      g_free (contents);
++      return NULL;
++    }
++  g_free (path);
++
++  end = contents + length;
++  argv0 = g_path_get_basename (contents);
++  is_java = g_str_has_prefix (argv0, "java");
++  g_free (argv0);
++
++  for (arg = contents + strlen (contents) + 1; is_java && arg < end && name == NULL;
++       arg += strlen (arg) + 1)
++    {
++      const gchar *next = arg + strlen (arg) + 1;
++      gboolean has_next = next < end && *next != '\0';
++
++      if (strcmp (arg, "-jar") == 0)
++        {
++          if (has_next)
++            {
++              name = g_path_get_basename (next);
++              if (g_str_has_suffix (name, ".jar"))
++                name[strlen (name) - 4] = '\0';
++            }
++          break;
++        }
++
++      if (strcmp (arg, "-m") == 0 || strcmp (arg, "--module") == 0)
++        {
++          /* "módulo/clase" o solo "módulo" */
++          if (has_next)
++            {
++              const gchar *slash = strchr (next, '/');
++              name = java_name_from_class (slash != NULL ? slash + 1 : next);
++            }
++          break;
++        }
++
++      if (java_option_takes_value (arg))
++        {
++          if (has_next)
++            arg = next;
++          continue;
++        }
++
++      if (*arg == '-' || *arg == '\0')
++        continue;
++
++      /* Primer argumento que no es opción: la clase principal */
++      name = java_name_from_class (arg);
++    }
++
++  g_free (contents);
++
++  if (name != NULL && *name == '\0')
++    g_clear_pointer (&name, g_free);
++  return name;
++}
++
++
++
+ /* Identidad estable de la app (para que el plugin recuerde si la
+  * ocultaste) y un título legible */
+ static void
+ icon_read_identity (Icon *icon)
+ {
+   XClassHint hint = { NULL, NULL };
+-  gchar *exe = NULL;
++  gulong pid;
++  gchar *exe = NULL, *java;
+   gchar *title;
+ 
+   if (XGetClassHint (P.dpy, icon->win, &hint))
+@@ -338,12 +469,22 @@ icon_read_identity (Icon *icon)
+       XFree (hint.res_class);
+     }
+ 
+-  exe = exe_from_pid (get_window_pid (icon->win));
++  pid = get_window_pid (icon->win);
++  exe = exe_from_pid (pid);
+   if (icon->id == NULL && exe != NULL)
+     icon->id = g_strdup (exe);
+ 
++  /* Java: el título del ícono es genérico y el WM_CLASS es el nombre de
++   * una clase; el nombre legible sale de la línea de comandos */
++  java = java_app_name (pid);
++  if (java != NULL)
++    {
++      g_free (icon->title);
++      icon->title = java;
++    }
++
+   title = get_window_title (icon->win);
+-  if (title != NULL && *title != '\0')
++  if (title != NULL && *title != '\0' && !title_is_generic (title))
+     {
+       g_free (icon->title);
+       icon->title = title;
+@@ -1455,7 +1596,8 @@ handle_event (XEvent *ev)
+         {
+           gchar *title = get_window_title (icon->win);
+ 
+-          if (title != NULL && *title != '\0' && g_strcmp0 (title, icon->title) != 0)
++          if (title != NULL && *title != '\0' && !title_is_generic (title)
++              && g_strcmp0 (title, icon->title) != 0)
+             {
+               g_free (icon->title);
+               icon->title = title;

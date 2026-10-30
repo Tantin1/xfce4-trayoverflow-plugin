@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.2\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.21\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2026-10-25 03:30-0300\n"
+"PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -39,6 +39,33 @@ msgstr "Sepa_ración (px):"
 msgid "C_olumns:"
 msgstr "_Columnas:"
 
+msgid "Left"
+msgstr "Izquierda"
+
+msgid "Right"
+msgstr "Derecha"
+
+msgid "Arro_w position:"
+msgstr "Posición de la fl_echa:"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Respecto de los íconos visibles. En paneles verticales, izquierda es arriba y derecha es abajo."
+
+msgid "From theme"
+msgstr "Del tema"
+
+msgid "Rounded"
+msgstr "Redondeadas"
+
+msgid "Square"
+msgstr "Rectas"
+
+msgid "Co_rners:"
+msgstr "Es_quinas:"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Sin compositor, las esquinas siempre son rectas."
+
 msgid "Behavior"
 msgstr "Comportamiento"
 
@@ -69,6 +96,11 @@ msgstr ""
 "Hay otra bandeja clásica activa (por ejemplo, el complemento nativo «Bandeja "
 "de estado»), así que las aplicaciones antiguas se muestran allí. Pasarán aquí "
 "en cuanto la quite."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr ""
+"Las aplicaciones antiguas necesitan XWayland, que no está disponible en esta "
+"sesión."
 
 msgid ""
 "Support for older apps could not start. To see why, run %s --verbose in a "
@@ -156,3 +188,49 @@ msgstr "Área de notificación con una ventana emergente para los íconos oculto
 
 msgid "Show hidden icons"
 msgstr "Mostrar íconos ocultos"
+
+msgid "Ic_on…"
+msgstr "Í_cono…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Elegir otro ícono para la aplicación seleccionada"
+
+msgid "Icon for %s"
+msgstr "Ícono de %s"
+
+msgid "Use the app's _own icon"
+msgstr "Usar el ícono _propio de la aplicación"
+
+msgid "_Cancel"
+msgstr "_Cancelar"
+
+msgid "_OK"
+msgstr "_Aceptar"
+
+msgid "_Open"
+msgstr "_Abrir"
+
+msgid "Suggested icons from your theme:"
+msgstr "Íconos sugeridos de su tema:"
+
+msgid "No matching icons in your theme."
+msgstr "No hay íconos parecidos en su tema."
+
+msgid "Icon _name or file:"
+msgstr "_Nombre del ícono o archivo:"
+
+msgid "Choose _File…"
+msgstr "Elegir _archivo…"
+
+msgid "Choose an icon file"
+msgstr "Elija un archivo de ícono"
+
+msgid "Images"
+msgstr "Imágenes"
+
+msgid ""
+"While a custom icon is set, changes in the app's own icon (for example a "
+"notice) are not shown."
+msgstr ""
+"Mientras tenga un ícono elegido, no se verán los cambios del ícono propio "
+"de la aplicación (por ejemplo, un aviso)."

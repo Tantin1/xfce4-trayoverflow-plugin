@@ -1,0 +1,220 @@
+diff --git a/meson.build b/meson.build
+index 71a3671..5b74dcb 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.10',
++  version: '0.2.11',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index b291a1b..3082f71 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.10\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.11\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-26 10:50-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index c80520b..0ce89d8 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -56,6 +56,8 @@
+ #define SETTLE_QUIET_MS           120
+ #define MAX_WAIT_MS               250
+ #define SETTLE_FALLBACK_MS        700
++/* --wayland: tras un clic, cuándo sacar el contenedor de la pantalla */
++#define PARK_DELAY_MS             1500
+ 
+ #define SYSTEM_TRAY_REQUEST_DOCK  0
+ #define XEMBED_EMBEDDED_NOTIFY    0
+@@ -130,6 +132,7 @@ typedef struct
+ 
+   /* Clic pendiente (se espera a que se suelte el botón físico) */
+   guint            click_id;
++  guint            park_id;          /* --wayland: sacar el contenedor de la vista */
+   gint             click_button;
+   gint             click_tries;
+   gint             click_x;          /* --wayland: posición que manda el host */
+@@ -957,10 +960,54 @@ send_button_event (Icon *icon, gint type, gint button, gint rx, gint ry, gint cx
+ 
+ 
+ 
++/* --wayland: un rato después del clic (la app ya ubicó su menú), sacar
++ * el contenedor de la pantalla. XWayland no respeta su forma vacía y
++ * algunos compositores lo muestran como un cuadrado negro. */
++static gboolean
++park_container (gpointer user_data)
++{
++  Icon *icon = user_data;
++
++  icon->park_id = 0;
++  trap_push ();
++  XMoveWindow (P.dpy, icon->container, -2 * MAX_SIZE, -2 * MAX_SIZE);
++  trap_pop ();
++  return G_SOURCE_REMOVE;
++}
++
++
++
++/* --wayland: (rx, ry) es un punto justo afuera del borde del panel, y las
++ * ventanas X quedan debajo del panel. El contenedor va del lado del borde
++ * de pantalla más cercano, con un lado sobre ese punto: queda tapado por
++ * el panel y el menú de la app sale pegado a él. */
++static void
++wayland_container_origin (Icon *icon, gint rx, gint ry, gint *x, gint *y)
++{
++  gint sw = DisplayWidth (P.dpy, P.screen);
++  gint sh = DisplayHeight (P.dpy, P.screen);
++  gint left = rx, right = sw - rx, top = ry, bottom = sh - ry;
++  gint nearest = MIN (MIN (left, right), MIN (top, bottom));
++
++  *x = rx - icon->size / 2;
++  *y = ry - icon->size / 2;
++
++  if (nearest == bottom)
++    *y = ry + 1;
++  else if (nearest == top)
++    *y = ry - icon->size;
++  else if (nearest == right)
++    *x = rx + 1;
++  else
++    *x = rx - icon->size;
++}
++
++
++
+ static void
+ do_click (Icon *icon, gint button, gint rx, gint ry)
+ {
+-  gint cx, cy;
++  gint cx, cy, ox, oy;
+ 
+   trap_push ();
+   click_point (icon, &cx, &cy);
+@@ -968,7 +1015,16 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
+   /* Poner el ícono justo debajo del puntero. Las apps calculan dónde
+    * mostrar su menú a partir de la posición de su ventana, así que el
+    * contenedor se queda ahí después del clic (invisible). */
+-  XMoveWindow (P.dpy, icon->container, rx - cx, ry - cy);
++  ox = rx - cx;
++  oy = ry - cy;
++  if (P.wayland)
++    {
++      if (icon->park_id != 0)
++        g_source_remove (icon->park_id);
++      icon->park_id = g_timeout_add (PARK_DELAY_MS, park_container, icon);
++      wayland_container_origin (icon, rx, ry, &ox, &oy);
++    }
++  XMoveWindow (P.dpy, icon->container, ox, oy);
+   container_set_input (icon, cx, cy, TRUE);
+   XSync (P.dpy, False);
+ 
+@@ -985,7 +1041,7 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
+       /* XWayland: su puntero no sigue al real fuera de las ventanas X;
+        * llevarlo al ícono para que el clic simulado caiga en él */
+       if (P.wayland)
+-        XTestFakeMotionEvent (P.dpy, -1, rx, ry, CurrentTime);
++        XTestFakeMotionEvent (P.dpy, -1, ox + cx, oy + cy, CurrentTime);
+       XTestFakeButtonEvent (P.dpy, button, True, CurrentTime);
+       XTestFakeButtonEvent (P.dpy, button, False, CurrentTime);
+     }
+@@ -1321,6 +1377,8 @@ icon_free (gpointer data)
+     g_source_remove (icon->late_update_id);
+   if (icon->click_id != 0)
+     g_source_remove (icon->click_id);
++  if (icon->park_id != 0)
++    g_source_remove (icon->park_id);
+   icon_unpublish (icon);
+ 
+   trap_push ();
+@@ -1374,7 +1432,10 @@ dock (Window win)
+   attrs.override_redirect = True;
+   attrs.colormap = P.colormap;
+   attrs.event_mask = SubstructureNotifyMask | SubstructureRedirectMask;
+-  icon->container = XCreateWindow (P.dpy, P.root, 0, 0, icon->size, icon->size, 0,
++  /* --wayland: fuera de la pantalla hasta el primer clic (ver park_container) */
++  icon->container = XCreateWindow (P.dpy, P.root,
++                                   P.wayland ? -2 * MAX_SIZE : 0, P.wayland ? -2 * MAX_SIZE : 0,
++                                   icon->size, icon->size, 0,
+                                    P.depth, InputOutput, P.visual,
+                                    CWBackPixel | CWBorderPixel | CWOverrideRedirect
+                                    | CWColormap | CWEventMask, &attrs);
+diff --git a/src/to-button.c b/src/to-button.c
+index 66f773c..c6b2a4b 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -98,7 +98,7 @@ event_root_coords (GtkWidget      *widget,
+ 
+         /* Ícono del panel: las ventanas X quedan debajo del panel, así
+          * que el punto va justo afuera de su borde, hacia donde se abren
+-         * los menús, a media distancia del tamaño del ícono */
++         * los menús (el proxy esconde su ventana del lado del panel) */
+         gtk_widget_translate_coordinates (widget, toplevel, 0, 0, &bx, &by);
+         gtk_widget_get_allocation (widget, &alloc);
+         cx = ox + bx + alloc.width / 2;
+@@ -106,10 +106,10 @@ event_root_coords (GtkWidget      *widget,
+ 
+         switch (xfce_panel_plugin_arrow_type (XFCE_PANEL_PLUGIN (plugin)))
+           {
+-          case GTK_ARROW_UP:    cy = oy - alloc.height / 2 - 1;      break;
+-          case GTK_ARROW_DOWN:  cy = oy + ph + alloc.height / 2 + 1; break;
+-          case GTK_ARROW_LEFT:  cx = ox - alloc.width / 2 - 1;       break;
+-          case GTK_ARROW_RIGHT: cx = ox + pw + alloc.width / 2 + 1;  break;
++          case GTK_ARROW_UP:    cy = oy - 1;  break;
++          case GTK_ARROW_DOWN:  cy = oy + ph; break;
++          case GTK_ARROW_LEFT:  cx = ox - 1;  break;
++          case GTK_ARROW_RIGHT: cx = ox + pw; break;
+           default: break;
+           }
+ 
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 931525f..06cda23 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -233,15 +233,17 @@ popup_try_grab (gpointer user_data)
+ 
+   /* owner_events = TRUE: los clics dentro de nuestras ventanas llegan
+    * normalmente; los de afuera llegan al popup y lo cierran.
+-   * Wayland: solo el puntero. Un grab de teclado no alcanza a otras apps
+-   * y ocultaría la pérdida de foco, que es lo que cierra el popup. */
+-  status = window != NULL
+-           ? gdk_seat_grab (seat, window,
+-                            p->popup_layer ? GDK_SEAT_CAPABILITY_ALL_POINTING
+-                                           : GDK_SEAT_CAPABILITY_ALL,
+-                            TRUE,
+-                            NULL, NULL, NULL, NULL)
+-           : GDK_GRAB_NOT_VIEWABLE;
++   * Wayland: sin grab del dispositivo. No alcanza a otras apps, y con él
++   * GTK abre los tooltips como popups con grab: algunos compositores
++   * (labwc 0.20) les dan el foco y el popup se cerraría. Basta el grab
++   * de GTK de más abajo para los clics sobre el panel. */
++  if (p->popup_layer)
++    status = window != NULL ? GDK_GRAB_SUCCESS : GDK_GRAB_NOT_VIEWABLE;
++  else
++    status = window != NULL
++             ? gdk_seat_grab (seat, window, GDK_SEAT_CAPABILITY_ALL, TRUE,
++                              NULL, NULL, NULL, NULL)
++             : GDK_GRAB_NOT_VIEWABLE;
+ 
+   if (status != GDK_GRAB_SUCCESS)
+     g_debug ("Grab del popup fallido (estado %d, intento %d)", status, p->grab_tries);
+@@ -482,7 +484,8 @@ popup_ungrab (TrayPlugin *p)
+ 
+   if (p->seat_grabbed)
+     {
+-      gdk_seat_ungrab (gdk_display_get_default_seat (gtk_widget_get_display (p->popup)));
++      if (!p->popup_layer)
++        gdk_seat_ungrab (gdk_display_get_default_seat (gtk_widget_get_display (p->popup)));
+       p->seat_grabbed = FALSE;
+     }
+ }

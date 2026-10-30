@@ -1,0 +1,122 @@
+diff --git a/meson.build b/meson.build
+index 97acd07..e549e44 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.14',
++  version: '0.2.15',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 348aee2..fff85e4 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.14\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.15\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-27 11:55-0300\n"
++"PO-Revision-Date: 2026-10-27 12:10-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 1ebbb89..7cc185b 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -493,9 +493,57 @@ popup_ungrab (TrayPlugin *p)
+ 
+ 
+ 
++/* Posición de la flecha en la pantalla y geometría de su monitor. Mismo
++ * cálculo que xfce_panel_plugin_position_widget (en Wayland, márgenes de
++ * la capa del panel), pero sin recortar al borde de la pantalla */
++static gboolean
++arrow_screen_rect (TrayPlugin   *p,
++                   GdkRectangle *arrow,
++                   GdkRectangle *monitor_geometry)
++{
++  GtkWidget *toplevel = gtk_widget_get_toplevel (p->arrow);
++  GdkWindow *window = gtk_widget_get_window (p->arrow);
++  GdkMonitor *monitor;
++  GtkAllocation alloc;
++  gint x = 0, y = 0;
++
++  if (window == NULL || !GTK_IS_WINDOW (toplevel))
++    return FALSE;
++
++  monitor = gdk_display_get_monitor_at_window (gtk_widget_get_display (p->arrow), window);
++  if (monitor == NULL)
++    return FALSE;
++  gdk_monitor_get_geometry (monitor, monitor_geometry);
++
++#ifdef HAVE_GTK_LAYER_SHELL
++  if (p->popup_layer)
++    {
++      x = monitor_geometry->x + gtk_layer_get_margin (GTK_WINDOW (toplevel),
++                                                      GTK_LAYER_SHELL_EDGE_LEFT);
++      y = monitor_geometry->y + gtk_layer_get_margin (GTK_WINDOW (toplevel),
++                                                      GTK_LAYER_SHELL_EDGE_TOP);
++    }
++  else
++#endif
++    gdk_window_get_origin (window, &x, &y);
++
++  /* La flecha no tiene ventana propia: su asignación es relativa a la
++   * ventana que la contiene */
++  gtk_widget_get_allocation (p->arrow, &alloc);
++  arrow->x = x + alloc.x;
++  arrow->y = y + alloc.y;
++  arrow->width = alloc.width;
++  arrow->height = alloc.height;
++  return TRUE;
++}
++
++
++
+ static void
+ popup_reposition (TrayPlugin *p)
+ {
++  GdkRectangle arrow, geometry;
++  GtkRequisition size;
+   gint x, y;
+ 
+   if (p->popup == NULL)
+@@ -505,6 +553,30 @@ popup_reposition (TrayPlugin *p)
+   gtk_window_resize (GTK_WINDOW (p->popup), 1, 1);
+   xfce_panel_plugin_position_widget (p->panel_plugin, p->popup, p->arrow, &x, &y);
+ 
++  /* Centrar el popup respecto de la flecha (el panel lo alinea por el
++   * borde), sin salirse del monitor: cerca de una esquina queda pegado
++   * al borde de la pantalla */
++  gtk_widget_get_preferred_size (p->popup, &size, NULL);
++  if (arrow_screen_rect (p, &arrow, &geometry))
++    {
++      GtkArrowType type = xfce_panel_plugin_arrow_type (p->panel_plugin);
++
++      /* Popup arriba o abajo del panel: centrar en horizontal (también en
++       * modo "deskbar", donde el panel es vertical pero el plugin no) */
++      if (type == GTK_ARROW_UP || type == GTK_ARROW_DOWN)
++        {
++          x = arrow.x + (arrow.width - size.width) / 2;
++          x = MIN (x, geometry.x + geometry.width - size.width);
++          x = MAX (x, geometry.x);
++        }
++      else
++        {
++          y = arrow.y + (arrow.height - size.height) / 2;
++          y = MIN (y, geometry.y + geometry.height - size.height);
++          y = MAX (y, geometry.y);
++        }
++    }
++
+   /* Pequeña separación respecto del panel */
+   switch (xfce_panel_plugin_arrow_type (p->panel_plugin))
+     {

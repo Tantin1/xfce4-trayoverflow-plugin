@@ -265,9 +265,20 @@ sni_item_context_menu (TrayItem *tray_item, gint x, gint y)
 
 
 static void
-sni_item_scroll (TrayItem *tray_item, gint delta, gboolean horizontal)
+sni_item_scroll (TrayItem *tray_item, gint delta, gboolean horizontal, gint x, gint y)
 {
-  sni_item_call (SNI_ITEM (tray_item), "Scroll",
+  SniItem *item = SNI_ITEM (tray_item);
+
+  /* Scroll no trae posición: a nuestro proxy se la mandamos antes (llega
+   * primero, mismo origen y destino), para que en Wayland la rueda caiga
+   * sobre el ícono aunque no haya habido un clic antes */
+  if (item->from_proxy && item->owner != NULL && !item->removed && backend != NULL)
+    g_dbus_connection_call (backend->conn, item->owner, item->object_path,
+                            PROXY_IFACE, "SetPointer", g_variant_new ("(ii)", x, y),
+                            NULL, G_DBUS_CALL_FLAGS_NONE, -1, item->cancellable,
+                            NULL, NULL);
+
+  sni_item_call (item, "Scroll",
                  g_variant_new ("(is)", delta, horizontal ? "horizontal" : "vertical"),
                  NULL, NULL);
 }
@@ -805,6 +816,7 @@ sni_item_pid_done (GObject      *source,
       if (pid > 0)
         item->exe = exe_name_from_pid (pid);
       item->from_proxy = g_strcmp0 (item->exe, PROXY_EXE_NAME) == 0;
+      tray_item_set_is_legacy (TRAY_ITEM (item), item->from_proxy);
       g_variant_unref (reply);
     }
   g_clear_error (&error);

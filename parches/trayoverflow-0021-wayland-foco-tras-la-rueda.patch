@@ -1,0 +1,147 @@
+diff --git a/meson.build b/meson.build
+index f70a44f..1b0a1d2 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.18',
++  version: '0.2.19',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index d0aeed8..60bce4d 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.18\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.19\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index d41d697..1a0aa48 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -45,6 +45,9 @@
+  * de que intentemos recuperar el puntero (Java tarda) */
+ #define MENU_REGRAB_MS 1500
+ #define MENU_WAIT_MS   150   /* cada cuánto ver si ese menú se cerró */
++/* Wayland: tras un giro sobre una app antigua, cuánto tiempo una pérdida
++ * de foco no cierra el popup (ver focus_check) */
++#define SCROLL_FOCUS_GRACE_MS 500
+ /* Radio de las esquinas del popup: opción "redondeadas" y tope para el
+  * que se copia del tema */
+ #define POPUP_RADIUS_ROUNDED 8
+@@ -432,6 +435,33 @@ pointer_over_panel (TrayPlugin *p)
+ 
+ 
+ 
++static void
++refocus_stop (TrayPlugin *p)
++{
++  if (p->refocus_id != 0)
++    {
++      g_source_remove (p->refocus_id);
++      p->refocus_id = 0;
++      gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
++                                   GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
++    }
++}
++
++
++
++static gboolean
++refocus_done (gpointer user_data)
++{
++  TrayPlugin *p = user_data;
++
++  p->refocus_id = 0;
++  gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
++                               GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
++  return G_SOURCE_REMOVE;
++}
++
++
++
+ static gboolean
+ focus_check (gpointer user_data)
+ {
+@@ -444,6 +474,21 @@ focus_check (gpointer user_data)
+       || gtk_window_has_toplevel_focus (GTK_WINDOW (p->popup)))
+     return G_SOURCE_REMOVE;
+ 
++  /* Recién se giró la rueda sobre una app antigua: algunos compositores
++   * (labwc 0.20) le dan el foco a la ventana X del proxy, aunque esté
++   * escondida. No es que el usuario se fue: recuperar el foco pidiendo el
++   * teclado en exclusiva un instante y volver al modo normal. */
++  if (g_get_monotonic_time () < p->scroll_grace_until)
++    {
++      if (p->refocus_id == 0)
++        gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
++                                     GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
++      else
++        g_source_remove (p->refocus_id);
++      p->refocus_id = g_timeout_add (100, refocus_done, p);
++      return G_SOURCE_REMOVE;
++    }
++
+   /* Clic sobre el panel: lo decide ese clic (p. ej. sobre la flecha
+    * solo cierra; si cerráramos acá, el clic volvería a abrir) */
+   if (pointer_over_panel (p))
+@@ -699,6 +744,11 @@ popup_hide (TrayPlugin *p)
+       g_source_remove (p->focus_check_id);
+       p->focus_check_id = 0;
+     }
++#ifdef HAVE_GTK_LAYER_SHELL
++  p->scroll_grace_until = 0;
++  if (p->popup_layer)
++    refocus_stop (p);
++#endif
+ 
+   if (p->popup != NULL)
+     {
+@@ -1154,13 +1204,21 @@ static void
+ button_scrolled (TrayButton *button,
+                  TrayPlugin *p)
+ {
+-  /* X11: con el grab del popup, el giro simulado del proxy le llegaría al
+-   * popup y no a la app antigua. Se suelta un momento, como con los clics.
+-   * (En Wayland no hay grab del puntero: ver tray_button_scroll.) */
+-  if (p->popup_layer || !in_popup (p, GTK_WIDGET (button))
++  if (!in_popup (p, GTK_WIDGET (button))
+       || !tray_item_get_is_legacy (tray_button_get_item (button)))
+     return;
+ 
++  /* Wayland: no hay grab del puntero (ver tray_button_scroll), pero el
++   * compositor puede quitarle el foco al popup (ver focus_check) */
++  if (p->popup_layer)
++    {
++      p->scroll_grace_until = g_get_monotonic_time () + SCROLL_FOCUS_GRACE_MS * 1000;
++      return;
++    }
++
++  /* X11: con el grab del popup, el giro simulado del proxy le llegaría al
++   * popup y no a la app antigua. Se suelta un momento, como con los clics. */
++
+   p->wait_app_menu = TRUE;
+   popup_ungrab (p);
+   if (p->act_id != 0)
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index ad62f3f..9ce5a7a 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -76,6 +76,8 @@ struct _TrayPlugin
+   guint            act_id;
+   gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
+   gboolean         wait_app_menu;     /* X11: o esperar al menú de una app antigua */
++  gint64           scroll_grace_until; /* Wayland: ver focus_check */
++  guint            refocus_id;
+   gboolean         watching_active;
+   gulong           active_window;     /* _NET_ACTIVE_WINDOW conocido */
+   guint            active_check_id;

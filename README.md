@@ -28,9 +28,14 @@ Windows 10/11.
 - Tamaño de ícono y separación **independientes** para el panel y la
   ventana emergente; columnas de la ventana emergente configurables.
 - Paneles horizontales, verticales y de varias filas; HiDPI.
+- X11 y **Wayland** (sesión Wayland de XFCE 4.20).
 - Varias instancias (p. ej. una por panel), cada una con su configuración.
 - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
-  las demás, con ventana emergente y arrastre incluidos.
+  las demás, con ventana emergente y arrastre incluidos. Incluye apps Java
+  y Wine.
+- **Otro ícono para cualquier app**: del tema de íconos o de un archivo.
+- **Arreglos incluidos** para apps cuyo ícono se ve mal (por ejemplo
+  JDownloader o Clipman): se usa el de tu tema sin hacer nada.
 - Traducción al español incluida.
 
 ## Requisitos
@@ -40,12 +45,13 @@ Windows 10/11.
 
 | Distribución | Comando |
 |---|---|
-| Debian / Ubuntu / Mint | `sudo apt install build-essential meson ninja-build gettext libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev libdbusmenu-gtk3-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxtst-dev libxext-dev` |
-| Arch / Manjaro / CachyOS | `sudo pacman -S base-devel meson gettext gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 libxcomposite libxdamage libxfixes libxtst libxext` |
-| Fedora | `sudo dnf install gcc meson gettext gtk3-devel xfce4-panel-devel libxfce4ui-devel xfconf-devel libdbusmenu-gtk3-devel libXcomposite-devel libXdamage-devel libXfixes-devel libXtst-devel libXext-devel` |
+| Debian / Ubuntu / Mint | `sudo apt install build-essential meson ninja-build gettext libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev libdbusmenu-gtk3-dev libgtk-layer-shell-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxtst-dev libxext-dev` |
+| Arch / Manjaro / CachyOS | `sudo pacman -S base-devel meson gettext gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 gtk-layer-shell libxcomposite libxdamage libxfixes libxtst libxext` |
+| Fedora | `sudo dnf install gcc meson gettext gtk3-devel xfce4-panel-devel libxfce4ui-devel xfconf-devel libdbusmenu-gtk3-devel gtk-layer-shell-devel libXcomposite-devel libXdamage-devel libXfixes-devel libXtst-devel libXext-devel` |
 
-Las bibliotecas `libX*` son solo para el soporte de apps antiguas. Si
-faltan, el plugin se compila igual, sin esa opción.
+Las bibliotecas `libX*` son solo para el soporte de apps antiguas, y
+gtk-layer-shell solo para Wayland. Si faltan, el plugin se compila igual,
+sin esa opción.
 
 ## Instalación
 
@@ -89,9 +95,11 @@ sudo apt remove xfce4-trayoverflow-plugin   # si se instaló el .deb
 | Arrastrar desde la ventana emergente al panel | Lo vuelve a mostrar |
 | Clic derecho en la flecha | Menú del plugin (Propiedades, Acerca de...) |
 
-La ventana emergente se cierra con un clic fuera, con Escape o al activar
-un ícono. Las apps que solo tienen menú (muchas que usan AppIndicator)
-abren su menú también con el clic izquierdo.
+La ventana emergente se cierra con un clic fuera o con Escape. Al hacer
+clic en uno de sus íconos, se cierra solo si la app abre o activa una
+ventana, o muestra su menú; si la app no hace nada, queda abierta. Las apps
+que solo tienen menú (muchas que usan AppIndicator) abren su menú también
+con el clic izquierdo.
 
 ## Configuración
 
@@ -100,8 +108,46 @@ entre íconos, tamaño y separación en la ventana emergente, número de
 columnas, y si los íconos inactivos van a la ventana emergente.
 
 **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
-para ocultarlas, botones para reordenar y **Olvidar** para quitar apps que
-ya no usás.
+para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
+y **Olvidar** para quitar apps que ya no usás.
+
+### Elegir otro ícono
+
+Seleccioná una app en **Elementos** y tocá **Ícono…**. Se sugieren los
+íconos de tu tema con un nombre parecido; también podés escribir otro
+nombre o elegir un archivo PNG o SVG. **Usar el ícono propio de la
+aplicación** vuelve al original.
+
+Mientras una app tenga otro ícono, no se ven los cambios de su ícono propio
+(por ejemplo, un aviso). El tooltip sí sigue siendo el de la app.
+
+### Apps cuyo ícono se ve mal
+
+Algunas apps mandan un ícono roto, borroso o que falla en ciertos tamaños.
+Para esas, el plugin usa por defecto el ícono de tu tema o, si el tema no
+lo tiene, el que instaló el paquete de la app. Si no existe ninguno, se ve
+el de la app, como siempre. Lo que elijas con **Ícono…** tiene prioridad.
+
+La lista se instala con el plugin, en
+`/usr/share/xfce4-trayoverflow-plugin/icon-defaults.conf`. Tiene una línea
+por app:
+
+```
+xfce4-clipman=xfce4-clipman-plugin;org.xfce.clipman
+org-jdownloader-*=jdownloader
+```
+
+- A la izquierda, la clave de la app. Para verla:
+  `xfconf-query -c xfce4-panel -lv | grep -A20 known-items`. Con `*` al
+  final vale para todas las claves que empiezan así.
+- A la derecha, uno o más íconos (nombre del tema o ruta de archivo),
+  separados por `;`. Se usa el primero que exista.
+
+Para sumar apps sin esperar una versión nueva, creá
+`~/.config/xfce4/trayoverflow/icon-defaults.conf` con el mismo formato:
+tiene prioridad sobre la lista del plugin. Reiniciá el panel para
+aplicarlo. Si encontrás una app que se ve mal, avisá para sumarla a la
+lista.
 
 La configuración se guarda en xfconf, en el canal `xfce4-panel`, bajo
 `/plugins/plugin-N/`. Los íconos de apps cerradas se guardan en
@@ -133,7 +179,11 @@ ocupa unos 7 MB de RAM.
   podría no responder bien. Para diagnosticar:
   `/usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy --verbose` (con la
   opción desactivada y sin otra bandeja clásica activa).
-- Las apps antiguas no informan su tooltip; se muestra su nombre.
+- Las apps antiguas no informan su tooltip; se muestra su nombre. En las
+  apps Java, el nombre sale de su línea de comandos (por ejemplo
+  `java -jar JDownloader.jar` → *JDownloader*). Las apps que dibujan su
+  propio tooltip al pasar el ratón (como el resumen de descargas de
+  JDownloader) no lo muestran aquí.
 - Cada app antigua se redibuja al tamaño exacto en que se muestra (panel o
   ventana emergente), así que se ve nítida como en la bandeja nativa. Las
   apps GTK dibujan a tamaños estándar: con **16, 24, 32 o 48 px** ocupan
@@ -148,8 +198,25 @@ activa.
 
 ### Wayland
 
-Pensado para X11. Bajo la sesión Wayland experimental de XFCE 4.20 la
-posición de la ventana emergente puede no ser correcta.
+Funciona en la sesión Wayland de XFCE 4.20 con compositores que tengan
+*layer-shell* (labwc, Wayfire, xfwl4…). Hace falta compilar con
+**gtk-layer-shell** (la misma biblioteca que usa el panel); `meson` indica
+al final si quedó incluido. El mismo plugin sirve para X11 y Wayland: elige
+solo al arrancar.
+
+Diferencias con X11:
+
+- La ventana emergente se cierra cuando otra app pasa a primer plano (al
+  hacer clic en ella o al abrir una ventana). Un clic sobre el **escritorio
+  vacío** puede no cerrarla, según el compositor: usá Escape o la flecha.
+  En xfwl4 (todavía en desarrollo) tampoco la cierra un clic en otra
+  ventana; lo mismo pasa con el calendario del reloj del panel.
+- Las apps antiguas (XEmbed) funcionan a través de **XWayland**, que el
+  compositor tiene que ofrecer (labwc lo hace). Al hacer clic en una de
+  ellas dentro de la ventana emergente, esta se cierra siempre, para no
+  tapar el menú de la app. Sus menús se cierran con Escape o eligiendo una
+  opción: un clic fuera de ellos no los cierra (es una limitación de
+  XWayland).
 
 ### Apps Flatpak con ID genérico
 
@@ -176,8 +243,10 @@ busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher 
 xfconf-query -c xfce4-panel -lv | grep -A1 trayoverflow
 ```
 
-Si un cambio de configuración no se refleja, `xfce4-panel -r` reinicia el
-panel sin cerrar la sesión.
+Los cambios hechos con `xfconf-query` (o desde otro programa) se aplican
+al instante, también en la ventana de propiedades si está abierta. Si
+algo no se refleja, `xfce4-panel -r` reinicia el panel sin cerrar la
+sesión.
 
 ## Aplicar parches
 

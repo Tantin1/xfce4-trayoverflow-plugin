@@ -1,0 +1,131 @@
+diff --git a/meson.build b/meson.build
+index 9d5354d..8120d6b 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.5',
++  version: '0.2.6',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index df6edbd..bbdf63d 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.5\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.6\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-25 20:30-0300\n"
++"PO-Revision-Date: 2026-10-26 06:30-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 0d2ec9b..9e56032 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -729,6 +729,7 @@ icon_clicked (GtkButton *button, DialogData *d)
+   gtk_grid_attach (GTK_GRID (grid), hint, 0, 4, 3, 1);
+ 
+   g_signal_connect (c.entry, "changed", G_CALLBACK (chooser_update_preview), &c);
++  /* El ícono en uso (elegido o por defecto); vacío si es el de la app */
+   current = tray_settings_get_icon_override (d->p->settings, key);
+   gtk_entry_set_text (GTK_ENTRY (c.entry), current != NULL ? current : "");
+   chooser_update_preview (GTK_EDITABLE (c.entry), &c);
+@@ -763,7 +764,8 @@ icon_clicked (GtkButton *button, DialogData *d)
+     }
+   else if (response == RESPONSE_APP_ICON)
+     {
+-      tray_settings_set_icon_override (d->p->settings, key, NULL);
++      /* Explícito: si la app tiene un ícono por defecto, que no vuelva */
++      tray_settings_set_icon_override (d->p->settings, key, TRAY_ICON_OWN);
+     }
+ 
+   if (dialog != NULL)
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 0b86093..f9e7abc 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -806,13 +806,50 @@ tray_settings_move (TraySettings *s,
+ 
+ /* ── Ícono elegido ───────────────────────────────────────────────────── */
+ 
++/* Apps cuyo ícono se ve roto en cualquier bandeja: se usa el de su tema o
++ * el que instala su paquete (hicolor, pixmaps). Si no existe, el de la app. */
++static const gchar *
++default_icon_for (const gchar *key)
++{
++  /* JDownloader (Java): su ícono sale como puntos sueltos o un cuadrado
++   * blanco. La clave es su WM_CLASS ("org-jdownloader-update-launcher-…") */
++  if (g_str_has_prefix (key, "org-jdownloader-"))
++    return "jdownloader";
++
++  return NULL;
++}
++
++
++
++const gchar *
++tray_settings_get_icon_choice (TraySettings *s,
++                               const gchar  *key)
++{
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), NULL);
++
++  return key != NULL ? g_hash_table_lookup (s->icons, key) : NULL;
++}
++
++
++
+ const gchar *
+ tray_settings_get_icon_override (TraySettings *s,
+                                  const gchar  *key)
+ {
++  const gchar *choice;
++
+   g_return_val_if_fail (TRAY_IS_SETTINGS (s), NULL);
+ 
+-  return key != NULL ? g_hash_table_lookup (s->icons, key) : NULL;
++  if (key == NULL)
++    return NULL;
++
++  choice = g_hash_table_lookup (s->icons, key);
++  if (g_strcmp0 (choice, TRAY_ICON_OWN) == 0)
++    return NULL;
++  if (choice != NULL)
++    return choice;
++
++  return default_icon_for (key);
+ }
+ 
+ 
+diff --git a/src/to-settings.h b/src/to-settings.h
+index f31aae0..6f97b3b 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -68,9 +68,17 @@ void     tray_settings_forget                (TraySettings *s, const gchar *key)
+ void     tray_settings_move                  (TraySettings *s, const gchar *key,
+                                               const gchar *anchor, gboolean after);
+ 
+-/* Ícono elegido por el usuario para una app (nombre del tema o ruta de
+- * archivo), en lugar del que manda la app. NULL o "" = el de la app */
++/* Valor guardado que significa "usar el ícono propio de la app", aunque
++ * exista un ícono por defecto para ella (ver default_icon_for) */
++#define TRAY_ICON_OWN "-"
++
++/* Ícono a usar para una app en lugar del que manda (nombre del tema o ruta
++ * de archivo): el elegido por el usuario o, si no eligió, uno por defecto
++ * para apps conocidas que se ven mal. NULL = el de la app */
+ const gchar *tray_settings_get_icon_override (TraySettings *s, const gchar *key);
++/* Solo lo elegido por el usuario: NULL (nada), TRAY_ICON_OWN o un ícono */
++const gchar *tray_settings_get_icon_choice   (TraySettings *s, const gchar *key);
++/* @icon: un ícono, TRAY_ICON_OWN, o NULL / "" para volver al por defecto */
+ void     tray_settings_set_icon_override     (TraySettings *s, const gchar *key,
+                                               const gchar *icon);
+ 

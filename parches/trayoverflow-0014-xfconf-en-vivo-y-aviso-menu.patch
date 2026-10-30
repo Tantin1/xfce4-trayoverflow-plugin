@@ -1,0 +1,393 @@
+diff --git a/README.md b/README.md
+index cd7a4d9..4a0d822 100644
+--- a/README.md
++++ b/README.md
+@@ -243,8 +243,10 @@ busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher
+ xfconf-query -c xfce4-panel -lv | grep -A1 trayoverflow
+ ```
+ 
+-Si un cambio de configuración no se refleja, `xfce4-panel -r` reinicia el
+-panel sin cerrar la sesión.
++Los cambios hechos con `xfconf-query` (o desde otro programa) se aplican
++al instante, también en la ventana de propiedades si está abierta. Si
++algo no se refleja, `xfce4-panel -r` reinicia el panel sin cerrar la
++sesión.
+ 
+ ## Aplicar parches
+ 
+diff --git a/meson.build b/meson.build
+index 5b74dcb..ee2620e 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.11',
++  version: '0.2.12',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 3082f71..19c622e 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.11\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.12\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-26 10:50-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-button.c b/src/to-button.c
+index c6b2a4b..95b3e2e 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -28,6 +28,8 @@ struct _TrayButton
+ 
+   gulong     changed_id;
+   gulong     fallback_id;
++  GdkEvent  *activate_event;   /* último clic que activó la app (ver
++                                * tray_button_activate_fallback) */
+ 
+   /* Con qué se dibujó el ícono por última vez, para no redibujar en vano */
+   GdkRGBA    drawn_color;
+@@ -227,7 +229,13 @@ tray_button_button_release (GtkWidget      *widget,
+       app_menu = TRUE;
+     }
+   else if (event->button == 1)
+-    tray_item_activate (button->item, x, y);
++    {
++      /* Si la app rechaza Activate, su menú se abre más tarde, al llegar
++       * la respuesta: ahí hará falta este clic como evento de origen */
++      g_clear_pointer (&button->activate_event, gdk_event_free);
++      button->activate_event = gdk_event_copy ((GdkEvent *) event);
++      tray_item_activate (button->item, x, y);
++    }
+   else if (event->button == 2)
+     tray_item_secondary_activate (button->item, x, y);
+   else
+@@ -353,9 +361,24 @@ static void
+ tray_button_activate_fallback (TrayButton *button)
+ {
+   GtkWidget *menu = tray_item_get_menu (button->item);
++  GdkEvent *event = NULL;
++
++  if (!menu_has_children (menu))
++    return;
++
++  /* GTK quiere el evento que originó el menú (si no, avisa "no trigger
++   * event for menu popup"). Se usa el clic que activó la app, con la
++   * hora actual: el original ya es viejo y podría impedir el grab. */
++  if (button->activate_event != NULL)
++    {
++      event = gdk_event_copy (button->activate_event);
++      event->button.time = GDK_CURRENT_TIME;
++    }
++
++  g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, menu, event);
+ 
+-  if (menu_has_children (menu))
+-    g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, menu, NULL);
++  if (event != NULL)
++    gdk_event_free (event);
+ }
+ 
+ 
+@@ -374,6 +397,7 @@ tray_button_dispose (GObject *object)
+     }
+   g_clear_pointer (&button->tooltip, g_free);
+   g_clear_pointer (&button->icon_override, g_free);
++  g_clear_pointer (&button->activate_event, gdk_event_free);
+ 
+   G_OBJECT_CLASS (tray_button_parent_class)->dispose (object);
+ }
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index b8523c2..9c6c128 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -58,6 +58,7 @@ typedef struct
+   guint         legacy_refresh_id;
+ 
+   gboolean      rebuilding;
++  gboolean      syncing;    /* actualizando los controles desde la configuración */
+ } DialogData;
+ 
+ 
+@@ -72,6 +73,9 @@ panel_auto_toggled (GtkToggleButton *toggle,
+ 
+   gtk_widget_set_sensitive (d->panel_size, !automatic);
+ 
++  if (d->syncing)
++    return;
++
+   if (automatic)
+     {
+       tray_settings_set_panel_icon_size (d->p->settings, 0);
+@@ -94,6 +98,9 @@ spin_changed (GtkSpinButton *spin,
+   gint value = gtk_spin_button_get_value_as_int (spin);
+   TraySettings *s = d->p->settings;
+ 
++  if (d->syncing)
++    return;
++
+   if (GTK_WIDGET (spin) == d->panel_size)
+     {
+       if (!gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (d->panel_auto)))
+@@ -115,7 +122,8 @@ static void
+ passive_toggled (GtkToggleButton *toggle,
+                  DialogData      *d)
+ {
+-  tray_settings_set_passive_in_popup (d->p->settings, gtk_toggle_button_get_active (toggle));
++  if (!d->syncing)
++    tray_settings_set_passive_in_popup (d->p->settings, gtk_toggle_button_get_active (toggle));
+ }
+ 
+ 
+@@ -869,7 +877,8 @@ static void
+ legacy_toggled (GtkToggleButton *toggle,
+                 DialogData      *d)
+ {
+-  tray_settings_set_legacy_tray (d->p->settings, gtk_toggle_button_get_active (toggle));
++  if (!d->syncing)
++    tray_settings_set_legacy_tray (d->p->settings, gtk_toggle_button_get_active (toggle));
+ 
+   /* El proxy tarda un instante en tomar (o soltar) la bandeja clásica */
+   legacy_update_notice (d);
+@@ -1007,6 +1016,37 @@ model_changed (TrayModel *model, TrayItem *item, DialogData *d)
+ 
+ 
+ 
++/* La configuración cambió (p. ej. desde xfconf-query): reflejarlo en los
++ * controles sin volver a escribirla */
++static void
++sync_from_settings (DialogData *d)
++{
++  TraySettings *s = d->p->settings;
++  gint panel_size = tray_settings_get_panel_icon_size (s);
++
++  d->syncing = TRUE;
++
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->panel_auto), panel_size == 0);
++  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_size),
++                             tray_plugin_get_panel_icon_size (d->p));
++  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_spacing),
++                             tray_settings_get_panel_spacing (s));
++  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->popup_size),
++                             tray_settings_get_popup_icon_size (s));
++  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->popup_spacing),
++                             tray_settings_get_popup_spacing (s));
++  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->popup_columns),
++                             tray_settings_get_popup_columns (s));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
++                                tray_settings_get_passive_in_popup (s));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
++                                tray_settings_get_legacy_tray (s));
++
++  d->syncing = FALSE;
++}
++
++
++
+ static void
+ dialog_destroyed (GtkWidget *dialog, DialogData *d)
+ {
+@@ -1067,6 +1107,7 @@ tray_dialog_show (TrayPlugin *p)
+   gtk_box_pack_start (GTK_BOX (content), notebook, TRUE, TRUE, 0);
+ 
+   g_signal_connect_swapped (p->settings, "known-changed", G_CALLBACK (rebuild_list), d);
++  g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (sync_from_settings), d);
+   g_signal_connect (p->model, "item-added", G_CALLBACK (model_changed), d);
+   g_signal_connect (p->model, "item-removed", G_CALLBACK (model_changed), d);
+   g_signal_connect (d->dialog, "response", G_CALLBACK (dialog_response), d);
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 76e86e3..0d02465 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -19,6 +19,7 @@
+ #define DEFAULT_LEGACY_TRAY      FALSE
+ #define MAX_KNOWN                200
+ #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
++#define RELOAD_DELAY_MS          250  /* agrupar cambios hechos desde afuera */
+ 
+ struct _TraySettings
+ {
+@@ -46,6 +47,9 @@ struct _TraySettings
+ 
+   guint          save_id;     /* guardado diferido pendiente */
+   gboolean       discarded;   /* el plugin fue quitado: no volver a escribir */
++
++  gulong         property_changed_id;
++  guint          reload_id;   /* releer xfconf tras un cambio desde afuera */
+ };
+ 
+ G_DEFINE_TYPE (TraySettings, tray_settings, G_TYPE_OBJECT)
+@@ -366,6 +370,11 @@ tray_settings_discard (TraySettings *s)
+       g_source_remove (s->save_id);
+       s->save_id = 0;
+     }
++  if (s->reload_id != 0)
++    {
++      g_source_remove (s->reload_id);
++      s->reload_id = 0;
++    }
+   s->discarded = TRUE;
+ }
+ 
+@@ -421,6 +430,132 @@ tray_settings_thaw (TraySettings *s)
+ 
+ 
+ 
++/* ── Cambios hechos desde afuera (xfconf-query, otro programa) ──────────
++ * xfconf también avisa de nuestras propias escrituras: se relee todo y
++ * solo se avisa si algo quedó distinto de lo que ya teníamos. */
++
++static gint
++compare_strings (gconstpointer a,
++                 gconstpointer b)
++{
++  return g_strcmp0 (*(const gchar *const *) a, *(const gchar *const *) b);
++}
++
++
++
++static void
++snapshot_set (GString *out, const gchar *name, GHashTable *set, gboolean values)
++{
++  GPtrArray *keys = g_ptr_array_new ();
++  GHashTableIter iter;
++  gpointer key;
++  guint i;
++
++  g_hash_table_iter_init (&iter, set);
++  while (g_hash_table_iter_next (&iter, &key, NULL))
++    g_ptr_array_add (keys, key);
++  g_ptr_array_sort (keys, compare_strings);
++
++  g_string_append_printf (out, "%s:", name);
++  for (i = 0; i < keys->len; i++)
++    {
++      const gchar *k = g_ptr_array_index (keys, i);
++
++      g_string_append_printf (out, "%s\x1f", k);
++      if (values)
++        g_string_append_printf (out, "%s\x1f", (const gchar *) g_hash_table_lookup (set, k));
++    }
++  g_string_append_c (out, '\n');
++  g_ptr_array_unref (keys);
++}
++
++
++
++/* Todo el estado, en texto, para comparar antes y después de releer */
++static gchar *
++snapshot (TraySettings *s)
++{
++  GString *out = g_string_new (NULL);
++  guint i;
++
++  g_string_append_printf (out, "%d %d %d %d %d %d %d\n",
++                          s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
++                          s->popup_spacing, s->popup_columns,
++                          s->passive_in_popup, s->legacy_tray);
++  snapshot_set (out, "hidden", s->hidden, FALSE);
++  snapshot_set (out, "visible", s->visible, FALSE);
++  snapshot_set (out, "icons", s->icons, TRUE);
++
++  for (i = 0; i < s->known->len; i++)
++    {
++      TrayKnown *k = g_ptr_array_index (s->known, i);
++
++      g_string_append_printf (out, "%s\x1f%s\x1f%s\n", k->key,
++                              k->title != NULL ? k->title : "",
++                              k->icon_name != NULL ? k->icon_name : "");
++    }
++
++  return g_string_free (out, FALSE);
++}
++
++
++
++static gboolean
++reload_timeout (gpointer user_data)
++{
++  TraySettings *s = user_data;
++  gchar *before, *after;
++
++  s->reload_id = 0;
++
++  /* Hay cambios nuestros sin escribir: ganan ellos (se escriben enseguida
++   * y su aviso de vuelta ya coincidirá) */
++  if (s->save_id != 0 || s->freeze_count > 0 || s->discarded)
++    return G_SOURCE_REMOVE;
++
++  before = snapshot (s);
++
++  g_hash_table_remove_all (s->hidden);
++  g_hash_table_remove_all (s->visible);
++  g_hash_table_remove_all (s->icons);
++  g_ptr_array_set_size (s->known, 0);
++  load_all (s);
++
++  after = snapshot (s);
++
++  /* Sin schedule_save: lo leído ya está en xfconf */
++  if (strcmp (before, after) != 0)
++    {
++      g_debug ("Configuración cambiada desde afuera: se aplica");
++      g_signal_emit (s, signals[SIGNAL_CHANGED], 0);
++      g_signal_emit (s, signals[SIGNAL_KNOWN_CHANGED], 0);
++    }
++
++  g_free (before);
++  g_free (after);
++  return G_SOURCE_REMOVE;
++}
++
++
++
++static void
++property_changed (XfconfChannel *channel,
++                  const gchar   *property,
++                  const GValue  *value,
++                  TraySettings  *s)
++{
++  gsize len = strlen (s->base);
++
++  /* Solo las propiedades de esta instancia (/plugins/plugin-N/...) */
++  if (strncmp (property, s->base, len) != 0 || property[len] != '/')
++    return;
++
++  if (s->reload_id == 0 && !s->discarded)
++    s->reload_id = g_timeout_add (RELOAD_DELAY_MS, reload_timeout, s);
++}
++
++
++
+ /* ── GObject ─────────────────────────────────────────────────────────── */
+ 
+ static void
+@@ -432,6 +567,11 @@ tray_settings_finalize (GObject *object)
+    * quitado del panel: ahí su configuración ya no debe existir) */
+   tray_settings_flush (s);
+ 
++  if (s->reload_id != 0)
++    g_source_remove (s->reload_id);
++  if (s->property_changed_id != 0)
++    g_signal_handler_disconnect (s->channel, s->property_changed_id);
++
+   g_hash_table_unref (s->hidden);
+   g_hash_table_unref (s->visible);
+   g_hash_table_unref (s->icons);
+@@ -497,6 +637,9 @@ tray_settings_new (XfcePanelPlugin *plugin)
+ 
+   load_all (s);
+ 
++  s->property_changed_id = g_signal_connect (s->channel, "property-changed",
++                                             G_CALLBACK (property_changed), s);
++
+   return s;
+ }
+ 

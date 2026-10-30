@@ -1,0 +1,461 @@
+diff --git a/meson.build b/meson.build
+index ee2620e..b47e5c4 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.12',
++  version: '0.2.13',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 19c622e..8ddad48 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.12\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.13\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-26 10:50-0300\n"
++"PO-Revision-Date: 2026-10-27 11:10-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+@@ -39,6 +39,21 @@ msgstr "Sepa_ración (px):"
+ msgid "C_olumns:"
+ msgstr "_Columnas:"
+ 
++msgid "From theme"
++msgstr "Del tema"
++
++msgid "Rounded"
++msgstr "Redondeadas"
++
++msgid "Square"
++msgstr "Rectas"
++
++msgid "Co_rners:"
++msgstr "Es_quinas:"
++
++msgid "Without a compositor, corners are always square."
++msgstr "Sin compositor, las esquinas siempre son rectas."
++
+ msgid "Behavior"
+ msgstr "Comportamiento"
+ 
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 9c6c128..012c2a5 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -43,6 +43,7 @@ typedef struct
+   GtkWidget    *popup_size;
+   GtkWidget    *popup_spacing;
+   GtkWidget    *popup_columns;
++  GtkWidget    *popup_corners;
+   GtkWidget    *passive;
+ 
+   GtkListStore *store;
+@@ -118,6 +119,16 @@ spin_changed (GtkSpinButton *spin,
+ 
+ 
+ 
++static void
++corners_changed (GtkComboBox *combo,
++                 DialogData  *d)
++{
++  if (!d->syncing)
++    tray_settings_set_popup_corners (d->p->settings, gtk_combo_box_get_active (combo));
++}
++
++
++
+ static void
+ passive_toggled (GtkToggleButton *toggle,
+                  DialogData      *d)
+@@ -212,6 +223,24 @@ appearance_page (DialogData *d)
+   d->popup_columns = make_spin (d, 1, TRAY_COLUMNS_MAX, tray_settings_get_popup_columns (s));
+   add_row (grid, &row, _("C_olumns:"), d->popup_columns, NULL);
+ 
++  /* Mismo orden que TrayCorners */
++  d->popup_corners = gtk_combo_box_text_new ();
++  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->popup_corners), _("From theme"));
++  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->popup_corners), _("Rounded"));
++  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->popup_corners), _("Square"));
++  gtk_combo_box_set_active (GTK_COMBO_BOX (d->popup_corners),
++                            tray_settings_get_popup_corners (s));
++  g_signal_connect (d->popup_corners, "changed", G_CALLBACK (corners_changed), d);
++  add_row (grid, &row, _("Co_rners:"), d->popup_corners, NULL);
++
++  hint = gtk_label_new (_("Without a compositor, corners are always square."));
++  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
++  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
++  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
++  gtk_widget_set_margin_start (hint, 12);
++  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
++  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
++
+   add_section (grid, &row, _("Behavior"));
+ 
+   d->passive = gtk_check_button_new_with_mnemonic (_("Move _inactive icons to the popup"));
+@@ -1037,6 +1066,8 @@ sync_from_settings (DialogData *d)
+                              tray_settings_get_popup_spacing (s));
+   gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->popup_columns),
+                              tray_settings_get_popup_columns (s));
++  gtk_combo_box_set_active (GTK_COMBO_BOX (d->popup_corners),
++                            tray_settings_get_popup_corners (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
+                                 tray_settings_get_passive_in_popup (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 06cda23..1ebbb89 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -41,6 +41,10 @@
+ /* Tras un clic en un ícono del popup: cuánto esperar sin grab, para que
+  * la app reciba el clic (las apps antiguas lo reciben simulado) */
+ #define ACT_REGRAB_MS  600
++/* Radio de las esquinas del popup: opción "redondeadas" y tope para el
++ * que se copia del tema */
++#define POPUP_RADIUS_ROUNDED 8
++#define POPUP_RADIUS_MAX     24
+ 
+ static const GtkTargetEntry dnd_targets[] = {
+   { (gchar *) DND_TARGET, GTK_TARGET_SAME_APP, 0 },
+@@ -64,9 +68,6 @@ static const gchar plugin_css[] =
+   "  border: 1px solid alpha(@theme_fg_color, 0.18);"
+   "  padding: 6px;"
+   "}"
+-  "." TO_CSS_PREFIX "-popup-frame.rounded {"
+-  "  border-radius: 8px;"
+-  "}"
+   "." TO_CSS_PREFIX "-popup ." TO_CSS_PREFIX "-button {"
+   "  padding: 4px;"
+   "}"
+@@ -843,9 +844,10 @@ popup_draw (GtkWidget  *widget,
+             cairo_t    *cr,
+             TrayPlugin *p)
+ {
+-  if (p->popup_rounded)
++  if (p->popup_rgba)
+     {
+-      /* Limpiar a transparente para que se vean las esquinas redondeadas */
++      /* Limpiar a transparente para que se vean las esquinas redondeadas.
++       * Sin compositor el radio es 0 y el marco tapa toda la ventana */
+       cairo_save (cr);
+       cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+       cairo_set_source_rgba (cr, 0, 0, 0, 0);
+@@ -1752,6 +1754,122 @@ refresh_all_icons (TrayPlugin *p)
+ 
+ 
+ 
++/* ════════════════════════════════════════════════════════════════════════
++ * Popup: esquinas
++ * ════════════════════════════════════════════════════════════════════════ */
++
++static gint
++style_radius (GtkStyleContext *context)
++{
++  gint radius = 0;
++
++  gtk_style_context_get (context, gtk_style_context_get_state (context),
++                         GTK_STYLE_PROPERTY_BORDER_RADIUS, &radius, NULL);
++  return radius;
++}
++
++
++
++/* El radio que el tema usa en sus menús: el del menú en sí o el de la
++ * decoración de las ventanas emergentes (Adwaita redondea esta última) */
++static gint
++theme_menu_radius (GdkScreen *screen)
++{
++  GtkWidget *menu = gtk_menu_new ();
++  GtkWidgetPath *path = gtk_widget_path_new ();
++  GtkStyleContext *context = gtk_style_context_new ();
++  gint radius;
++
++  g_object_ref_sink (menu);
++  radius = style_radius (gtk_widget_get_style_context (menu));
++  gtk_widget_destroy (menu);
++  g_object_unref (menu);
++
++  gtk_widget_path_append_type (path, GTK_TYPE_WINDOW);
++  gtk_widget_path_iter_set_object_name (path, -1, "window");
++  gtk_widget_path_iter_add_class (path, -1, "csd");
++  gtk_widget_path_iter_add_class (path, -1, "popup");
++  gtk_widget_path_append_type (path, G_TYPE_NONE);
++  gtk_widget_path_iter_set_object_name (path, -1, "decoration");
++  gtk_style_context_set_screen (context, screen);
++  gtk_style_context_set_path (context, path);
++  radius = MAX (radius, style_radius (context));
++  g_object_unref (context);
++  gtk_widget_path_unref (path);
++
++  return CLAMP (radius, 0, POPUP_RADIUS_MAX);
++}
++
++
++
++/* Aplica la opción de esquinas. Sin compositor (X11) no hay
++ * transparencia: siempre rectas */
++static void
++popup_apply_corners (TrayPlugin *p)
++{
++  GdkScreen *screen;
++  gint radius = 0;
++  gchar *css;
++
++  if (p->popup == NULL)
++    return;
++
++  screen = gtk_widget_get_screen (p->popup);
++  if (p->popup_rgba && gdk_screen_is_composited (screen))
++    {
++      switch (tray_settings_get_popup_corners (p->settings))
++        {
++        case TRAY_CORNERS_THEME:
++          radius = theme_menu_radius (screen);
++          break;
++        case TRAY_CORNERS_ROUNDED:
++          radius = POPUP_RADIUS_ROUNDED;
++          break;
++        default:
++          break;
++        }
++    }
++
++  p->popup_rounded = radius > 0;
++  if (p->popup_rounded)
++    gtk_style_context_add_class (gtk_widget_get_style_context (p->popup_frame), "rounded");
++  else
++    gtk_style_context_remove_class (gtk_widget_get_style_context (p->popup_frame), "rounded");
++
++  if (radius == p->popup_radius)
++    return;
++
++  p->popup_radius = radius;
++  css = g_strdup_printf ("." TO_CSS_PREFIX "-popup-frame { border-radius: %dpx; }", radius);
++  gtk_css_provider_load_from_data (p->corners_css, css, -1, NULL);
++  g_free (css);
++  gtk_widget_queue_draw (p->popup);
++}
++
++
++
++static gboolean
++popup_apply_corners_idle (gpointer data)
++{
++  TrayPlugin *p = data;
++
++  p->corners_idle_id = 0;
++  popup_apply_corners (p);
++  return G_SOURCE_REMOVE;
++}
++
++
++
++/* Cambió el tema o el compositor: esperar a que GTK cargue el estilo nuevo */
++static void
++popup_schedule_corners (TrayPlugin *p)
++{
++  if (p->corners_idle_id == 0)
++    p->corners_idle_id = g_idle_add (popup_apply_corners_idle, p);
++}
++
++
++
+ /* ════════════════════════════════════════════════════════════════════════
+  * Popup: construcción
+  * ════════════════════════════════════════════════════════════════════════ */
+@@ -1798,8 +1916,10 @@ popup_create (TrayPlugin *p)
+   context = gtk_widget_get_style_context (p->popup);
+   gtk_style_context_add_class (context, TO_CSS_PREFIX "-popup");
+ 
+-  p->popup_rounded = visual != NULL && gdk_screen_is_composited (screen);
+-  if (p->popup_rounded)
++  /* Visual con transparencia siempre que exista, aunque ahora no haya
++   * compositor: así las esquinas pueden cambiar si se prende después */
++  p->popup_rgba = visual != NULL;
++  if (p->popup_rgba)
+     {
+       gtk_widget_set_visual (p->popup, visual);
+       gtk_widget_set_app_paintable (p->popup, TRUE);
+@@ -1809,8 +1929,12 @@ popup_create (TrayPlugin *p)
+   p->popup_frame = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+   context = gtk_widget_get_style_context (p->popup_frame);
+   gtk_style_context_add_class (context, TO_CSS_PREFIX "-popup-frame");
+-  if (p->popup_rounded)
+-    gtk_style_context_add_class (context, "rounded");
++  /* Radio de las esquinas: proveedor propio del marco, por encima del CSS
++   * general del plugin y por debajo del gtk.css del usuario */
++  p->corners_css = gtk_css_provider_new ();
++  gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (p->corners_css),
++                                  GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
++  p->popup_radius = -1;
+   gtk_container_add (GTK_CONTAINER (p->popup), p->popup_frame);
+   gtk_widget_show (p->popup_frame);
+ 
+@@ -1830,6 +1954,13 @@ popup_create (TrayPlugin *p)
+   g_signal_connect (p->popup, "key-press-event", G_CALLBACK (popup_key_press), p);
+   g_signal_connect (p->popup, "grab-broken-event", G_CALLBACK (popup_grab_broken), p);
+   g_signal_connect (p->popup, "draw", G_CALLBACK (popup_draw), p);
++
++  popup_apply_corners (p);
++  p->composited_id = g_signal_connect_swapped (screen, "composited-changed",
++                                               G_CALLBACK (popup_schedule_corners), p);
++  p->theme_name_id = g_signal_connect_swapped (gtk_settings_get_for_screen (screen),
++                                               "notify::gtk-theme-name",
++                                               G_CALLBACK (popup_schedule_corners), p);
+ }
+ 
+ 
+@@ -1936,6 +2067,7 @@ plugin_free (XfcePanelPlugin *panel_plugin,
+     g_source_remove (p->grab_check_id);
+   if (p->suppress_id != 0)
+     g_source_remove (p->suppress_id);
++  g_clear_handle_id (&p->corners_idle_id, g_source_remove);
+   g_idle_remove_by_data (p);
+ 
+   g_ptr_array_unref (p->menu_hooks);
+@@ -1957,7 +2089,14 @@ plugin_free (XfcePanelPlugin *panel_plugin,
+   g_ptr_array_unref (p->popup_order);
+ 
+   if (p->popup != NULL)
+-    gtk_widget_destroy (p->popup);
++    {
++      GdkScreen *screen = gtk_widget_get_screen (p->popup);
++
++      g_clear_signal_handler (&p->composited_id, screen);
++      g_clear_signal_handler (&p->theme_name_id, gtk_settings_get_for_screen (screen));
++      gtk_widget_destroy (p->popup);
++    }
++  g_clear_object (&p->corners_css);
+ 
+   g_object_unref (p->model);
+   g_object_unref (p->settings);
+@@ -2074,6 +2213,8 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+                             G_CALLBACK (tray_plugin_schedule_relayout), p);
+   g_signal_connect_swapped (p->settings, "changed",
+                             G_CALLBACK (apply_icon_overrides), p);
++  g_signal_connect_swapped (p->settings, "changed",
++                            G_CALLBACK (popup_apply_corners), p);
+ 
+   /* Apps antiguas (XEmbed): arrancar o detener el proxy según la opción */
+   g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (apply_legacy), p);
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index de411c3..08568d1 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -55,7 +55,13 @@ struct _TrayPlugin
+   GtkWidget       *popup_frame;
+   GtkWidget       *popup_grid;
+   GtkWidget       *popup_empty;
+-  gboolean         popup_rounded;
++  gboolean         popup_rgba;        /* visual con transparencia */
++  gboolean         popup_rounded;     /* esquinas redondeadas ahora */
++  gint             popup_radius;
++  GtkCssProvider  *corners_css;
++  guint            corners_idle_id;
++  gulong           composited_id;     /* se prendió o apagó el compositor */
++  gulong           theme_name_id;     /* cambió el tema de GTK */
+   gboolean         popup_layer;       /* Wayland: popup como capa (layer-shell) */
+   guint            focus_check_id;    /* Wayland: cierre al perder el foco */
+   gboolean         seat_grabbed;
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 0d02465..b311f4c 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -15,6 +15,7 @@
+ #define DEFAULT_PANEL_SPACING    2
+ #define DEFAULT_POPUP_SPACING    6
+ #define DEFAULT_POPUP_COLUMNS    4
++#define DEFAULT_POPUP_CORNERS    TRAY_CORNERS_THEME
+ #define DEFAULT_PASSIVE_IN_POPUP TRUE
+ #define DEFAULT_LEGACY_TRAY      FALSE
+ #define MAX_KNOWN                200
+@@ -33,6 +34,7 @@ struct _TraySettings
+   gint           panel_spacing;
+   gint           popup_spacing;
+   gint           popup_columns;
++  gint           popup_corners;
+   gboolean       passive_in_popup;
+   gboolean       legacy_tray;
+ 
+@@ -220,6 +222,7 @@ save_all (TraySettings *s)
+   write_int (s, "panel-spacing", s->panel_spacing);
+   write_int (s, "popup-spacing", s->popup_spacing);
+   write_int (s, "popup-columns", s->popup_columns);
++  write_int (s, "popup-corners", s->popup_corners);
+ 
+   {
+     gchar *p = prop (s, "passive-in-popup");
+@@ -274,6 +277,8 @@ load_all (TraySettings *s)
+                                0, TRAY_SPACING_MAX);
+   s->popup_columns = read_int (s, "popup-columns", DEFAULT_POPUP_COLUMNS,
+                                1, TRAY_COLUMNS_MAX);
++  s->popup_corners = read_int (s, "popup-corners", DEFAULT_POPUP_CORNERS,
++                               TRAY_CORNERS_THEME, TRAY_CORNERS_SQUARE);
+ 
+   p = prop (s, "passive-in-popup");
+   s->passive_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_PASSIVE_IN_POPUP);
+@@ -478,9 +483,9 @@ snapshot (TraySettings *s)
+   GString *out = g_string_new (NULL);
+   guint i;
+ 
+-  g_string_append_printf (out, "%d %d %d %d %d %d %d\n",
++  g_string_append_printf (out, "%d %d %d %d %d %d %d %d\n",
+                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
+-                          s->popup_spacing, s->popup_columns,
++                          s->popup_spacing, s->popup_columns, s->popup_corners,
+                           s->passive_in_popup, s->legacy_tray);
+   snapshot_set (out, "hidden", s->hidden, FALSE);
+   snapshot_set (out, "visible", s->visible, FALSE);
+@@ -672,6 +677,7 @@ DEFINE_INT_PROPERTY (popup_icon_size, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX)
+ DEFINE_INT_PROPERTY (panel_spacing, 0, TRAY_SPACING_MAX)
+ DEFINE_INT_PROPERTY (popup_spacing, 0, TRAY_SPACING_MAX)
+ DEFINE_INT_PROPERTY (popup_columns, 1, TRAY_COLUMNS_MAX)
++DEFINE_INT_PROPERTY (popup_corners, TRAY_CORNERS_THEME, TRAY_CORNERS_SQUARE)
+ 
+ 
+ 
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 6f97b3b..b4ab34c 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -21,6 +21,14 @@ G_BEGIN_DECLS
+ #define TRAY_SPACING_MAX   32
+ #define TRAY_COLUMNS_MAX   12
+ 
++/* Esquinas del popup */
++typedef enum
++{
++  TRAY_CORNERS_THEME = 0,   /* el radio que el tema usa en sus menús */
++  TRAY_CORNERS_ROUNDED,
++  TRAY_CORNERS_SQUARE,
++} TrayCorners;
++
+ typedef struct
+ {
+   gchar *key;
+@@ -40,6 +48,7 @@ gint     tray_settings_get_panel_spacing     (TraySettings *s);
+ gint     tray_settings_get_popup_spacing     (TraySettings *s);
+ gint     tray_settings_get_popup_columns     (TraySettings *s);
+ gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
++gint     tray_settings_get_popup_corners     (TraySettings *s);
+ 
+ void     tray_settings_set_panel_icon_size   (TraySettings *s, gint value);
+ void     tray_settings_set_popup_icon_size   (TraySettings *s, gint value);
+@@ -47,6 +56,7 @@ void     tray_settings_set_panel_spacing     (TraySettings *s, gint value);
+ void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
+ void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
+ void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
++void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
+ 
+ /* Mostrar apps antiguas (bandeja clásica XEmbed) mediante el proxy */
+ gboolean tray_settings_get_legacy_tray       (TraySettings *s);

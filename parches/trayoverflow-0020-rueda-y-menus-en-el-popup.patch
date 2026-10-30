@@ -1,0 +1,249 @@
+diff --git a/meson.build b/meson.build
+index 25abb74..f70a44f 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.17',
++  version: '0.2.18',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index f001e30..d0aeed8 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.17\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.18\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-button.c b/src/to-button.c
+index aa73596..1577d06 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -37,6 +37,7 @@ struct _TrayButton
+   gchar     *tooltip;
+ 
+   gchar     *icon_override;    /* ícono elegido por el usuario, o NULL */
++  GtkWidget *panel_anchor;     /* el plugin en el panel (referencia débil) */
+ };
+ 
+ G_DEFINE_TYPE (TrayButton, tray_button, GTK_TYPE_BUTTON)
+@@ -45,6 +46,7 @@ enum
+ {
+   SIGNAL_SHOW_MENU,
+   SIGNAL_ACTED,
++  SIGNAL_SCROLLED,
+   N_SIGNALS
+ };
+ 
+@@ -253,6 +255,7 @@ tray_button_scroll (GtkWidget      *widget,
+                     GdkEventScroll *event)
+ {
+   TrayButton *button = TRAY_BUTTON (widget);
++  GtkWidget *ref = widget;
+   gint dx = 0, dy = 0, x, y;
+ 
+   switch (event->direction)
+@@ -278,7 +281,23 @@ tray_button_scroll (GtkWidget      *widget,
+       break;
+     }
+ 
+-  event_root_coords (widget, event->x_root, event->y_root, &x, &y);
++  if (dx == 0 && dy == 0)
++    return TRUE;
++
++  /* Antes de mandar el giro, para que el popup suelte el puntero (X11) */
++  g_signal_emit (button, signals[SIGNAL_SCROLLED], 0);
++
++  /* Wayland, ícono del popup: un giro no abre ningún menú, así que el
++   * punto puede ser el borde del panel, donde el proxy esconde su ventana
++   * debajo del panel. Bajo el puntero, labwc le daría el foco a esa
++   * ventana (el popup se cerraría) y se vería un cuadrado negro. */
++#ifdef HAVE_GTK_LAYER_SHELL
++  if (button->panel_anchor != NULL
++      && gtk_widget_get_ancestor (widget, XFCE_TYPE_PANEL_PLUGIN) == NULL)
++    ref = button->panel_anchor;
++#endif
++
++  event_root_coords (ref, event->x_root, event->y_root, &x, &y);
+   if (dy != 0)
+     tray_item_scroll (button->item, dy, FALSE, x, y);
+   if (dx != 0)
+@@ -400,6 +419,7 @@ tray_button_dispose (GObject *object)
+   g_clear_pointer (&button->tooltip, g_free);
+   g_clear_pointer (&button->icon_override, g_free);
+   g_clear_pointer (&button->activate_event, gdk_event_free);
++  g_clear_weak_pointer (&button->panel_anchor);
+ 
+   G_OBJECT_CLASS (tray_button_parent_class)->dispose (object);
+ }
+@@ -432,6 +452,12 @@ tray_button_class_init (TrayButtonClass *klass)
+     g_signal_new ("acted", G_TYPE_FROM_CLASS (klass),
+                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
+                   G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
++
++  /* Se va a mandar un giro de rueda a la app */
++  signals[SIGNAL_SCROLLED] =
++    g_signal_new ("scrolled", G_TYPE_FROM_CLASS (klass),
++                  G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
++                  G_TYPE_NONE, 0);
+ }
+ 
+ 
+@@ -583,3 +609,15 @@ tray_button_update (TrayButton *button)
+       g_free (tooltip);
+     }
+ }
++
++
++
++/* El plugin en el panel: referencia para ubicar los giros de los íconos
++ * del popup (ver tray_button_scroll) */
++void
++tray_button_set_panel_anchor (TrayButton *button,
++                              GtkWidget  *anchor)
++{
++  g_return_if_fail (TRAY_IS_BUTTON (button));
++  g_set_weak_pointer (&button->panel_anchor, anchor);
++}
+diff --git a/src/to-button.h b/src/to-button.h
+index 691777c..5b95749 100644
+--- a/src/to-button.h
++++ b/src/to-button.h
+@@ -23,5 +23,6 @@ void       tray_button_set_icon_size (TrayButton *button, gint size);
+ void       tray_button_update        (TrayButton *button);
+ /* Ícono elegido por el usuario (nombre del tema o ruta), NULL = el de la app */
+ void       tray_button_set_icon_override (TrayButton *button, const gchar *icon);
++void       tray_button_set_panel_anchor  (TrayButton *button, GtkWidget *anchor);
+ 
+ G_END_DECLS
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 211c29e..d41d697 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -41,6 +41,10 @@
+ /* Tras un clic en un ícono del popup: cuánto esperar sin grab, para que
+  * la app reciba el clic (las apps antiguas lo reciben simulado) */
+ #define ACT_REGRAB_MS  600
++/* Menú propio de una app antigua: más margen, para que lo muestre antes
++ * de que intentemos recuperar el puntero (Java tarda) */
++#define MENU_REGRAB_MS 1500
++#define MENU_WAIT_MS   150   /* cada cuánto ver si ese menú se cerró */
+ /* Radio de las esquinas del popup: opción "redondeadas" y tope para el
+  * que se copia del tema */
+ #define POPUP_RADIUS_ROUNDED 8
+@@ -253,6 +257,7 @@ popup_try_grab (gpointer user_data)
+     {
+       p->seat_grabbed = TRUE;
+       p->hide_if_no_grab = FALSE;
++      p->wait_app_menu = FALSE;
+       /* El grab de GTK redirige al popup los clics sobre el resto del
+        * panel (mismo proceso), así también lo cierran */
+       if (!p->gtk_grabbed)
+@@ -266,6 +271,12 @@ popup_try_grab (gpointer user_data)
+       /* Otro grab (p. ej. un menú que se cierra) aún no se liberó */
+       p->grab_retry_id = g_timeout_add (50, popup_try_grab, p);
+     }
++  else if (p->hide_if_no_grab && p->wait_app_menu)
++    {
++      /* Una app antigua mostró su menú y tiene el puntero: el popup sigue
++       * abierto y lo recupera cuando el menú se cierre */
++      p->grab_retry_id = g_timeout_add (MENU_WAIT_MS, popup_try_grab, p);
++    }
+   else if (p->hide_if_no_grab)
+     {
+       /* Tras un clic, la app tomó el control (p. ej. abrió un menú o un
+@@ -682,6 +693,7 @@ popup_hide (TrayPlugin *p)
+       p->act_id = 0;
+     }
+   p->hide_if_no_grab = FALSE;
++  p->wait_app_menu = FALSE;
+   if (p->focus_check_id != 0)
+     {
+       g_source_remove (p->focus_check_id);
+@@ -1099,11 +1111,17 @@ button_acted (TrayButton *button,
+               gboolean    app_menu,
+               TrayPlugin *p)
+ {
++  gboolean legacy;
++
+   if (!in_popup (p, GTK_WIDGET (button)))
+     return;
+ 
+-  /* La app va a mostrar su propio menú: el popup estorbaría */
+-  if (app_menu)
++  legacy = tray_item_get_is_legacy (tray_button_get_item (button));
++
++  /* La app va a mostrar su propio menú: el popup estorbaría. En X11, con
++   * una app antigua se puede saber cuándo se cierra ese menú (devuelve el
++   * puntero): el popup queda abierto, como en Windows (ver popup_try_grab) */
++  if (app_menu && !(legacy && !p->popup_layer))
+     {
+       popup_hide (p);
+       return;
+@@ -1115,7 +1133,7 @@ button_acted (TrayButton *button,
+    * y el popup lo taparía: con ellas, el clic siempre cierra. */
+   if (p->popup_layer)
+     {
+-      if (tray_item_get_is_legacy (tray_button_get_item (button)))
++      if (legacy)
+         popup_hide (p);
+       return;
+     }
+@@ -1123,6 +1141,27 @@ button_acted (TrayButton *button,
+   /* Activar: el popup queda abierto. Se cierra solo si la app pasa a
+    * primer plano (ver active_window_check). Mientras tanto, sin grab:
+    * con él, el clic simulado de una app antigua llegaría al popup. */
++  p->wait_app_menu = legacy;
++  popup_ungrab (p);
++  if (p->act_id != 0)
++    g_source_remove (p->act_id);
++  p->act_id = g_timeout_add (app_menu ? MENU_REGRAB_MS : ACT_REGRAB_MS, act_regrab, p);
++}
++
++
++
++static void
++button_scrolled (TrayButton *button,
++                 TrayPlugin *p)
++{
++  /* X11: con el grab del popup, el giro simulado del proxy le llegaría al
++   * popup y no a la app antigua. Se suelta un momento, como con los clics.
++   * (En Wayland no hay grab del puntero: ver tray_button_scroll.) */
++  if (p->popup_layer || !in_popup (p, GTK_WIDGET (button))
++      || !tray_item_get_is_legacy (tray_button_get_item (button)))
++    return;
++
++  p->wait_app_menu = TRUE;
+   popup_ungrab (p);
+   if (p->act_id != 0)
+     g_source_remove (p->act_id);
+@@ -1761,6 +1800,8 @@ model_item_added (TrayModel  *model,
+ 
+   g_signal_connect (button, "show-menu", G_CALLBACK (button_show_menu), p);
+   g_signal_connect (button, "acted", G_CALLBACK (button_acted), p);
++  g_signal_connect (button, "scrolled", G_CALLBACK (button_scrolled), p);
++  tray_button_set_panel_anchor (TRAY_BUTTON (button), GTK_WIDGET (p->panel_plugin));
+ 
+   gtk_drag_source_set (button, GDK_BUTTON1_MASK, dnd_targets,
+                        G_N_ELEMENTS (dnd_targets), GDK_ACTION_MOVE);
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index b9bc3a3..ad62f3f 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -75,6 +75,7 @@ struct _TrayPlugin
+    * active otra ventana. Mientras la app recibe el clic, sin grab. */
+   guint            act_id;
+   gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
++  gboolean         wait_app_menu;     /* X11: o esperar al menú de una app antigua */
+   gboolean         watching_active;
+   gulong           active_window;     /* _NET_ACTIVE_WINDOW conocido */
+   guint            active_check_id;

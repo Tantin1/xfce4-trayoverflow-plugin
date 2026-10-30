@@ -8,6 +8,11 @@
 
 #include <math.h>
 
+#ifdef HAVE_GTK_LAYER_SHELL
+#include <gtk-layer-shell.h>
+#include <libxfce4panel/libxfce4panel.h>
+#endif
+
 struct _TrayButton
 {
   GtkButton  parent_instance;
@@ -23,11 +28,16 @@ struct _TrayButton
 
   gulong     changed_id;
   gulong     fallback_id;
+  GdkEvent  *activate_event;   /* último clic que activó la app (ver
+                                * tray_button_activate_fallback) */
 
   /* Con qué se dibujó el ícono por última vez, para no redibujar en vano */
   GdkRGBA    drawn_color;
   gint       drawn_scale;
   gchar     *tooltip;
+
+  gchar     *icon_override;    /* ícono elegido por el usuario, o NULL */
+  GtkWidget *panel_anchor;     /* el plugin en el panel (referencia débil) */
 };
 
 G_DEFINE_TYPE (TrayButton, tray_button, GTK_TYPE_BUTTON)
@@ -36,6 +46,7 @@ enum
 {
   SIGNAL_SHOW_MENU,
   SIGNAL_ACTED,
+  SIGNAL_SCROLLED,
   N_SIGNALS
 };
 
@@ -45,15 +56,77 @@ static guint signals[N_SIGNALS];
 
 /* Coordenadas de pantalla en píxeles de dispositivo, como espera SNI */
 static void
-event_root_coords (GtkWidget      *widget,
-                   GdkEventButton *event,
-                   gint           *x,
-                   gint           *y)
+event_root_coords (GtkWidget *widget,
+                   gdouble    x_root,
+                   gdouble    y_root,
+                   gint      *x,
+                   gint      *y)
 {
   gint scale = gtk_widget_get_scale_factor (widget);
 
-  *x = (gint) (event->x_root * scale);
-  *y = (gint) (event->y_root * scale);
+#ifdef HAVE_GTK_LAYER_SHELL
+  {
+    /* Wayland: x_root/y_root son relativas a la ventana (el panel o el
+     * popup, que son capas ancladas arriba a la izquierda): se suma su
+     * posición. Las apps antiguas (vía XWayland) ubican su menú en este
+     * punto. En píxeles lógicos, que es lo que usa XWayland. */
+    GtkWidget *toplevel = gtk_widget_get_toplevel (widget);
+
+    if (GTK_IS_WINDOW (toplevel) && gtk_layer_is_layer_window (GTK_WINDOW (toplevel)))
+      {
+        GtkWindow *window = GTK_WINDOW (toplevel);
+        GtkWidget *plugin = gtk_widget_get_ancestor (widget, XFCE_TYPE_PANEL_PLUGIN);
+        GdkMonitor *monitor = gtk_layer_get_monitor (window);
+        GdkRectangle geometry = { 0, 0, 0, 0 };
+        GtkAllocation alloc;
+        gint ox, oy, bx = 0, by = 0, cx, cy;
+        gint pw = gtk_widget_get_allocated_width (toplevel);
+        gint ph = gtk_widget_get_allocated_height (toplevel);
+
+        if (monitor == NULL && gtk_widget_get_window (toplevel) != NULL)
+          monitor = gdk_display_get_monitor_at_window (gtk_widget_get_display (toplevel),
+                                                       gtk_widget_get_window (toplevel));
+        if (monitor != NULL)
+          gdk_monitor_get_geometry (monitor, &geometry);
+
+        ox = geometry.x + gtk_layer_get_margin (window, GTK_LAYER_SHELL_EDGE_LEFT);
+        oy = geometry.y + gtk_layer_get_margin (window, GTK_LAYER_SHELL_EDGE_TOP);
+
+        /* Ícono del popup: el punto del clic (el popup se cierra antes
+         * de que aparezca el menú de la app) */
+        if (plugin == NULL)
+          {
+            *x = ox + (gint) x_root;
+            *y = oy + (gint) y_root;
+            return;
+          }
+
+        /* Ícono del panel: las ventanas X quedan debajo del panel, así
+         * que el punto va justo afuera de su borde, hacia donde se abren
+         * los menús (el proxy esconde su ventana del lado del panel) */
+        gtk_widget_translate_coordinates (widget, toplevel, 0, 0, &bx, &by);
+        gtk_widget_get_allocation (widget, &alloc);
+        cx = ox + bx + alloc.width / 2;
+        cy = oy + by + alloc.height / 2;
+
+        switch (xfce_panel_plugin_arrow_type (XFCE_PANEL_PLUGIN (plugin)))
+          {
+          case GTK_ARROW_UP:    cy = oy - 1;  break;
+          case GTK_ARROW_DOWN:  cy = oy + ph; break;
+          case GTK_ARROW_LEFT:  cx = ox - 1;  break;
+          case GTK_ARROW_RIGHT: cx = ox + pw; break;
+          default: break;
+          }
+
+        *x = cx;
+        *y = cy;
+        return;
+      }
+  }
+#endif
+
+  *x = (gint) (x_root * scale);
+  *y = (gint) (y_root * scale);
 }
 
 
@@ -106,9 +179,9 @@ tray_button_button_press (GtkWidget      *widget,
         }
 
       /* Sin menú D-Bus: que la app muestre el suyo */
-      event_root_coords (widget, event, &x, &y);
+      event_root_coords (widget, event->x_root, event->y_root, &x, &y);
       tray_item_context_menu (button->item, x, y);
-      g_signal_emit (button, signals[SIGNAL_ACTED], 0);
+      g_signal_emit (button, signals[SIGNAL_ACTED], 0, TRUE);
       return TRUE;
     }
 
@@ -127,7 +200,7 @@ tray_button_button_release (GtkWidget      *widget,
 {
   TrayButton *button = TRAY_BUTTON (widget);
   GtkAllocation alloc;
-  gboolean inside;
+  gboolean inside, app_menu = FALSE;
   guint pressed = button->pressed_button;
   gint x, y;
 
@@ -144,7 +217,7 @@ tray_button_button_release (GtkWidget      *widget,
   if (!inside)
     return TRUE;
 
-  event_root_coords (widget, event, &x, &y);
+  event_root_coords (widget, event->x_root, event->y_root, &x, &y);
 
   if (event->button == 1 && tray_item_get_is_menu (button->item))
     {
@@ -156,15 +229,22 @@ tray_button_button_release (GtkWidget      *widget,
           return TRUE;
         }
       tray_item_context_menu (button->item, x, y);
+      app_menu = TRUE;
     }
   else if (event->button == 1)
-    tray_item_activate (button->item, x, y);
+    {
+      /* Si la app rechaza Activate, su menú se abre más tarde, al llegar
+       * la respuesta: ahí hará falta este clic como evento de origen */
+      g_clear_pointer (&button->activate_event, gdk_event_free);
+      button->activate_event = gdk_event_copy ((GdkEvent *) event);
+      tray_item_activate (button->item, x, y);
+    }
   else if (event->button == 2)
     tray_item_secondary_activate (button->item, x, y);
   else
     return TRUE;
 
-  g_signal_emit (button, signals[SIGNAL_ACTED], 0);
+  g_signal_emit (button, signals[SIGNAL_ACTED], 0, app_menu);
   return TRUE;
 }
 
@@ -175,7 +255,8 @@ tray_button_scroll (GtkWidget      *widget,
                     GdkEventScroll *event)
 {
   TrayButton *button = TRAY_BUTTON (widget);
-  gint dx = 0, dy = 0;
+  GtkWidget *ref = widget;
+  gint dx = 0, dy = 0, x, y;
 
   switch (event->direction)
     {
@@ -200,12 +281,46 @@ tray_button_scroll (GtkWidget      *widget,
       break;
     }
 
+  if (dx == 0 && dy == 0)
+    return TRUE;
+
+  /* Antes de mandar el giro, para que el popup suelte el puntero (X11) */
+  g_signal_emit (button, signals[SIGNAL_SCROLLED], 0);
+
+  /* Wayland, ícono del popup: un giro no abre ningún menú, así que el
+   * punto puede ser el borde del panel, donde el proxy esconde su ventana
+   * debajo del panel. Bajo el puntero, labwc le daría el foco a esa
+   * ventana (el popup se cerraría) y se vería un cuadrado negro. */
+#ifdef HAVE_GTK_LAYER_SHELL
+  if (button->panel_anchor != NULL
+      && gtk_widget_get_ancestor (widget, XFCE_TYPE_PANEL_PLUGIN) == NULL)
+    ref = button->panel_anchor;
+#endif
+
+  event_root_coords (ref, event->x_root, event->y_root, &x, &y);
   if (dy != 0)
-    tray_item_scroll (button->item, dy, FALSE);
+    tray_item_scroll (button->item, dy, FALSE, x, y);
   if (dx != 0)
-    tray_item_scroll (button->item, dx, TRUE);
+    tray_item_scroll (button->item, dx, TRUE, x, y);
 
   return TRUE;
+}
+
+
+
+/* El ícono elegido por el usuario, si lo hay y existe; si no, el de la app */
+static GdkPixbuf *
+render_icon (TrayButton *button,
+             gint        scale)
+{
+  GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (button));
+  GdkPixbuf *pixbuf;
+
+  pixbuf = tray_icon_load (button->icon_override, button->icon_size, scale, context);
+  if (pixbuf == NULL)
+    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context);
+
+  return pixbuf;
 }
 
 
@@ -220,8 +335,7 @@ tray_button_drag_begin (GtkWidget      *widget,
   /* Un arrastre no es un clic */
   button->pressed_button = 0;
 
-  pixbuf = tray_item_render_icon (button->item, button->icon_size, 1,
-                                  gtk_widget_get_style_context (widget));
+  pixbuf = render_icon (button, 1);
   if (pixbuf != NULL)
     {
       gtk_drag_set_icon_pixbuf (context, pixbuf,
@@ -268,9 +382,24 @@ static void
 tray_button_activate_fallback (TrayButton *button)
 {
   GtkWidget *menu = tray_item_get_menu (button->item);
+  GdkEvent *event = NULL;
 
-  if (menu_has_children (menu))
-    g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, menu, NULL);
+  if (!menu_has_children (menu))
+    return;
+
+  /* GTK quiere el evento que originó el menú (si no, avisa "no trigger
+   * event for menu popup"). Se usa el clic que activó la app, con la
+   * hora actual: el original ya es viejo y podría impedir el grab. */
+  if (button->activate_event != NULL)
+    {
+      event = gdk_event_copy (button->activate_event);
+      event->button.time = GDK_CURRENT_TIME;
+    }
+
+  g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, menu, event);
+
+  if (event != NULL)
+    gdk_event_free (event);
 }
 
 
@@ -288,6 +417,9 @@ tray_button_dispose (GObject *object)
       g_clear_object (&button->item);
     }
   g_clear_pointer (&button->tooltip, g_free);
+  g_clear_pointer (&button->icon_override, g_free);
+  g_clear_pointer (&button->activate_event, gdk_event_free);
+  g_clear_weak_pointer (&button->panel_anchor);
 
   G_OBJECT_CLASS (tray_button_parent_class)->dispose (object);
 }
@@ -314,9 +446,16 @@ tray_button_class_init (TrayButtonClass *klass)
                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
                   G_TYPE_NONE, 2, GTK_TYPE_WIDGET, G_TYPE_POINTER);
 
-  /* El usuario activó el ítem (la app puede abrir una ventana) */
+  /* El usuario activó el ítem (la app puede abrir una ventana).
+   * (app_menu): TRUE si se le pidió a la app que muestre su propio menú */
   signals[SIGNAL_ACTED] =
     g_signal_new ("acted", G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
+
+  /* Se va a mandar un giro de rueda a la app */
+  signals[SIGNAL_SCROLLED] =
+    g_signal_new ("scrolled", G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
 }
@@ -393,6 +532,25 @@ tray_button_set_icon_size (TrayButton *button,
 
 
 void
+tray_button_set_icon_override (TrayButton  *button,
+                               const gchar *icon)
+{
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+
+  if (icon != NULL && *icon == '\0')
+    icon = NULL;
+
+  if (g_strcmp0 (button->icon_override, icon) != 0)
+    {
+      g_free (button->icon_override);
+      button->icon_override = g_strdup (icon);
+      tray_button_update (button);
+    }
+}
+
+
+
+void
 tray_button_update (TrayButton *button)
 {
   GtkWidget *widget;
@@ -419,8 +577,7 @@ tray_button_update (TrayButton *button)
   if (button->sized)
     tray_item_request_size (button->item, button, button->icon_size * scale);
 
-  pixbuf = tray_item_render_icon (button->item, button->icon_size, scale,
-                                  gtk_widget_get_style_context (widget));
+  pixbuf = render_icon (button, scale);
   if (pixbuf != NULL)
     {
       cairo_surface_t *surface;
@@ -451,4 +608,16 @@ tray_button_update (TrayButton *button)
     {
       g_free (tooltip);
     }
+}
+
+
+
+/* El plugin en el panel: referencia para ubicar los giros de los íconos
+ * del popup (ver tray_button_scroll) */
+void
+tray_button_set_panel_anchor (TrayButton *button,
+                              GtkWidget  *anchor)
+{
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+  g_set_weak_pointer (&button->panel_anchor, anchor);
 }

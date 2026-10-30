@@ -21,6 +21,7 @@ typedef enum
   TRAY_LEGACY_ACTIVE,       /* el proxy es la bandeja clásica */
   TRAY_LEGACY_WAITING,      /* otra bandeja clásica está activa */
   TRAY_LEGACY_FAILED,       /* el proxy falla al arrancar */
+  TRAY_LEGACY_NO_XWAYLAND,  /* Wayland sin XWayland: no hay dónde correr */
 } TrayLegacyState;
 
 /* @owner identifica a quien lo pide (una instancia del plugin) */

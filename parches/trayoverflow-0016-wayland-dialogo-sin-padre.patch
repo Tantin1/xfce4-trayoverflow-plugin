@@ -1,0 +1,68 @@
+diff --git a/meson.build b/meson.build
+index b47e5c4..97acd07 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.13',
++  version: '0.2.14',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 8ddad48..348aee2 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.13\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.14\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-27 11:10-0300\n"
++"PO-Revision-Date: 2026-10-27 11:55-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 012c2a5..63e0b23 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -11,6 +11,7 @@
+ #include "to-common.h"
+ #include "to-dialog.h"
+ 
++#include <gdk/gdkx.h>
+ #include <libxfce4ui/libxfce4ui.h>
+ #include <string.h>
+ 
+@@ -1105,7 +1106,7 @@ void
+ tray_dialog_show (TrayPlugin *p)
+ {
+   DialogData *d;
+-  GtkWidget *notebook, *content;
++  GtkWidget *notebook, *content, *parent;
+ 
+   if (p->dialog != NULL)
+     {
+@@ -1116,9 +1117,16 @@ tray_dialog_show (TrayPlugin *p)
+   d = g_new0 (DialogData, 1);
+   d->p = p;
+ 
++  /* En Wayland el panel es una capa (layer-shell), no una ventana común:
++   * con él como padre, GTK ubica mal los desplegables del diálogo (salían
++   * en una esquina de la pantalla). El plugin cierra el diálogo al quitarse */
++  parent = gtk_widget_get_toplevel (GTK_WIDGET (p->panel_plugin));
++  if (!GDK_IS_X11_DISPLAY (gtk_widget_get_display (parent)))
++    parent = NULL;
++
+   d->dialog = xfce_titled_dialog_new_with_mixed_buttons (
+                 _("Tray Overflow"),
+-                GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (p->panel_plugin))),
++                parent != NULL ? GTK_WINDOW (parent) : NULL,
+                 GTK_DIALOG_DESTROY_WITH_PARENT,
+                 "window-close-symbolic", _("_Close"), GTK_RESPONSE_CLOSE,
+                 NULL);

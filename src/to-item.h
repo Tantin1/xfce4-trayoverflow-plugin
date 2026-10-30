@@ -42,7 +42,8 @@ struct _TrayItemClass
   void       (*activate)           (TrayItem *item, gint x, gint y);
   void       (*secondary_activate) (TrayItem *item, gint x, gint y);
   void       (*context_menu)       (TrayItem *item, gint x, gint y);
-  void       (*scroll)             (TrayItem *item, gint delta, gboolean horizontal);
+  void       (*scroll)             (TrayItem *item, gint delta, gboolean horizontal,
+                                    gint x, gint y);
   /* Opcional: el backend puede pedirle a la app que dibuje a ese tamaño
    * (en píxeles de dispositivo), para no tener que reescalar */
   void       (*set_icon_size)      (TrayItem *item, gint pixels);
@@ -58,6 +59,8 @@ const gchar    *tray_item_get_display_name   (TrayItem *item);
 const gchar    *tray_item_get_icon_name      (TrayItem *item);
 TrayItemStatus  tray_item_get_status         (TrayItem *item);
 gboolean        tray_item_get_is_menu        (TrayItem *item);
+/* App antigua (XEmbed) mostrada por nuestro proxy */
+gboolean        tray_item_get_is_legacy      (TrayItem *item);
 gchar          *tray_item_get_tooltip_markup (TrayItem *item);
 
 /* Devuelve un pixbuf de (size * scale) píxeles, o NULL.
@@ -67,11 +70,19 @@ GdkPixbuf      *tray_item_render_icon        (TrayItem        *item,
                                               gint             scale,
                                               GtkStyleContext *context);
 
+/* Carga un ícono por nombre (del tema del usuario) o por ruta de archivo,
+ * a (size * scale) píxeles. NULL si no existe. */
+GdkPixbuf      *tray_icon_load               (const gchar     *name,
+                                              gint             size,
+                                              gint             scale,
+                                              GtkStyleContext *context);
+
 GtkWidget      *tray_item_get_menu           (TrayItem *item);
 void            tray_item_activate           (TrayItem *item, gint x, gint y);
 void            tray_item_secondary_activate (TrayItem *item, gint x, gint y);
 void            tray_item_context_menu       (TrayItem *item, gint x, gint y);
-void            tray_item_scroll             (TrayItem *item, gint delta, gboolean horizontal);
+void            tray_item_scroll             (TrayItem *item, gint delta, gboolean horizontal,
+                                              gint x, gint y);
 
 /* Cada vista que muestra el ítem declara a qué tamaño lo dibuja
  * (@requester la identifica); se usa el mayor de los pedidos */
@@ -84,6 +95,7 @@ void tray_item_set_key             (TrayItem *item, const gchar *key);
 void tray_item_set_title           (TrayItem *item, const gchar *title);
 void tray_item_set_status          (TrayItem *item, TrayItemStatus status);
 void tray_item_set_is_menu         (TrayItem *item, gboolean is_menu);
+void tray_item_set_is_legacy       (TrayItem *item, gboolean is_legacy);
 /* @pixmaps: GPtrArray de GdkPixbuf (transfer full), puede ser NULL */
 void tray_item_set_icon            (TrayItem         *item,
                                     TrayItemIconRole  role,

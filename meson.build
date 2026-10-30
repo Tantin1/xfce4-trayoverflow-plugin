@@ -1,7 +1,7 @@
 project(
   'xfce4-trayoverflow-plugin',
   'c',
-  version: '0.2.2',
+  version: '0.2.21',
   license: 'GPL-2.0-or-later',
   meson_version: '>= 0.56.0',
   default_options: [
@@ -23,6 +23,9 @@ libxfce4util     = dependency('libxfce4util-1.0',  version: '>= 4.16')
 libxfconf        = dependency('libxfconf-0',       version: '>= 4.16')
 dbusmenu_dep     = dependency('dbusmenu-gtk3-0.4')
 x11_dep          = dependency('x11', required: false)
+# Wayland: el popup se muestra como capa (como los popups del propio panel)
+layer_shell_dep  = dependency('gtk-layer-shell-0', version: '>= 0.6.0',
+                              required: get_option('gtk-layer-shell'))
 math_dep         = cc.find_library('m', required: false)
 
 # Proxy XEmbed → SNI (programa aparte; solo Xlib y GLib)
@@ -53,6 +56,7 @@ localedir      = prefix / get_option('localedir')
 plugin_datadir = datadir / 'xfce4' / 'panel' / 'plugins'
 proxy_dir      = prefix / get_option('libexecdir') / meson.project_name()
 proxy_path     = proxy_dir / 'xembed-proxy'
+pkg_datadir    = datadir / meson.project_name()
 
 # ── config.h ──────────────────────────────────────────────────────────────
 conf = configuration_data()
@@ -61,7 +65,11 @@ conf.set_quoted('PACKAGE_LOCALE_DIR', localedir)
 conf.set_quoted('PACKAGE_NAME', meson.project_name())
 conf.set_quoted('PACKAGE_VERSION', meson.project_version())
 conf.set_quoted('PROXY_PATH', proxy_path)
+conf.set_quoted('DEFAULT_ICONS_PATH', pkg_datadir / 'icon-defaults.conf')
 conf.set10('HAVE_XEMBED_PROXY', have_proxy)
+if layer_shell_dep.found()
+  conf.set('HAVE_GTK_LAYER_SHELL', 1)
+endif
 configure_file(output: 'config.h', configuration: conf)
 
 add_project_arguments(
@@ -89,7 +97,7 @@ shared_module(
   name_prefix: 'lib',
   include_directories: include_directories('.'),
   dependencies: [gtk_dep, libxfce4panel, libxfce4ui, libxfce4util, libxfconf,
-                 dbusmenu_dep, x11_dep, math_dep],
+                 dbusmenu_dep, x11_dep, layer_shell_dep, math_dep],
   link_args: ['-Wl,--no-undefined'],
   install: true,
   install_dir: plugin_libdir,
@@ -120,6 +128,9 @@ configure_file(
   install_dir: plugin_datadir,
 )
 
+# ── Íconos por defecto para apps que se ven mal ───────────────────────────
+install_data('data/icon-defaults.conf', install_dir: pkg_datadir)
+
 # ── Traducciones ──────────────────────────────────────────────────────────
 subdir('po')
 
@@ -129,3 +140,7 @@ summary({
   'Traducciones': localedir,
   'Proxy XEmbed': have_proxy ? proxy_path : 'no (faltan bibliotecas X11)',
 }, section: 'Instalación')
+
+summary({
+  'Popup en Wayland': layer_shell_dep.found() ? 'sí (gtk-layer-shell)' : 'no (falta gtk-layer-shell)',
+}, section: 'Wayland')

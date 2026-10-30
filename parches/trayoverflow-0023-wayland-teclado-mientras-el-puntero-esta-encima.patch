@@ -1,0 +1,130 @@
+diff --git a/meson.build b/meson.build
+index 143d6ab..e7cfa44 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.20',
++  version: '0.2.21',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index b76b411..6f0066b 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.20\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.21\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index c6fdbac..6bde016 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -442,10 +442,9 @@ pointer_over (TrayPlugin *p,
+ static void
+ refocus_stop (TrayPlugin *p)
+ {
+-  if (p->refocus_id != 0)
++  if (p->refocus_hold)
+     {
+-      g_source_remove (p->refocus_id);
+-      p->refocus_id = 0;
++      p->refocus_hold = FALSE;
+       gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
+                                    GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+     }
+@@ -453,15 +452,17 @@ refocus_stop (TrayPlugin *p)
+ 
+ 
+ 
++/* El puntero salió del popup: devolver el teclado (ver focus_check). Si
++ * el compositor se lo da a otra superficie, el popup se cierra como
++ * siempre, salvo que el puntero esté sobre el panel. */
+ static gboolean
+-refocus_done (gpointer user_data)
++popup_pointer_left (GtkWidget        *widget,
++                    GdkEventCrossing *event,
++                    TrayPlugin       *p)
+ {
+-  TrayPlugin *p = user_data;
+-
+-  p->refocus_id = 0;
+-  gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
+-                               GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+-  return G_SOURCE_REMOVE;
++  if (event->mode == GDK_CROSSING_NORMAL && event->detail != GDK_NOTIFY_INFERIOR)
++    refocus_stop (p);
++  return FALSE;
+ }
+ 
+ 
+@@ -481,9 +482,10 @@ focus_check (gpointer user_data)
+ 
+   /* El puntero sigue sobre el popup: el usuario no se fue (para eso hay
+    * que hacer clic en otro lado). Algunos compositores (labwc 0.20) le dan
+-   * el foco a cada notificación que aparece. Recuperarlo pidiendo el
+-   * teclado en exclusiva un instante y volver al modo normal. Con un
+-   * límite, por si otra app insiste en quedarse con el foco. */
++   * el foco a cada notificación que aparece, y se lo vuelven a dar
++   * apenas el popup vuelve al modo normal. Recuperarlo pidiendo el
++   * teclado en exclusiva mientras el puntero siga encima (ver
++   * popup_pointer_left). Con un límite, por si algo insiste. */
+   if (pointer_over (p, p->popup))
+     {
+       gint64 now = g_get_monotonic_time ();
+@@ -496,12 +498,9 @@ focus_check (gpointer user_data)
+ 
+   if (reclaim)
+     {
+-      if (p->refocus_id == 0)
+-        gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
+-                                     GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
+-      else
+-        g_source_remove (p->refocus_id);
+-      p->refocus_id = g_timeout_add (100, refocus_done, p);
++      p->refocus_hold = TRUE;
++      gtk_layer_set_keyboard_mode (GTK_WINDOW (p->popup),
++                                   GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
+       return G_SOURCE_REMOVE;
+     }
+ 
+@@ -2081,7 +2080,8 @@ popup_create (TrayPlugin *p)
+   gtk_window_set_type_hint (GTK_WINDOW (p->popup), GDK_WINDOW_TYPE_HINT_DROPDOWN_MENU);
+   gtk_window_set_screen (GTK_WINDOW (p->popup), screen);
+   gtk_window_set_resizable (GTK_WINDOW (p->popup), FALSE);
+-  gtk_widget_add_events (p->popup, GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK);
++  gtk_widget_add_events (p->popup, GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK
++                         | GDK_LEAVE_NOTIFY_MASK);
+ 
+ #ifdef HAVE_GTK_LAYER_SHELL
+   if (p->popup_layer)
+@@ -2099,6 +2099,8 @@ popup_create (TrayPlugin *p)
+       gtk_layer_set_keyboard_mode (window, GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+       g_signal_connect (p->popup, "notify::has-toplevel-focus",
+                         G_CALLBACK (popup_focus_changed), p);
++      g_signal_connect (p->popup, "leave-notify-event",
++                        G_CALLBACK (popup_pointer_left), p);
+     }
+ #endif
+ 
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index 3e605de..b364985 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -76,7 +76,7 @@ struct _TrayPlugin
+   guint            act_id;
+   gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
+   gboolean         wait_app_menu;     /* X11: o esperar al menú de una app antigua */
+-  guint            refocus_id;        /* Wayland: ver focus_check */
++  gboolean         refocus_hold;      /* Wayland: ver focus_check */
+   gint             refocus_count;
+   gint64           refocus_last;
+   gboolean         watching_active;

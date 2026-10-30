@@ -34,6 +34,33 @@ static void proxy_start (void);
 
 
 
+/* ¿La sesión es X11? En Wayland, las apps antiguas corren en XWayland */
+static gboolean
+session_is_x11 (void)
+{
+#ifdef GDK_WINDOWING_X11
+  GdkDisplay *display = gdk_display_get_default ();
+
+  return display != NULL && GDK_IS_X11_DISPLAY (display);
+#else
+  return FALSE;
+#endif
+}
+
+
+
+/* Wayland: XWayland disponible (el compositor exporta DISPLAY; puede
+ * arrancarlo recién cuando alguien se conecta) */
+static gboolean
+xwayland_available (void)
+{
+  const gchar *display = g_getenv ("DISPLAY");
+
+  return display != NULL && *display != '\0';
+}
+
+
+
 gboolean
 tray_legacy_available (void)
 {
@@ -113,12 +140,20 @@ proxy_start (void)
   GSubprocessLauncher *launcher;
   GError *error = NULL;
 
+  gboolean wayland = !session_is_x11 ();
+
   if (proxy != NULL || failed || !tray_legacy_available ())
+    return;
+
+  if (wayland && !xwayland_available ())
     return;
 
   launcher = g_subprocess_launcher_new (G_SUBPROCESS_FLAGS_NONE);
   g_subprocess_launcher_set_child_setup (launcher, child_setup, NULL, NULL);
-  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH, NULL);
+  /* En Wayland el proxy no ve el puntero real: usa la posición del
+   * ícono que le mandamos en cada clic */
+  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
+                                       wayland ? "--wayland" : NULL, NULL);
   g_object_unref (launcher);
 
   if (proxy == NULL)
@@ -178,6 +213,42 @@ tray_legacy_set_wanted (gpointer owner,
 
 
 
+#ifdef GDK_WINDOWING_X11
+/* Dueño de la bandeja clásica en @xdisplay. Los errores de X (la ventana
+ * puede desaparecer en el medio) los atrapa quien llama. */
+static gint
+selection_owner (Display  *xdisplay,
+                 gboolean *is_proxy)
+{
+  gchar *name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", DefaultScreen (xdisplay));
+  Atom atom = XInternAtom (xdisplay, name, False);
+  Window owner = XGetSelectionOwner (xdisplay, atom);
+  gchar *window_name = NULL;
+
+  g_free (name);
+  if (owner == None)
+    return 0;
+
+  if (is_proxy != NULL && XFetchName (xdisplay, owner, &window_name) && window_name != NULL)
+    {
+      *is_proxy = strcmp (window_name, PROXY_WINDOW_NAME) == 0;
+      XFree (window_name);
+    }
+  return 1;
+}
+
+
+
+static int
+ignore_x_error (Display     *xdisplay,
+                XErrorEvent *event)
+{
+  return 0;
+}
+#endif
+
+
+
 gint
 tray_legacy_tray_owner (GtkWidget *reference,
                         gboolean  *is_proxy)
@@ -188,32 +259,36 @@ tray_legacy_tray_owner (GtkWidget *reference,
 #ifdef GDK_WINDOWING_X11
   {
     GdkDisplay *display = gtk_widget_get_display (reference);
+    gint result;
 
     if (GDK_IS_X11_DISPLAY (display))
       {
-        Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
-        gchar *name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", DefaultScreen (xdisplay));
-        Atom atom = XInternAtom (xdisplay, name, False);
-        Window owner = XGetSelectionOwner (xdisplay, atom);
-
-        g_free (name);
-        if (owner == None)
-          return 0;
-
-        if (is_proxy != NULL)
-          {
-            gchar *window_name = NULL;
-
-            gdk_x11_display_error_trap_push (display);
-            if (XFetchName (xdisplay, owner, &window_name) && window_name != NULL)
-              {
-                *is_proxy = strcmp (window_name, PROXY_WINDOW_NAME) == 0;
-                XFree (window_name);
-              }
-            gdk_x11_display_error_trap_pop_ignored (display);
-          }
-        return 1;
+        gdk_x11_display_error_trap_push (display);
+        result = selection_owner (GDK_DISPLAY_XDISPLAY (display), is_proxy);
+        gdk_x11_display_error_trap_pop_ignored (display);
+        return result;
       }
+
+    /* Wayland: las apps antiguas viven en XWayland. Sin el proxy pedido,
+     * no conectarse (arrancaría XWayland en vano): en Wayland no suele
+     * haber otra bandeja clásica. */
+    if (wanters == NULL || g_hash_table_size (wanters) == 0 || !xwayland_available ())
+      return 0;
+
+    {
+      Display *xdisplay = XOpenDisplay (NULL);
+      int (*old_handler) (Display *, XErrorEvent *);
+
+      if (xdisplay == NULL)
+        return -1;
+
+      old_handler = XSetErrorHandler (ignore_x_error);
+      result = selection_owner (xdisplay, is_proxy);
+      XSync (xdisplay, False);
+      XSetErrorHandler (old_handler);
+      XCloseDisplay (xdisplay);
+      return result;
+    }
   }
 #endif
 
@@ -234,6 +309,8 @@ tray_legacy_get_state (GtkWidget *reference)
     return TRAY_LEGACY_OFF;
   if (failed)
     return TRAY_LEGACY_FAILED;
+  if (!session_is_x11 () && !xwayland_available ())
+    return TRAY_LEGACY_NO_XWAYLAND;
 
   owner = tray_legacy_tray_owner (reference, &is_proxy);
   if (owner == 1 && !is_proxy)

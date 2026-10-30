@@ -1,0 +1,547 @@
+diff --git a/README.md b/README.md
+index 1de37d4..cd7a4d9 100644
+--- a/README.md
++++ b/README.md
+@@ -209,7 +209,14 @@ Diferencias con X11:
+ - La ventana emergente se cierra cuando otra app pasa a primer plano (al
+   hacer clic en ella o al abrir una ventana). Un clic sobre el **escritorio
+   vacío** puede no cerrarla, según el compositor: usá Escape o la flecha.
+-- Las apps antiguas (XEmbed) todavía no están adaptadas a Wayland.
++  En xfwl4 (todavía en desarrollo) tampoco la cierra un clic en otra
++  ventana; lo mismo pasa con el calendario del reloj del panel.
++- Las apps antiguas (XEmbed) funcionan a través de **XWayland**, que el
++  compositor tiene que ofrecer (labwc lo hace). Al hacer clic en una de
++  ellas dentro de la ventana emergente, esta se cierra siempre, para no
++  tapar el menú de la app. Sus menús se cierran con Escape o eligiendo una
++  opción: un clic fuera de ellos no los cierra (es una limitación de
++  XWayland).
+ 
+ ### Apps Flatpak con ID genérico
+ 
+diff --git a/meson.build b/meson.build
+index c0118dc..71a3671 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.9',
++  version: '0.2.10',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index e24abdd..b291a1b 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.9\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.10\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-26 10:50-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -70,6 +70,11 @@ msgstr ""
+ "de estado»), así que las aplicaciones antiguas se muestran allí. Pasarán aquí "
+ "en cuanto la quite."
+ 
++msgid "Older apps need XWayland, which is not available in this session."
++msgstr ""
++"Las aplicaciones antiguas necesitan XWayland, que no está disponible en esta "
++"sesión."
++
+ msgid ""
+ "Support for older apps could not start. To see why, run %s --verbose in a "
+ "terminal."
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 9de5e91..c80520b 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -132,6 +132,8 @@ typedef struct
+   guint            click_id;
+   gint             click_button;
+   gint             click_tries;
++  gint             click_x;          /* --wayland: posición que manda el host */
++  gint             click_y;
+ } Icon;
+ 
+ static struct
+@@ -170,6 +172,7 @@ static struct
+   GDBusNodeInfo  *node;
+   GMainLoop      *loop;
+   gboolean        verbose;
++  gboolean        wayland;       /* sesión Wayland: X es XWayland */
+   gint            x_error;
+ } P;
+ 
+@@ -979,6 +982,10 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
+     }
+   else
+     {
++      /* XWayland: su puntero no sigue al real fuera de las ventanas X;
++       * llevarlo al ícono para que el clic simulado caiga en él */
++      if (P.wayland)
++        XTestFakeMotionEvent (P.dpy, -1, rx, ry, CurrentTime);
+       XTestFakeButtonEvent (P.dpy, button, True, CurrentTime);
+       XTestFakeButtonEvent (P.dpy, button, False, CurrentTime);
+     }
+@@ -1000,6 +1007,16 @@ click_try (gpointer user_data)
+ 
+   XQueryPointer (P.dpy, P.root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask);
+ 
++  /* XWayland no sabe dónde está el puntero (sobre el panel, que no es una
++   * ventana X): usar la posición del ícono que manda el host, para que la
++   * app muestre su menú junto a él. El botón físico tampoco se ve desde X. */
++  if (P.wayland)
++    {
++      icon->click_id = 0;
++      do_click (icon, icon->click_button, icon->click_x, icon->click_y);
++      return G_SOURCE_REMOVE;
++    }
++
+   /* Si el botón físico sigue presionado (p. ej. el clic derecho llega al
+    * presionar), un clic simulado se fusionaría con él y se perdería */
+   if ((mask & (Button1Mask | Button2Mask | Button3Mask)) && ++icon->click_tries < 100)
+@@ -1039,9 +1056,11 @@ icon_set_size (Icon *icon, gint size)
+ 
+ 
+ static void
+-icon_click (Icon *icon, gint button)
++icon_click (Icon *icon, gint button, gint x, gint y)
+ {
+   icon->click_button = button;
++  icon->click_x = x;
++  icon->click_y = y;
+   icon->click_tries = 0;
+   if (icon->click_id == 0)
+     icon->click_id = g_timeout_add (10, click_try, icon);
+@@ -1072,22 +1091,26 @@ item_method_call (GDBusConnection       *conn,
+       g_variant_get (params, "(i)", &size);
+       icon_set_size (icon, size);
+     }
+-  else if (g_strcmp0 (method, "Activate") == 0)
+-    icon_click (icon, 1);
+-  else if (g_strcmp0 (method, "SecondaryActivate") == 0)
+-    icon_click (icon, 2);
+-  else if (g_strcmp0 (method, "ContextMenu") == 0)
+-    icon_click (icon, 3);
++  else if (g_strcmp0 (method, "Activate") == 0
++           || g_strcmp0 (method, "SecondaryActivate") == 0
++           || g_strcmp0 (method, "ContextMenu") == 0)
++    {
++      gint x = 0, y = 0;
++
++      g_variant_get (params, "(ii)", &x, &y);
++      icon_click (icon, method[0] == 'A' ? 1 : method[0] == 'S' ? 2 : 3, x, y);
++    }
+   else if (g_strcmp0 (method, "Scroll") == 0)
+     {
+       gint delta = 0;
+       const gchar *orientation = NULL;
+ 
+       g_variant_get (params, "(i&s)", &delta, &orientation);
++      /* Sin posición: la del último clic (en Wayland, sobre el ícono) */
+       if (g_ascii_strcasecmp (orientation, "horizontal") == 0)
+-        icon_click (icon, delta < 0 ? 6 : 7);
++        icon_click (icon, delta < 0 ? 6 : 7, icon->click_x, icon->click_y);
+       else
+-        icon_click (icon, delta < 0 ? 4 : 5);
++        icon_click (icon, delta < 0 ? 4 : 5, icon->click_x, icon->click_y);
+     }
+   else
+     {
+@@ -1762,6 +1785,8 @@ main (int argc, char **argv)
+   GOptionEntry entries[] = {
+     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Mostrar mensajes de diagnóstico", NULL },
+     { "version", 0, 0, G_OPTION_ARG_NONE, &version, "Mostrar la versión", NULL },
++    { "wayland", 0, 0, G_OPTION_ARG_NONE, &P.wayland,
++      "Sesión Wayland: usar la posición que manda el host en los clics", NULL },
+     { NULL }
+   };
+   GOptionContext *context;
+diff --git a/src/to-button.c b/src/to-button.c
+index 642f24d..66f773c 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -8,6 +8,11 @@
+ 
+ #include <math.h>
+ 
++#ifdef HAVE_GTK_LAYER_SHELL
++#include <gtk-layer-shell.h>
++#include <libxfce4panel/libxfce4panel.h>
++#endif
++
+ struct _TrayButton
+ {
+   GtkButton  parent_instance;
+@@ -54,6 +59,67 @@ event_root_coords (GtkWidget      *widget,
+ {
+   gint scale = gtk_widget_get_scale_factor (widget);
+ 
++#ifdef HAVE_GTK_LAYER_SHELL
++  {
++    /* Wayland: x_root/y_root son relativas a la ventana (el panel o el
++     * popup, que son capas ancladas arriba a la izquierda): se suma su
++     * posición. Las apps antiguas (vía XWayland) ubican su menú en este
++     * punto. En píxeles lógicos, que es lo que usa XWayland. */
++    GtkWidget *toplevel = gtk_widget_get_toplevel (widget);
++
++    if (GTK_IS_WINDOW (toplevel) && gtk_layer_is_layer_window (GTK_WINDOW (toplevel)))
++      {
++        GtkWindow *window = GTK_WINDOW (toplevel);
++        GtkWidget *plugin = gtk_widget_get_ancestor (widget, XFCE_TYPE_PANEL_PLUGIN);
++        GdkMonitor *monitor = gtk_layer_get_monitor (window);
++        GdkRectangle geometry = { 0, 0, 0, 0 };
++        GtkAllocation alloc;
++        gint ox, oy, bx = 0, by = 0, cx, cy;
++        gint pw = gtk_widget_get_allocated_width (toplevel);
++        gint ph = gtk_widget_get_allocated_height (toplevel);
++
++        if (monitor == NULL && gtk_widget_get_window (toplevel) != NULL)
++          monitor = gdk_display_get_monitor_at_window (gtk_widget_get_display (toplevel),
++                                                       gtk_widget_get_window (toplevel));
++        if (monitor != NULL)
++          gdk_monitor_get_geometry (monitor, &geometry);
++
++        ox = geometry.x + gtk_layer_get_margin (window, GTK_LAYER_SHELL_EDGE_LEFT);
++        oy = geometry.y + gtk_layer_get_margin (window, GTK_LAYER_SHELL_EDGE_TOP);
++
++        /* Ícono del popup: el punto del clic (el popup se cierra antes
++         * de que aparezca el menú de la app) */
++        if (plugin == NULL)
++          {
++            *x = ox + (gint) event->x_root;
++            *y = oy + (gint) event->y_root;
++            return;
++          }
++
++        /* Ícono del panel: las ventanas X quedan debajo del panel, así
++         * que el punto va justo afuera de su borde, hacia donde se abren
++         * los menús, a media distancia del tamaño del ícono */
++        gtk_widget_translate_coordinates (widget, toplevel, 0, 0, &bx, &by);
++        gtk_widget_get_allocation (widget, &alloc);
++        cx = ox + bx + alloc.width / 2;
++        cy = oy + by + alloc.height / 2;
++
++        switch (xfce_panel_plugin_arrow_type (XFCE_PANEL_PLUGIN (plugin)))
++          {
++          case GTK_ARROW_UP:    cy = oy - alloc.height / 2 - 1;      break;
++          case GTK_ARROW_DOWN:  cy = oy + ph + alloc.height / 2 + 1; break;
++          case GTK_ARROW_LEFT:  cx = ox - alloc.width / 2 - 1;       break;
++          case GTK_ARROW_RIGHT: cx = ox + pw + alloc.width / 2 + 1;  break;
++          default: break;
++          }
++
++        *x = cx;
++        *y = cy;
++        return;
++      }
++  }
++#endif
++
+   *x = (gint) (event->x_root * scale);
+   *y = (gint) (event->y_root * scale);
+ }
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 9e56032..b8523c2 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -816,6 +816,12 @@ legacy_update_notice (DialogData *d)
+                                       PROXY_PATH);
+       break;
+ 
++    case TRAY_LEGACY_NO_XWAYLAND:
++      icon = "dialog-warning-symbolic";
++      text = _("Older apps need XWayland, which is not available in this "
++               "session.");
++      break;
++
+     case TRAY_LEGACY_UNAVAILABLE:
+     case TRAY_LEGACY_OFF:
+     default:
+diff --git a/src/to-item.c b/src/to-item.c
+index 89bd163..053f812 100644
+--- a/src/to-item.c
++++ b/src/to-item.c
+@@ -14,6 +14,7 @@ typedef struct
+   gchar          *title;
+   TrayItemStatus  status;
+   gboolean        is_menu;
++  gboolean        is_legacy;    /* app antigua, vía nuestro proxy XEmbed */
+ 
+   gchar          *icon_name[TRAY_ITEM_N_ICONS];
+   GPtrArray      *pixmaps[TRAY_ITEM_N_ICONS];
+@@ -158,6 +159,15 @@ tray_item_get_is_menu (TrayItem *item)
+ 
+ 
+ 
++gboolean
++tray_item_get_is_legacy (TrayItem *item)
++{
++  g_return_val_if_fail (TRAY_IS_ITEM (item), FALSE);
++  return PRIV (item)->is_legacy;
++}
++
++
++
+ /* KDE permite un subconjunto de HTML en los tooltips. Convertimos los
+  * saltos de línea HTML y, si el resultado no es markup Pango válido,
+  * lo escapamos para mostrarlo como texto plano. */
+@@ -645,6 +655,15 @@ tray_item_set_is_menu (TrayItem *item, gboolean is_menu)
+ 
+ 
+ 
++void
++tray_item_set_is_legacy (TrayItem *item, gboolean is_legacy)
++{
++  g_return_if_fail (TRAY_IS_ITEM (item));
++  PRIV (item)->is_legacy = is_legacy;
++}
++
++
++
+ void
+ tray_item_set_icon (TrayItem         *item,
+                     TrayItemIconRole  role,
+diff --git a/src/to-item.h b/src/to-item.h
+index a17b48b..54548a3 100644
+--- a/src/to-item.h
++++ b/src/to-item.h
+@@ -58,6 +58,8 @@ const gchar    *tray_item_get_display_name   (TrayItem *item);
+ const gchar    *tray_item_get_icon_name      (TrayItem *item);
+ TrayItemStatus  tray_item_get_status         (TrayItem *item);
+ gboolean        tray_item_get_is_menu        (TrayItem *item);
++/* App antigua (XEmbed) mostrada por nuestro proxy */
++gboolean        tray_item_get_is_legacy      (TrayItem *item);
+ gchar          *tray_item_get_tooltip_markup (TrayItem *item);
+ 
+ /* Devuelve un pixbuf de (size * scale) píxeles, o NULL.
+@@ -91,6 +93,7 @@ void tray_item_set_key             (TrayItem *item, const gchar *key);
+ void tray_item_set_title           (TrayItem *item, const gchar *title);
+ void tray_item_set_status          (TrayItem *item, TrayItemStatus status);
+ void tray_item_set_is_menu         (TrayItem *item, gboolean is_menu);
++void tray_item_set_is_legacy       (TrayItem *item, gboolean is_legacy);
+ /* @pixmaps: GPtrArray de GdkPixbuf (transfer full), puede ser NULL */
+ void tray_item_set_icon            (TrayItem         *item,
+                                     TrayItemIconRole  role,
+diff --git a/src/to-legacy.c b/src/to-legacy.c
+index 83519f1..9f5aa03 100644
+--- a/src/to-legacy.c
++++ b/src/to-legacy.c
+@@ -34,6 +34,33 @@ static void proxy_start (void);
+ 
+ 
+ 
++/* ¿La sesión es X11? En Wayland, las apps antiguas corren en XWayland */
++static gboolean
++session_is_x11 (void)
++{
++#ifdef GDK_WINDOWING_X11
++  GdkDisplay *display = gdk_display_get_default ();
++
++  return display != NULL && GDK_IS_X11_DISPLAY (display);
++#else
++  return FALSE;
++#endif
++}
++
++
++
++/* Wayland: XWayland disponible (el compositor exporta DISPLAY; puede
++ * arrancarlo recién cuando alguien se conecta) */
++static gboolean
++xwayland_available (void)
++{
++  const gchar *display = g_getenv ("DISPLAY");
++
++  return display != NULL && *display != '\0';
++}
++
++
++
+ gboolean
+ tray_legacy_available (void)
+ {
+@@ -113,12 +140,20 @@ proxy_start (void)
+   GSubprocessLauncher *launcher;
+   GError *error = NULL;
+ 
++  gboolean wayland = !session_is_x11 ();
++
+   if (proxy != NULL || failed || !tray_legacy_available ())
+     return;
+ 
++  if (wayland && !xwayland_available ())
++    return;
++
+   launcher = g_subprocess_launcher_new (G_SUBPROCESS_FLAGS_NONE);
+   g_subprocess_launcher_set_child_setup (launcher, child_setup, NULL, NULL);
+-  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH, NULL);
++  /* En Wayland el proxy no ve el puntero real: usa la posición del
++   * ícono que le mandamos en cada clic */
++  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
++                                       wayland ? "--wayland" : NULL, NULL);
+   g_object_unref (launcher);
+ 
+   if (proxy == NULL)
+@@ -178,6 +213,42 @@ tray_legacy_set_wanted (gpointer owner,
+ 
+ 
+ 
++#ifdef GDK_WINDOWING_X11
++/* Dueño de la bandeja clásica en @xdisplay. Los errores de X (la ventana
++ * puede desaparecer en el medio) los atrapa quien llama. */
++static gint
++selection_owner (Display  *xdisplay,
++                 gboolean *is_proxy)
++{
++  gchar *name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", DefaultScreen (xdisplay));
++  Atom atom = XInternAtom (xdisplay, name, False);
++  Window owner = XGetSelectionOwner (xdisplay, atom);
++  gchar *window_name = NULL;
++
++  g_free (name);
++  if (owner == None)
++    return 0;
++
++  if (is_proxy != NULL && XFetchName (xdisplay, owner, &window_name) && window_name != NULL)
++    {
++      *is_proxy = strcmp (window_name, PROXY_WINDOW_NAME) == 0;
++      XFree (window_name);
++    }
++  return 1;
++}
++
++
++
++static int
++ignore_x_error (Display     *xdisplay,
++                XErrorEvent *event)
++{
++  return 0;
++}
++#endif
++
++
++
+ gint
+ tray_legacy_tray_owner (GtkWidget *reference,
+                         gboolean  *is_proxy)
+@@ -188,32 +259,36 @@ tray_legacy_tray_owner (GtkWidget *reference,
+ #ifdef GDK_WINDOWING_X11
+   {
+     GdkDisplay *display = gtk_widget_get_display (reference);
++    gint result;
+ 
+     if (GDK_IS_X11_DISPLAY (display))
+       {
+-        Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
+-        gchar *name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", DefaultScreen (xdisplay));
+-        Atom atom = XInternAtom (xdisplay, name, False);
+-        Window owner = XGetSelectionOwner (xdisplay, atom);
+-
+-        g_free (name);
+-        if (owner == None)
+-          return 0;
+-
+-        if (is_proxy != NULL)
+-          {
+-            gchar *window_name = NULL;
+-
+-            gdk_x11_display_error_trap_push (display);
+-            if (XFetchName (xdisplay, owner, &window_name) && window_name != NULL)
+-              {
+-                *is_proxy = strcmp (window_name, PROXY_WINDOW_NAME) == 0;
+-                XFree (window_name);
+-              }
+-            gdk_x11_display_error_trap_pop_ignored (display);
+-          }
+-        return 1;
++        gdk_x11_display_error_trap_push (display);
++        result = selection_owner (GDK_DISPLAY_XDISPLAY (display), is_proxy);
++        gdk_x11_display_error_trap_pop_ignored (display);
++        return result;
+       }
++
++    /* Wayland: las apps antiguas viven en XWayland. Sin el proxy pedido,
++     * no conectarse (arrancaría XWayland en vano): en Wayland no suele
++     * haber otra bandeja clásica. */
++    if (wanters == NULL || g_hash_table_size (wanters) == 0 || !xwayland_available ())
++      return 0;
++
++    {
++      Display *xdisplay = XOpenDisplay (NULL);
++      int (*old_handler) (Display *, XErrorEvent *);
++
++      if (xdisplay == NULL)
++        return -1;
++
++      old_handler = XSetErrorHandler (ignore_x_error);
++      result = selection_owner (xdisplay, is_proxy);
++      XSync (xdisplay, False);
++      XSetErrorHandler (old_handler);
++      XCloseDisplay (xdisplay);
++      return result;
++    }
+   }
+ #endif
+ 
+@@ -234,6 +309,8 @@ tray_legacy_get_state (GtkWidget *reference)
+     return TRAY_LEGACY_OFF;
+   if (failed)
+     return TRAY_LEGACY_FAILED;
++  if (!session_is_x11 () && !xwayland_available ())
++    return TRAY_LEGACY_NO_XWAYLAND;
+ 
+   owner = tray_legacy_tray_owner (reference, &is_proxy);
+   if (owner == 1 && !is_proxy)
+diff --git a/src/to-legacy.h b/src/to-legacy.h
+index 0c325c5..6098ebd 100644
+--- a/src/to-legacy.h
++++ b/src/to-legacy.h
+@@ -21,6 +21,7 @@ typedef enum
+   TRAY_LEGACY_ACTIVE,       /* el proxy es la bandeja clásica */
+   TRAY_LEGACY_WAITING,      /* otra bandeja clásica está activa */
+   TRAY_LEGACY_FAILED,       /* el proxy falla al arrancar */
++  TRAY_LEGACY_NO_XWAYLAND,  /* Wayland sin XWayland: no hay dónde correr */
+ } TrayLegacyState;
+ 
+ /* @owner identifica a quien lo pide (una instancia del plugin) */
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index b8d31e6..931525f 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -1042,9 +1042,15 @@ button_acted (TrayButton *button,
+     }
+ 
+   /* Wayland: nuestro grab no afecta a otras apps; si la app pasa a primer
+-   * plano, el popup pierde el foco y se cierra (ver focus_check) */
++   * plano, el popup pierde el foco y se cierra (ver focus_check).
++   * Las apps antiguas (XWayland) no le quitan el foco al mostrar su menú
++   * y el popup lo taparía: con ellas, el clic siempre cierra. */
+   if (p->popup_layer)
+-    return;
++    {
++      if (tray_item_get_is_legacy (tray_button_get_item (button)))
++        popup_hide (p);
++      return;
++    }
+ 
+   /* Activar: el popup queda abierto. Se cierra solo si la app pasa a
+    * primer plano (ver active_window_check). Mientras tanto, sin grab:
+diff --git a/src/to-sni.c b/src/to-sni.c
+index c23d184..ec227a3 100644
+--- a/src/to-sni.c
++++ b/src/to-sni.c
+@@ -805,6 +805,7 @@ sni_item_pid_done (GObject      *source,
+       if (pid > 0)
+         item->exe = exe_name_from_pid (pid);
+       item->from_proxy = g_strcmp0 (item->exe, PROXY_EXE_NAME) == 0;
++      tray_item_set_is_legacy (TRAY_ITEM (item), item->from_proxy);
+       g_variant_unref (reply);
+     }
+   g_clear_error (&error);

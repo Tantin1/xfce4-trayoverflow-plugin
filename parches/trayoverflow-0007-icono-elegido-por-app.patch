@@ -1,0 +1,855 @@
+diff --git a/meson.build b/meson.build
+index 3c8e22e..9d5354d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.4',
++  version: '0.2.5',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index a68c721..df6edbd 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.4\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.5\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-25 19:40-0300\n"
++"PO-Revision-Date: 2026-10-25 20:30-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+@@ -156,3 +156,49 @@ msgstr "Área de notificación con una ventana emergente para los íconos oculto
+ 
+ msgid "Show hidden icons"
+ msgstr "Mostrar íconos ocultos"
++
++msgid "Ic_on…"
++msgstr "Í_cono…"
++
++msgid "Choose a different icon for the selected app"
++msgstr "Elegir otro ícono para la aplicación seleccionada"
++
++msgid "Icon for %s"
++msgstr "Ícono de %s"
++
++msgid "Use the app's _own icon"
++msgstr "Usar el ícono _propio de la aplicación"
++
++msgid "_Cancel"
++msgstr "_Cancelar"
++
++msgid "_OK"
++msgstr "_Aceptar"
++
++msgid "_Open"
++msgstr "_Abrir"
++
++msgid "Suggested icons from your theme:"
++msgstr "Íconos sugeridos de su tema:"
++
++msgid "No matching icons in your theme."
++msgstr "No hay íconos parecidos en su tema."
++
++msgid "Icon _name or file:"
++msgstr "_Nombre del ícono o archivo:"
++
++msgid "Choose _File…"
++msgstr "Elegir _archivo…"
++
++msgid "Choose an icon file"
++msgstr "Elija un archivo de ícono"
++
++msgid "Images"
++msgstr "Imágenes"
++
++msgid ""
++"While a custom icon is set, changes in the app's own icon (for example a "
++"notice) are not shown."
++msgstr ""
++"Mientras tenga un ícono elegido, no se verán los cambios del ícono propio "
++"de la aplicación (por ejemplo, un aviso)."
+diff --git a/src/to-button.c b/src/to-button.c
+index 2105cd1..642f24d 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -28,6 +28,8 @@ struct _TrayButton
+   GdkRGBA    drawn_color;
+   gint       drawn_scale;
+   gchar     *tooltip;
++
++  gchar     *icon_override;    /* ícono elegido por el usuario, o NULL */
+ };
+ 
+ G_DEFINE_TYPE (TrayButton, tray_button, GTK_TYPE_BUTTON)
+@@ -211,6 +213,23 @@ tray_button_scroll (GtkWidget      *widget,
+ 
+ 
+ 
++/* El ícono elegido por el usuario, si lo hay y existe; si no, el de la app */
++static GdkPixbuf *
++render_icon (TrayButton *button,
++             gint        scale)
++{
++  GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (button));
++  GdkPixbuf *pixbuf;
++
++  pixbuf = tray_icon_load (button->icon_override, button->icon_size, scale, context);
++  if (pixbuf == NULL)
++    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context);
++
++  return pixbuf;
++}
++
++
++
+ static void
+ tray_button_drag_begin (GtkWidget      *widget,
+                         GdkDragContext *context)
+@@ -221,8 +240,7 @@ tray_button_drag_begin (GtkWidget      *widget,
+   /* Un arrastre no es un clic */
+   button->pressed_button = 0;
+ 
+-  pixbuf = tray_item_render_icon (button->item, button->icon_size, 1,
+-                                  gtk_widget_get_style_context (widget));
++  pixbuf = render_icon (button, 1);
+   if (pixbuf != NULL)
+     {
+       gtk_drag_set_icon_pixbuf (context, pixbuf,
+@@ -289,6 +307,7 @@ tray_button_dispose (GObject *object)
+       g_clear_object (&button->item);
+     }
+   g_clear_pointer (&button->tooltip, g_free);
++  g_clear_pointer (&button->icon_override, g_free);
+ 
+   G_OBJECT_CLASS (tray_button_parent_class)->dispose (object);
+ }
+@@ -394,6 +413,25 @@ tray_button_set_icon_size (TrayButton *button,
+ 
+ 
+ 
++void
++tray_button_set_icon_override (TrayButton  *button,
++                               const gchar *icon)
++{
++  g_return_if_fail (TRAY_IS_BUTTON (button));
++
++  if (icon != NULL && *icon == '\0')
++    icon = NULL;
++
++  if (g_strcmp0 (button->icon_override, icon) != 0)
++    {
++      g_free (button->icon_override);
++      button->icon_override = g_strdup (icon);
++      tray_button_update (button);
++    }
++}
++
++
++
+ void
+ tray_button_update (TrayButton *button)
+ {
+@@ -421,8 +459,7 @@ tray_button_update (TrayButton *button)
+   if (button->sized)
+     tray_item_request_size (button->item, button, button->icon_size * scale);
+ 
+-  pixbuf = tray_item_render_icon (button->item, button->icon_size, scale,
+-                                  gtk_widget_get_style_context (widget));
++  pixbuf = render_icon (button, scale);
+   if (pixbuf != NULL)
+     {
+       cairo_surface_t *surface;
+diff --git a/src/to-button.h b/src/to-button.h
+index 9e12351..691777c 100644
+--- a/src/to-button.h
++++ b/src/to-button.h
+@@ -21,5 +21,7 @@ GtkWidget *tray_button_new           (TrayItem *item);
+ TrayItem  *tray_button_get_item      (TrayButton *button);
+ void       tray_button_set_icon_size (TrayButton *button, gint size);
+ void       tray_button_update        (TrayButton *button);
++/* Ícono elegido por el usuario (nombre del tema o ruta), NULL = el de la app */
++void       tray_button_set_icon_override (TrayButton *button, const gchar *icon);
+ 
+ G_END_DECLS
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index fd0b351..0d2ec9b 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -12,10 +12,15 @@
+ #include "to-dialog.h"
+ 
+ #include <libxfce4ui/libxfce4ui.h>
++#include <string.h>
+ 
+ #include "to-legacy.h"
+ 
+-#define LIST_ICON_SIZE 24
++#define LIST_ICON_SIZE    24
++#define CHOOSER_ICON_SIZE 32
++#define PREVIEW_ICON_SIZE 48
++#define MAX_SUGGESTIONS   30
++#define RESPONSE_APP_ICON 1
+ 
+ enum
+ {
+@@ -45,6 +50,7 @@ typedef struct
+   GtkWidget    *up_button;
+   GtkWidget    *down_button;
+   GtkWidget    *forget_button;
++  GtkWidget    *icon_button;
+ 
+   GtkWidget    *legacy_check;
+   GtkWidget    *legacy_image;
+@@ -280,6 +286,7 @@ update_buttons (DialogData *d)
+       gtk_tree_path_free (path);
+     }
+ 
++  gtk_widget_set_sensitive (d->icon_button, has);
+   gtk_widget_set_sensitive (d->up_button, has && !first);
+   gtk_widget_set_sensitive (d->down_button, has && !last);
+   /* Una app abierta se volvería a registrar al instante */
+@@ -304,7 +311,8 @@ rebuild_list (DialogData *d)
+     {
+       TrayKnown *k = g_ptr_array_index (known, i);
+       TrayItem *item = g_hash_table_lookup (running, k->key);
+-      GdkPixbuf *pixbuf = NULL;
++      const gchar *custom = tray_settings_get_icon_override (d->p->settings, k->key);
++      GdkPixbuf *pixbuf = tray_icon_load (custom, LIST_ICON_SIZE, 1, context);
+       const gchar *title;
+       gchar *markup;
+       gboolean hidden;
+@@ -312,7 +320,8 @@ rebuild_list (DialogData *d)
+ 
+       if (item != NULL)
+         {
+-          pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context);
++          if (pixbuf == NULL)
++            pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context);
+           title = tray_item_get_display_name (item);
+           hidden = tray_settings_is_hidden (d->p->settings, k->key,
+                                             tray_item_get_status (item) == TRAY_ITEM_STATUS_PASSIVE);
+@@ -324,7 +333,9 @@ rebuild_list (DialogData *d)
+                               ? k->icon_name : "application-x-executable";
+ 
+           /* Ícono guardado en la caché (apps que solo envían píxeles) */
+-          if (g_path_is_absolute (icon))
++          if (pixbuf != NULL)
++            ;
++          else if (g_path_is_absolute (icon))
+             pixbuf = gdk_pixbuf_new_from_file_at_size (icon, LIST_ICON_SIZE,
+                                                        LIST_ICON_SIZE, NULL);
+           else
+@@ -442,6 +453,329 @@ forget_clicked (GtkButton *button, DialogData *d)
+ 
+ 
+ 
++/* ── Elegir el ícono de una app ──────────────────────────────────────── */
++
++typedef struct
++{
++  GtkWidget *entry;
++  GtkWidget *preview;
++} IconChooser;
++
++
++
++/* Palabras que identifican a la app: el título sin espacios y los
++ * tramos de la clave ("org-jdownloader-…" → "jdownloader") */
++static GPtrArray *
++app_words (const gchar *key, const gchar *title)
++{
++  static const gchar *const ignore[] = {
++    "org", "com", "net", "io", "app", "update", "launcher", "tray", "status",
++    "icon", "indicator", "applet", NULL
++  };
++  GPtrArray *words = g_ptr_array_new_with_free_func (g_free);
++  gchar **parts;
++  gchar *lower;
++  guint i;
++
++  if (title != NULL)
++    {
++      gchar **split = g_strsplit (title, " ", -1);
++      gchar *joined = g_strjoinv ("", split);
++
++      lower = g_ascii_strdown (joined, -1);
++      g_free (joined);
++      g_strfreev (split);
++      if (strlen (lower) >= 3)
++        g_ptr_array_add (words, lower);
++      else
++        g_free (lower);
++    }
++
++  lower = g_ascii_strdown (key != NULL ? key : "", -1);
++  parts = g_strsplit_set (lower, "-._ ", -1);
++  for (i = 0; parts[i] != NULL; i++)
++    if (strlen (parts[i]) >= 4 && !g_strv_contains (ignore, parts[i]))
++      g_ptr_array_add (words, g_strdup (parts[i]));
++  g_strfreev (parts);
++  g_free (lower);
++
++  return words;
++}
++
++
++
++/* Íconos del tema cuyo nombre contiene alguna palabra de la app */
++static GPtrArray *
++suggest_icons (const gchar *key, const gchar *title)
++{
++  GPtrArray *words = app_words (key, title);
++  GPtrArray *found = g_ptr_array_new_with_free_func (g_free);
++  GList *names, *l;
++
++  if (words->len == 0)
++    {
++      g_ptr_array_unref (words);
++      return found;
++    }
++
++  names = gtk_icon_theme_list_icons (gtk_icon_theme_get_default (), NULL);
++  names = g_list_sort (names, (GCompareFunc) g_strcmp0);
++
++  for (l = names; l != NULL && found->len < MAX_SUGGESTIONS; l = l->next)
++    {
++      gchar *lower = g_ascii_strdown (l->data, -1);
++      guint i;
++
++      /* Los simbólicos son monocromos: no sirven para una app */
++      if (!g_str_has_suffix (lower, "-symbolic"))
++        for (i = 0; i < words->len; i++)
++          if (strstr (lower, g_ptr_array_index (words, i)) != NULL)
++            {
++              g_ptr_array_add (found, g_strdup (l->data));
++              break;
++            }
++      g_free (lower);
++    }
++
++  g_list_free_full (names, g_free);
++  g_ptr_array_unref (words);
++  return found;
++}
++
++
++
++static void
++chooser_update_preview (GtkEditable *entry, IconChooser *c)
++{
++  gchar *text = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (entry))));
++  GdkPixbuf *pixbuf = tray_icon_load (text, PREVIEW_ICON_SIZE, 1, NULL);
++
++  g_free (text);
++
++  if (pixbuf != NULL)
++    {
++      gtk_image_set_from_pixbuf (GTK_IMAGE (c->preview), pixbuf);
++      g_object_unref (pixbuf);
++    }
++  else
++    {
++      gtk_image_set_from_icon_name (GTK_IMAGE (c->preview), "image-missing",
++                                    GTK_ICON_SIZE_DIALOG);
++    }
++}
++
++
++
++static void
++suggestion_clicked (GtkButton *button, IconChooser *c)
++{
++  gtk_entry_set_text (GTK_ENTRY (c->entry),
++                      g_object_get_data (G_OBJECT (button), "icon-name"));
++}
++
++
++
++static void
++choose_file_clicked (GtkButton *button, IconChooser *c)
++{
++  GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (button));
++  GtkFileChooserNative *native;
++  GtkFileFilter *filter;
++
++  native = gtk_file_chooser_native_new (_("Choose an icon file"), GTK_WINDOW (toplevel),
++                                        GTK_FILE_CHOOSER_ACTION_OPEN, _("_Open"), _("_Cancel"));
++  filter = gtk_file_filter_new ();
++  gtk_file_filter_set_name (filter, _("Images"));
++  gtk_file_filter_add_pixbuf_formats (filter);
++  gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (native), filter);
++
++  if (gtk_native_dialog_run (GTK_NATIVE_DIALOG (native)) == GTK_RESPONSE_ACCEPT)
++    {
++      gchar *path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (native));
++
++      if (path != NULL)
++        gtk_entry_set_text (GTK_ENTRY (c->entry), path);
++      g_free (path);
++    }
++
++  g_object_unref (native);
++}
++
++
++
++static void
++icon_clicked (GtkButton *button, DialogData *d)
++{
++  GtkWidget *dialog, *main_dialog, *content, *grid, *label, *flow, *scrolled;
++  GtkWidget *file_button, *hint;
++  GtkTreeSelection *selection;
++  GtkTreeModel *model;
++  GtkTreeIter iter;
++  GPtrArray *suggestions;
++  IconChooser c;
++  const gchar *current, *title = NULL;
++  gchar *key = selected_key (d), *heading;
++  TrayKnown *k;
++  gint index, response;
++  guint i;
++
++  if (key == NULL)
++    return;
++
++  index = tray_settings_get_index (d->p->settings, key);
++  k = index >= 0 ? g_ptr_array_index (tray_settings_get_known (d->p->settings), index) : NULL;
++  if (k != NULL && k->title != NULL && *k->title != '\0')
++    title = k->title;
++
++  /* Mejor el título actual si la app está abierta */
++  selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (d->tree));
++  if (gtk_tree_selection_get_selected (selection, &model, &iter))
++    {
++      GHashTable *running = running_items (d);
++      TrayItem *item = g_hash_table_lookup (running, key);
++
++      if (item != NULL)
++        title = tray_item_get_display_name (item);
++      g_hash_table_unref (running);
++    }
++  if (title == NULL)
++    title = key;
++
++  heading = g_strdup_printf (_("Icon for %s"), title);
++  dialog = gtk_dialog_new_with_buttons (heading, GTK_WINDOW (d->dialog),
++                                        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
++                                        _("Use the app's _own icon"), RESPONSE_APP_ICON,
++                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
++                                        _("_OK"), GTK_RESPONSE_OK,
++                                        NULL);
++  g_free (heading);
++  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
++  gtk_window_set_default_size (GTK_WINDOW (dialog), 420, -1);
++
++  content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
++  grid = gtk_grid_new ();
++  gtk_grid_set_row_spacing (GTK_GRID (grid), 8);
++  gtk_grid_set_column_spacing (GTK_GRID (grid), 8);
++  gtk_container_set_border_width (GTK_CONTAINER (grid), 12);
++  gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 0);
++
++  /* Sugerencias del tema */
++  suggestions = suggest_icons (key, title);
++  label = gtk_label_new (suggestions->len > 0 ? _("Suggested icons from your theme:")
++                                              : _("No matching icons in your theme."));
++  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++  gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 3, 1);
++
++  flow = gtk_flow_box_new ();
++  gtk_flow_box_set_selection_mode (GTK_FLOW_BOX (flow), GTK_SELECTION_NONE);
++  /* Con el mínimo por fila, el alto pedido es el real (si no, GTK lo
++   * calcula como si hubiera un solo ícono por fila) */
++  gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (flow), 6);
++  gtk_flow_box_set_max_children_per_line (GTK_FLOW_BOX (flow), 8);
++  gtk_widget_set_valign (flow, GTK_ALIGN_START);
++  for (i = 0; i < suggestions->len; i++)
++    {
++      const gchar *name = g_ptr_array_index (suggestions, i);
++      GtkWidget *b = gtk_button_new ();
++      GtkWidget *image = gtk_image_new_from_icon_name (name, GTK_ICON_SIZE_DND);
++
++      gtk_image_set_pixel_size (GTK_IMAGE (image), CHOOSER_ICON_SIZE);
++      gtk_button_set_image (GTK_BUTTON (b), image);
++      gtk_button_set_relief (GTK_BUTTON (b), GTK_RELIEF_NONE);
++      gtk_widget_set_tooltip_text (b, name);
++      g_object_set_data_full (G_OBJECT (b), "icon-name", g_strdup (name), g_free);
++      g_signal_connect (b, "clicked", G_CALLBACK (suggestion_clicked), &c);
++      gtk_flow_box_insert (GTK_FLOW_BOX (flow), b, -1);
++    }
++  g_ptr_array_unref (suggestions);
++
++  scrolled = gtk_scrolled_window_new (NULL, NULL);
++  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
++                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
++  gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scrolled), 200);
++  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scrolled), TRUE);
++  gtk_container_add (GTK_CONTAINER (scrolled), flow);
++  gtk_widget_set_hexpand (scrolled, TRUE);
++  gtk_grid_attach (GTK_GRID (grid), scrolled, 0, 1, 3, 1);
++
++  /* Nombre o archivo, con vista previa */
++  label = gtk_label_new_with_mnemonic (_("Icon _name or file:"));
++  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++  gtk_grid_attach (GTK_GRID (grid), label, 0, 2, 3, 1);
++
++  c.preview = gtk_image_new ();
++  gtk_image_set_pixel_size (GTK_IMAGE (c.preview), PREVIEW_ICON_SIZE);
++  gtk_widget_set_size_request (c.preview, PREVIEW_ICON_SIZE, PREVIEW_ICON_SIZE);
++  gtk_grid_attach (GTK_GRID (grid), c.preview, 0, 3, 1, 1);
++
++  c.entry = gtk_entry_new ();
++  gtk_entry_set_activates_default (GTK_ENTRY (c.entry), TRUE);
++  gtk_widget_set_hexpand (c.entry, TRUE);
++  gtk_widget_set_valign (c.entry, GTK_ALIGN_CENTER);
++  gtk_label_set_mnemonic_widget (GTK_LABEL (label), c.entry);
++  gtk_grid_attach (GTK_GRID (grid), c.entry, 1, 3, 1, 1);
++
++  file_button = gtk_button_new_with_mnemonic (_("Choose _File…"));
++  gtk_widget_set_valign (file_button, GTK_ALIGN_CENTER);
++  g_signal_connect (file_button, "clicked", G_CALLBACK (choose_file_clicked), &c);
++  gtk_grid_attach (GTK_GRID (grid), file_button, 2, 3, 1, 1);
++
++  hint = gtk_label_new (_("While a custom icon is set, changes in the app's own icon "
++                          "(for example a notice) are not shown."));
++  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
++  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
++  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
++  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
++  gtk_grid_attach (GTK_GRID (grid), hint, 0, 4, 3, 1);
++
++  g_signal_connect (c.entry, "changed", G_CALLBACK (chooser_update_preview), &c);
++  current = tray_settings_get_icon_override (d->p->settings, key);
++  gtk_entry_set_text (GTK_ENTRY (c.entry), current != NULL ? current : "");
++  chooser_update_preview (GTK_EDITABLE (c.entry), &c);
++
++  /* gtk_dialog_run tiene su propio bucle: si mientras tanto se cierra la
++   * configuración (p. ej. se reinicia el panel), @d ya no existe */
++  main_dialog = d->dialog;
++  g_object_add_weak_pointer (G_OBJECT (main_dialog), (gpointer *) &main_dialog);
++  g_object_add_weak_pointer (G_OBJECT (dialog), (gpointer *) &dialog);
++
++  gtk_widget_show_all (dialog);
++  response = gtk_dialog_run (GTK_DIALOG (dialog));
++
++  if (main_dialog == NULL)
++    {
++      if (dialog != NULL)
++        {
++          g_object_remove_weak_pointer (G_OBJECT (dialog), (gpointer *) &dialog);
++          gtk_widget_destroy (dialog);
++        }
++      g_free (key);
++      return;
++    }
++  g_object_remove_weak_pointer (G_OBJECT (main_dialog), (gpointer *) &main_dialog);
++
++  if (response == GTK_RESPONSE_OK)
++    {
++      gchar *text = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c.entry))));
++
++      tray_settings_set_icon_override (d->p->settings, key, text);
++      g_free (text);
++    }
++  else if (response == RESPONSE_APP_ICON)
++    {
++      tray_settings_set_icon_override (d->p->settings, key, NULL);
++    }
++
++  if (dialog != NULL)
++    {
++      g_object_remove_weak_pointer (G_OBJECT (dialog), (gpointer *) &dialog);
++      gtk_widget_destroy (dialog);
++    }
++  g_free (key);
++}
++
++
++
+ static void
+ selection_changed (GtkTreeSelection *selection, DialogData *d)
+ {
+@@ -640,6 +974,11 @@ items_page (DialogData *d)
+   gtk_box_pack_start (GTK_BOX (buttons), d->up_button, FALSE, FALSE, 0);
+   gtk_box_pack_start (GTK_BOX (buttons), d->down_button, FALSE, FALSE, 0);
+   gtk_box_pack_end (GTK_BOX (buttons), d->forget_button, FALSE, FALSE, 0);
++  d->icon_button = gtk_button_new_with_mnemonic (_("Ic_on…"));
++  gtk_widget_set_tooltip_text (d->icon_button,
++                               _("Choose a different icon for the selected app"));
++  g_signal_connect (d->icon_button, "clicked", G_CALLBACK (icon_clicked), d);
++  gtk_box_pack_end (GTK_BOX (buttons), d->icon_button, FALSE, FALSE, 0);
+   gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
+ 
+   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
+diff --git a/src/to-item.c b/src/to-item.c
+index bfeb937..89bd163 100644
+--- a/src/to-item.c
++++ b/src/to-item.c
+@@ -305,6 +305,49 @@ load_named (TrayItem        *item,
+ 
+ 
+ 
++GdkPixbuf *
++tray_icon_load (const gchar     *name,
++                gint             size,
++                gint             scale,
++                GtkStyleContext *context)
++{
++  GdkPixbuf *pixbuf;
++  gint px;
++
++  if (name == NULL || *name == '\0')
++    return NULL;
++
++  size = MAX (size, 1);
++  scale = MAX (scale, 1);
++  px = size * scale;
++
++  if (g_path_is_absolute (name))
++    {
++      GdkPixbuf *loaded = gdk_pixbuf_new_from_file_at_scale (name, px, px, TRUE, NULL);
++      gint w, h;
++
++      if (loaded == NULL)
++        return NULL;
++
++      /* Imagen no cuadrada: centrarla en el cuadrado, sin deformarla */
++      w = gdk_pixbuf_get_width (loaded);
++      h = gdk_pixbuf_get_height (loaded);
++      if (w == h)
++        return loaded;
++
++      pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, px, px);
++      gdk_pixbuf_fill (pixbuf, 0);
++      gdk_pixbuf_copy_area (loaded, 0, 0, MIN (w, px), MIN (h, px),
++                            pixbuf, (px - MIN (w, px)) / 2, (px - MIN (h, px)) / 2);
++      g_object_unref (loaded);
++      return pixbuf;
++    }
++
++  return load_from_theme (gtk_icon_theme_get_default (), name, size, scale, context);
++}
++
++
++
+ /* Elige el pixmap más adecuado para @px y lo escala manteniendo aspecto */
+ static GdkPixbuf *
+ pick_pixmap (GPtrArray *pixmaps,
+diff --git a/src/to-item.h b/src/to-item.h
+index 44a902f..a17b48b 100644
+--- a/src/to-item.h
++++ b/src/to-item.h
+@@ -67,6 +67,13 @@ GdkPixbuf      *tray_item_render_icon        (TrayItem        *item,
+                                               gint             scale,
+                                               GtkStyleContext *context);
+ 
++/* Carga un ícono por nombre (del tema del usuario) o por ruta de archivo,
++ * a (size * scale) píxeles. NULL si no existe. */
++GdkPixbuf      *tray_icon_load               (const gchar     *name,
++                                              gint             size,
++                                              gint             scale,
++                                              GtkStyleContext *context);
++
+ GtkWidget      *tray_item_get_menu           (TrayItem *item);
+ void            tray_item_activate           (TrayItem *item, gint x, gint y);
+ void            tray_item_secondary_activate (TrayItem *item, gint x, gint y);
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index c279d38..ed6c2b4 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -1495,6 +1495,22 @@ item_changed (TrayItem   *item,
+ 
+ 
+ 
++/* Íconos elegidos por el usuario (configuración de esta instancia) */
++static void
++apply_icon_overrides (TrayPlugin *p)
++{
++  GHashTableIter iter;
++  gpointer key, value;
++
++  g_hash_table_iter_init (&iter, p->buttons);
++  while (g_hash_table_iter_next (&iter, &key, &value))
++    tray_button_set_icon_override (TRAY_BUTTON (value),
++                                   tray_settings_get_icon_override (p->settings,
++                                                                    tray_item_get_key (key)));
++}
++
++
++
+ static void
+ button_value_free (gpointer data)
+ {
+@@ -1519,6 +1535,9 @@ model_item_added (TrayModel  *model,
+   button = tray_button_new (item);
+   g_object_ref_sink (button);
+   g_hash_table_insert (p->buttons, item, button);
++  tray_button_set_icon_override (TRAY_BUTTON (button),
++                                 tray_settings_get_icon_override (p->settings,
++                                                                  tray_item_get_key (item)));
+ 
+   g_signal_connect (button, "show-menu", G_CALLBACK (button_show_menu), p);
+   g_signal_connect (button, "acted", G_CALLBACK (button_acted), p);
+@@ -1874,6 +1893,8 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+ 
+   g_signal_connect_swapped (p->settings, "changed",
+                             G_CALLBACK (tray_plugin_schedule_relayout), p);
++  g_signal_connect_swapped (p->settings, "changed",
++                            G_CALLBACK (apply_icon_overrides), p);
+ 
+   /* Apps antiguas (XEmbed): arrancar o detener el proxy según la opción */
+   g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (apply_legacy), p);
+diff --git a/src/to-settings.c b/src/to-settings.c
+index e4b7e7d..0b86093 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -37,6 +37,7 @@ struct _TraySettings
+   GHashTable    *hidden;   /* claves ocultas explícitamente */
+   GHashTable    *visible;  /* claves mostradas explícitamente */
+   GPtrArray     *known;    /* TrayKnown*, en orden de visualización */
++  GHashTable    *icons;    /* clave → ícono elegido por el usuario */
+ 
+   gint           freeze_count;
+   gboolean       pending_changed;
+@@ -185,6 +186,27 @@ write_known (TraySettings *s)
+ 
+ 
+ 
++/* Pares clave, ícono en una sola lista (xfconf no tiene diccionarios) */
++static void
++write_icons (TraySettings *s)
++{
++  GPtrArray *values = g_ptr_array_new ();
++  GHashTableIter iter;
++  gpointer key, value;
++
++  g_hash_table_iter_init (&iter, s->icons);
++  while (g_hash_table_iter_next (&iter, &key, &value))
++    {
++      g_ptr_array_add (values, key);
++      g_ptr_array_add (values, value);
++    }
++
++  write_list (s, "icon-overrides", values);
++  g_ptr_array_unref (values);
++}
++
++
++
+ static void
+ save_all (TraySettings *s)
+ {
+@@ -206,6 +228,7 @@ save_all (TraySettings *s)
+   write_set (s, "hidden-items", s->hidden);
+   write_set (s, "visible-items", s->visible);
+   write_known (s);
++  write_icons (s);
+ }
+ 
+ 
+@@ -258,6 +281,12 @@ load_all (TraySettings *s)
+   load_set (s, "hidden-items", s->hidden);
+   load_set (s, "visible-items", s->visible);
+ 
++  keys = read_list (s, "icon-overrides");
++  for (i = 0; keys != NULL && keys[i] != NULL && keys[i + 1] != NULL; i += 2)
++    if (*keys[i] != '\0' && *keys[i + 1] != '\0')
++      g_hash_table_replace (s->icons, g_strdup (keys[i]), g_strdup (keys[i + 1]));
++  g_strfreev (keys);
++
+   keys = read_list (s, "known-items");
+   titles = read_list (s, "known-titles");
+   icons = read_list (s, "known-icons");
+@@ -404,6 +433,7 @@ tray_settings_finalize (GObject *object)
+ 
+   g_hash_table_unref (s->hidden);
+   g_hash_table_unref (s->visible);
++  g_hash_table_unref (s->icons);
+   g_ptr_array_unref (s->known);
+   g_free (s->base);
+   xfconf_shutdown ();
+@@ -439,6 +469,7 @@ tray_settings_init (TraySettings *s)
+   s->hidden = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+   s->visible = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+   s->known = g_ptr_array_new_with_free_func (known_free);
++  s->icons = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+ }
+ 
+ 
+@@ -712,6 +743,7 @@ tray_settings_forget (TraySettings *s,
+ 
+   changed = g_hash_table_remove (s->hidden, key);
+   changed |= g_hash_table_remove (s->visible, key);
++  changed |= g_hash_table_remove (s->icons, key);
+ 
+   index = tray_settings_get_index (s, key);
+   if (index >= 0)
+@@ -769,3 +801,42 @@ tray_settings_move (TraySettings *s,
+ 
+   notify (s, TRUE);
+ }
++
++
++
++/* ── Ícono elegido ───────────────────────────────────────────────────── */
++
++const gchar *
++tray_settings_get_icon_override (TraySettings *s,
++                                 const gchar  *key)
++{
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), NULL);
++
++  return key != NULL ? g_hash_table_lookup (s->icons, key) : NULL;
++}
++
++
++
++void
++tray_settings_set_icon_override (TraySettings *s,
++                                 const gchar  *key,
++                                 const gchar  *icon)
++{
++  gboolean changed;
++
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++  g_return_if_fail (key != NULL);
++
++  if (icon == NULL || *icon == '\0')
++    changed = g_hash_table_remove (s->icons, key);
++  else if (g_strcmp0 (g_hash_table_lookup (s->icons, key), icon) != 0)
++    {
++      g_hash_table_replace (s->icons, g_strdup (key), g_strdup (icon));
++      changed = TRUE;
++    }
++  else
++    changed = FALSE;
++
++  if (changed)
++    notify (s, TRUE);
++}
+diff --git a/src/to-settings.h b/src/to-settings.h
+index edcb3c6..f31aae0 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -68,6 +68,12 @@ void     tray_settings_forget                (TraySettings *s, const gchar *key)
+ void     tray_settings_move                  (TraySettings *s, const gchar *key,
+                                               const gchar *anchor, gboolean after);
+ 
++/* Ícono elegido por el usuario para una app (nombre del tema o ruta de
++ * archivo), en lugar del que manda la app. NULL o "" = el de la app */
++const gchar *tray_settings_get_icon_override (TraySettings *s, const gchar *key);
++void     tray_settings_set_icon_override     (TraySettings *s, const gchar *key,
++                                              const gchar *icon);
++
+ /* Agrupar varios cambios en un solo guardado y una sola señal "changed" */
+ void     tray_settings_freeze                (TraySettings *s);
+ void     tray_settings_thaw                  (TraySettings *s);

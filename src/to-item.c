@@ -14,6 +14,7 @@ typedef struct
   gchar          *title;
   TrayItemStatus  status;
   gboolean        is_menu;
+  gboolean        is_legacy;    /* app antigua, vía nuestro proxy XEmbed */
 
   gchar          *icon_name[TRAY_ITEM_N_ICONS];
   GPtrArray      *pixmaps[TRAY_ITEM_N_ICONS];
@@ -158,18 +159,33 @@ tray_item_get_is_menu (TrayItem *item)
 
 
 
+gboolean
+tray_item_get_is_legacy (TrayItem *item)
+{
+  g_return_val_if_fail (TRAY_IS_ITEM (item), FALSE);
+  return PRIV (item)->is_legacy;
+}
+
+
+
 /* KDE permite un subconjunto de HTML en los tooltips. Convertimos los
  * saltos de línea HTML y, si el resultado no es markup Pango válido,
  * lo escapamos para mostrarlo como texto plano. */
 static gchar *
 tooltip_text_to_markup (const gchar *text)
 {
-  GRegex *regex;
+  static gsize regex_once = 0;
+  static GRegex *regex = NULL;
   gchar *normalized;
 
-  regex = g_regex_new ("<br\\s*/?>", G_REGEX_CASELESS, 0, NULL);
+  /* Se compila una sola vez: los tooltips cambian a menudo */
+  if (g_once_init_enter (&regex_once))
+    {
+      regex = g_regex_new ("<br\\s*/?>", G_REGEX_CASELESS | G_REGEX_OPTIMIZE, 0, NULL);
+      g_once_init_leave (&regex_once, 1);
+    }
+
   normalized = g_regex_replace_literal (regex, text, -1, 0, "\n", 0, NULL);
-  g_regex_unref (regex);
 
   if (normalized == NULL)
     normalized = g_strdup (text);
@@ -301,6 +317,49 @@ load_named (TrayItem        *item,
     }
 
   return pixbuf;
+}
+
+
+
+GdkPixbuf *
+tray_icon_load (const gchar     *name,
+                gint             size,
+                gint             scale,
+                GtkStyleContext *context)
+{
+  GdkPixbuf *pixbuf;
+  gint px;
+
+  if (name == NULL || *name == '\0')
+    return NULL;
+
+  size = MAX (size, 1);
+  scale = MAX (scale, 1);
+  px = size * scale;
+
+  if (g_path_is_absolute (name))
+    {
+      GdkPixbuf *loaded = gdk_pixbuf_new_from_file_at_scale (name, px, px, TRUE, NULL);
+      gint w, h;
+
+      if (loaded == NULL)
+        return NULL;
+
+      /* Imagen no cuadrada: centrarla en el cuadrado, sin deformarla */
+      w = gdk_pixbuf_get_width (loaded);
+      h = gdk_pixbuf_get_height (loaded);
+      if (w == h)
+        return loaded;
+
+      pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, px, px);
+      gdk_pixbuf_fill (pixbuf, 0);
+      gdk_pixbuf_copy_area (loaded, 0, 0, MIN (w, px), MIN (h, px),
+                            pixbuf, (px - MIN (w, px)) / 2, (px - MIN (h, px)) / 2);
+      g_object_unref (loaded);
+      return pixbuf;
+    }
+
+  return load_from_theme (gtk_icon_theme_get_default (), name, size, scale, context);
 }
 
 
@@ -484,14 +543,14 @@ tray_item_context_menu (TrayItem *item, gint x, gint y)
 
 
 void
-tray_item_scroll (TrayItem *item, gint delta, gboolean horizontal)
+tray_item_scroll (TrayItem *item, gint delta, gboolean horizontal, gint x, gint y)
 {
   TrayItemClass *klass;
 
   g_return_if_fail (TRAY_IS_ITEM (item));
   klass = TRAY_ITEM_GET_CLASS (item);
   if (klass->scroll != NULL)
-    klass->scroll (item, delta, horizontal);
+    klass->scroll (item, delta, horizontal, x, y);
 }
 
 
@@ -598,6 +657,15 @@ tray_item_set_is_menu (TrayItem *item, gboolean is_menu)
 {
   g_return_if_fail (TRAY_IS_ITEM (item));
   PRIV (item)->is_menu = is_menu;
+}
+
+
+
+void
+tray_item_set_is_legacy (TrayItem *item, gboolean is_legacy)
+{
+  g_return_if_fail (TRAY_IS_ITEM (item));
+  PRIV (item)->is_legacy = is_legacy;
 }
 
 

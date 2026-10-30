@@ -1,4 +1,6 @@
 option('plugin-libdir', type: 'string', value: '',
        description: 'Carpeta de plugins del panel (por defecto: la del libxfce4panel instalado)')
+option('gtk-layer-shell', type: 'feature', value: 'auto',
+       description: 'Mostrar el popup en Wayland (necesita gtk-layer-shell)')
 option('xembed-proxy', type: 'feature', value: 'auto',
        description: 'Compilar el proxy que muestra apps antiguas (bandeja XEmbed)')

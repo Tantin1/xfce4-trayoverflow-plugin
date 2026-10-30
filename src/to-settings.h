@@ -21,6 +21,21 @@ G_BEGIN_DECLS
 #define TRAY_SPACING_MAX   32
 #define TRAY_COLUMNS_MAX   12
 
+/* Esquinas del popup */
+typedef enum
+{
+  TRAY_CORNERS_THEME = 0,   /* el radio que el tema usa en sus menús */
+  TRAY_CORNERS_ROUNDED,
+  TRAY_CORNERS_SQUARE,
+} TrayCorners;
+
+/* Lugar de la flecha en el panel, respecto de los íconos visibles */
+typedef enum
+{
+  TRAY_ARROW_START = 0,     /* izquierda (arriba en paneles verticales) */
+  TRAY_ARROW_END,           /* derecha (abajo) */
+} TrayArrowPosition;
+
 typedef struct
 {
   gchar *key;
@@ -40,6 +55,8 @@ gint     tray_settings_get_panel_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_columns     (TraySettings *s);
 gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
+gint     tray_settings_get_popup_corners     (TraySettings *s);
+gint     tray_settings_get_arrow_position    (TraySettings *s);
 
 void     tray_settings_set_panel_icon_size   (TraySettings *s, gint value);
 void     tray_settings_set_popup_icon_size   (TraySettings *s, gint value);
@@ -47,6 +64,8 @@ void     tray_settings_set_panel_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
 void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
+void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
+void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
 
 /* Mostrar apps antiguas (bandeja clásica XEmbed) mediante el proxy */
 gboolean tray_settings_get_legacy_tray       (TraySettings *s);
@@ -67,6 +86,20 @@ void     tray_settings_forget                (TraySettings *s, const gchar *key)
 /* Mueve @key justo antes (o después) de @anchor. @anchor == NULL → al final */
 void     tray_settings_move                  (TraySettings *s, const gchar *key,
                                               const gchar *anchor, gboolean after);
+
+/* Valor guardado que significa "usar el ícono propio de la app", aunque
+ * exista un ícono por defecto para ella (ver default_icon_for) */
+#define TRAY_ICON_OWN "-"
+
+/* Ícono a usar para una app en lugar del que manda (nombre del tema o ruta
+ * de archivo): el elegido por el usuario o, si no eligió, uno por defecto
+ * para apps conocidas que se ven mal. NULL = el de la app */
+const gchar *tray_settings_get_icon_override (TraySettings *s, const gchar *key);
+/* Solo lo elegido por el usuario: NULL (nada), TRAY_ICON_OWN o un ícono */
+const gchar *tray_settings_get_icon_choice   (TraySettings *s, const gchar *key);
+/* @icon: un ícono, TRAY_ICON_OWN, o NULL / "" para volver al por defecto */
+void     tray_settings_set_icon_override     (TraySettings *s, const gchar *key,
+                                              const gchar *icon);
 
 /* Agrupar varios cambios en un solo guardado y una sola señal "changed" */
 void     tray_settings_freeze                (TraySettings *s);

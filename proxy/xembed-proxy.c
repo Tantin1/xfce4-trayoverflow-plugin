@@ -48,6 +48,8 @@
 #define MIN_SIZE                  8
 #define MAX_SIZE                  256
 
+/* Clics y pasos de rueda que pueden esperar a la vez (giros rápidos) */
+#define MAX_PENDING_CLICKS        16
 #define TO_IFACE                  "org.xfce.TrayOverflow.XEmbedItem"
 
 /* Capturas: silencio a esperar tras el último dibujado de la app, tope
@@ -56,6 +58,8 @@
 #define SETTLE_QUIET_MS           120
 #define MAX_WAIT_MS               250
 #define SETTLE_FALLBACK_MS        700
+/* --wayland: tras un clic, cuándo sacar el contenedor de la pantalla */
+#define PARK_DELAY_MS             1500
 
 #define SYSTEM_TRAY_REQUEST_DOCK  0
 #define XEMBED_EMBEDDED_NOTIFY    0
@@ -91,6 +95,8 @@ static const gchar item_xml[] =
   "  </interface>"
   "  <interface name='" TO_IFACE "'>"
   "    <method name='SetIconSize'><arg type='i' name='pixels' direction='in'/></method>"
+  "    <method name='SetPointer'><arg type='i' name='x' direction='in'/>"
+  "      <arg type='i' name='y' direction='in'/></method>"
   "  </interface>"
   "</node>";
 
@@ -130,8 +136,12 @@ typedef struct
 
   /* Clic pendiente (se espera a que se suelte el botón físico) */
   guint            click_id;
-  gint             click_button;
+  guint            park_id;          /* --wayland: sacar el contenedor de la vista */
+  guint8           click_buttons[MAX_PENDING_CLICKS];   /* en orden de llegada */
+  gint             n_clicks;
   gint             click_tries;
+  gint             click_x;          /* --wayland: posición que manda el host */
+  gint             click_y;
 } Icon;
 
 static struct
@@ -170,6 +180,7 @@ static struct
   GDBusNodeInfo  *node;
   GMainLoop      *loop;
   gboolean        verbose;
+  gboolean        wayland;       /* sesión Wayland: X es XWayland */
   gint            x_error;
 } P;
 
@@ -319,13 +330,144 @@ exe_from_pid (gulong pid)
 
 
 
+/* Títulos que ponen los toolkits y no dicen nada de la app */
+static gboolean
+title_is_generic (const gchar *title)
+{
+  /* Java (AWT) usa este nombre en el ícono de todas sus apps */
+  return g_strcmp0 (title, "JavaEmbeddedFrame") == 0;
+}
+
+
+
+/* Opciones de java que llevan su valor en el argumento siguiente */
+static gboolean
+java_option_takes_value (const gchar *option)
+{
+  static const gchar *const options[] = {
+    "-cp", "-classpath", "--class-path", "-p", "--module-path",
+    "--upgrade-module-path", "--add-modules", "--limit-modules",
+    "--add-reads", "--add-exports", "--add-opens", "--patch-module", NULL
+  };
+
+  return g_strv_contains (options, option);
+}
+
+
+
+/* "com.frostwire.gui.Main" → "Frostwire": el primer tramo del paquete
+ * que no sea un dominio genérico; si no hay paquete, la clase */
+static gchar *
+java_name_from_class (const gchar *klass)
+{
+  static const gchar *const skip[] = {
+    "com", "org", "net", "io", "de", "me", "edu", "gov", "fr", "uk", "it", "nl", NULL
+  };
+  gchar **parts = g_strsplit (klass, ".", -1);
+  guint n = g_strv_length (parts), i;
+  gchar *name = NULL;
+
+  for (i = 0; i + 1 < n && name == NULL; i++)
+    if (*parts[i] != '\0' && !g_strv_contains (skip, parts[i]))
+      name = g_strdup (parts[i]);
+
+  if (name == NULL && n > 0 && *parts[n - 1] != '\0')
+    name = g_strdup (parts[n - 1]);
+  g_strfreev (parts);
+
+  if (name != NULL)
+    name[0] = g_ascii_toupper (name[0]);
+  return name;
+}
+
+
+
+/* Nombre de una app Java a partir de su línea de comandos:
+ * "java -jar JDownloader.jar" → "JDownloader". NULL si no es Java. */
+static gchar *
+java_app_name (gulong pid)
+{
+  gchar *path, *contents = NULL, *name = NULL, *argv0;
+  const gchar *arg, *end;
+  gsize length = 0;
+  gboolean is_java;
+
+  if (pid == 0)
+    return NULL;
+
+  path = g_strdup_printf ("/proc/%lu/cmdline", pid);
+  if (!g_file_get_contents (path, &contents, &length, NULL) || length == 0)
+    {
+      g_free (path);
+      g_free (contents);
+      return NULL;
+    }
+  g_free (path);
+
+  end = contents + length;
+  argv0 = g_path_get_basename (contents);
+  is_java = g_str_has_prefix (argv0, "java");
+  g_free (argv0);
+
+  for (arg = contents + strlen (contents) + 1; is_java && arg < end && name == NULL;
+       arg += strlen (arg) + 1)
+    {
+      const gchar *next = arg + strlen (arg) + 1;
+      gboolean has_next = next < end && *next != '\0';
+
+      if (strcmp (arg, "-jar") == 0)
+        {
+          if (has_next)
+            {
+              name = g_path_get_basename (next);
+              if (g_str_has_suffix (name, ".jar"))
+                name[strlen (name) - 4] = '\0';
+            }
+          break;
+        }
+
+      if (strcmp (arg, "-m") == 0 || strcmp (arg, "--module") == 0)
+        {
+          /* "módulo/clase" o solo "módulo" */
+          if (has_next)
+            {
+              const gchar *slash = strchr (next, '/');
+              name = java_name_from_class (slash != NULL ? slash + 1 : next);
+            }
+          break;
+        }
+
+      if (java_option_takes_value (arg))
+        {
+          if (has_next)
+            arg = next;
+          continue;
+        }
+
+      if (*arg == '-' || *arg == '\0')
+        continue;
+
+      /* Primer argumento que no es opción: la clase principal */
+      name = java_name_from_class (arg);
+    }
+
+  g_free (contents);
+
+  if (name != NULL && *name == '\0')
+    g_clear_pointer (&name, g_free);
+  return name;
+}
+
+
+
 /* Identidad estable de la app (para que el plugin recuerde si la
  * ocultaste) y un título legible */
 static void
 icon_read_identity (Icon *icon)
 {
   XClassHint hint = { NULL, NULL };
-  gchar *exe = NULL;
+  gulong pid;
+  gchar *exe = NULL, *java;
   gchar *title;
 
   if (XGetClassHint (P.dpy, icon->win, &hint))
@@ -338,12 +480,22 @@ icon_read_identity (Icon *icon)
       XFree (hint.res_class);
     }
 
-  exe = exe_from_pid (get_window_pid (icon->win));
+  pid = get_window_pid (icon->win);
+  exe = exe_from_pid (pid);
   if (icon->id == NULL && exe != NULL)
     icon->id = g_strdup (exe);
 
+  /* Java: el título del ícono es genérico y el WM_CLASS es el nombre de
+   * una clase; el nombre legible sale de la línea de comandos */
+  java = java_app_name (pid);
+  if (java != NULL)
+    {
+      g_free (icon->title);
+      icon->title = java;
+    }
+
   title = get_window_title (icon->win);
-  if (title != NULL && *title != '\0')
+  if (title != NULL && *title != '\0' && !title_is_generic (title))
     {
       g_free (icon->title);
       icon->title = title;
@@ -773,24 +925,86 @@ static void
 send_button_event (Icon *icon, gint type, gint button, gint rx, gint ry, gint cx, gint cy)
 {
   XEvent ev;
+  Window target = icon->win, child = None;
+  gint tx = cx, ty = cy, depth;
+
+  /* El clic va a la subventana más profunda bajo el punto, como haría
+   * el servidor con un clic real: Java, por ejemplo, lo escucha en una
+   * subventana y no en la ventana del ícono */
+  for (depth = 0; depth < 8; depth++)
+    {
+      gint nx, ny;
+
+      if (!XTranslateCoordinates (P.dpy, icon->win, target, cx, cy, &nx, &ny, &child))
+        break;
+      tx = nx;
+      ty = ny;
+      if (child == None)
+        break;
+      target = child;
+    }
 
   memset (&ev, 0, sizeof (ev));
   ev.xbutton.type = type;
   ev.xbutton.display = P.dpy;
-  ev.xbutton.window = icon->win;
+  ev.xbutton.window = target;
   ev.xbutton.root = P.root;
   ev.xbutton.subwindow = None;
   ev.xbutton.time = CurrentTime;
-  ev.xbutton.x = cx;
-  ev.xbutton.y = cy;
+  ev.xbutton.x = tx;
+  ev.xbutton.y = ty;
   ev.xbutton.x_root = rx;
   ev.xbutton.y_root = ry;
   ev.xbutton.button = button;
   ev.xbutton.same_screen = True;
   ev.xbutton.state = type == ButtonRelease ? (Button1Mask << (button - 1)) : 0;
 
-  XSendEvent (P.dpy, icon->win, False,
+  XSendEvent (P.dpy, target, False,
               type == ButtonPress ? ButtonPressMask : ButtonReleaseMask, &ev);
+}
+
+
+
+/* --wayland: un rato después del clic (la app ya ubicó su menú), sacar
+ * el contenedor de la pantalla. XWayland no respeta su forma vacía y
+ * algunos compositores lo muestran como un cuadrado negro. */
+static gboolean
+park_container (gpointer user_data)
+{
+  Icon *icon = user_data;
+
+  icon->park_id = 0;
+  trap_push ();
+  XMoveWindow (P.dpy, icon->container, -2 * MAX_SIZE, -2 * MAX_SIZE);
+  trap_pop ();
+  return G_SOURCE_REMOVE;
+}
+
+
+
+/* --wayland: (rx, ry) es un punto justo afuera del borde del panel, y las
+ * ventanas X quedan debajo del panel. El contenedor va del lado del borde
+ * de pantalla más cercano, con un lado sobre ese punto: queda tapado por
+ * el panel y el menú de la app sale pegado a él. */
+static void
+wayland_container_origin (Icon *icon, gint rx, gint ry, gint *x, gint *y)
+{
+  gint sw = DisplayWidth (P.dpy, P.screen);
+  gint sh = DisplayHeight (P.dpy, P.screen);
+  gint left = rx, right = sw - rx, top = ry, bottom = sh - ry;
+  gint nearest = MIN (MIN (left, right), MIN (top, bottom));
+
+  *x = rx - icon->size / 2;
+  *y = ry - icon->size / 2;
+
+  if (nearest == bottom)
+    *y = ry + 1;
+  else if (nearest == top)
+    *y = ry - icon->size;
+  else if (nearest == right)
+    *x = rx + 1;
+  else
+    *x = rx - icon->size;
 }
 
 
@@ -798,7 +1012,7 @@ send_button_event (Icon *icon, gint type, gint button, gint rx, gint ry, gint cx
 static void
 do_click (Icon *icon, gint button, gint rx, gint ry)
 {
-  gint cx, cy;
+  gint cx, cy, ox, oy;
 
   trap_push ();
   click_point (icon, &cx, &cy);
@@ -806,7 +1020,16 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
   /* Poner el ícono justo debajo del puntero. Las apps calculan dónde
    * mostrar su menú a partir de la posición de su ventana, así que el
    * contenedor se queda ahí después del clic (invisible). */
-  XMoveWindow (P.dpy, icon->container, rx - cx, ry - cy);
+  ox = rx - cx;
+  oy = ry - cy;
+  if (P.wayland)
+    {
+      if (icon->park_id != 0)
+        g_source_remove (icon->park_id);
+      icon->park_id = g_timeout_add (PARK_DELAY_MS, park_container, icon);
+      wayland_container_origin (icon, rx, ry, &ox, &oy);
+    }
+  XMoveWindow (P.dpy, icon->container, ox, oy);
   container_set_input (icon, cx, cy, TRUE);
   XSync (P.dpy, False);
 
@@ -820,6 +1043,10 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
     }
   else
     {
+      /* XWayland: su puntero no sigue al real fuera de las ventanas X;
+       * llevarlo al ícono para que el clic simulado caiga en él */
+      if (P.wayland)
+        XTestFakeMotionEvent (P.dpy, -1, ox + cx, oy + cy, CurrentTime);
       XTestFakeButtonEvent (P.dpy, button, True, CurrentTime);
       XTestFakeButtonEvent (P.dpy, button, False, CurrentTime);
     }
@@ -836,18 +1063,28 @@ click_try (gpointer user_data)
 {
   Icon *icon = user_data;
   Window root_ret, child_ret;
-  gint rx, ry, wx, wy;
+  gint rx, ry, wx, wy, i;
   guint mask = 0;
 
   XQueryPointer (P.dpy, P.root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask);
 
+  /* XWayland no sabe dónde está el puntero (sobre el panel, que no es una
+   * ventana X): usar la posición del ícono que manda el host, para que la
+   * app muestre su menú junto a él. El botón físico tampoco se ve desde X. */
+  if (P.wayland)
+    {
+      rx = icon->click_x;
+      ry = icon->click_y;
+    }
   /* Si el botón físico sigue presionado (p. ej. el clic derecho llega al
    * presionar), un clic simulado se fusionaría con él y se perdería */
-  if ((mask & (Button1Mask | Button2Mask | Button3Mask)) && ++icon->click_tries < 100)
+  else if ((mask & (Button1Mask | Button2Mask | Button3Mask)) && ++icon->click_tries < 100)
     return G_SOURCE_CONTINUE;
 
   icon->click_id = 0;
-  do_click (icon, icon->click_button, rx, ry);
+  for (i = 0; i < icon->n_clicks; i++)
+    do_click (icon, icon->click_buttons[i], rx, ry);
+  icon->n_clicks = 0;
   return G_SOURCE_REMOVE;
 }
 
@@ -879,10 +1116,15 @@ icon_set_size (Icon *icon, gint size)
 
 
 
+/* Encola un clic o un paso de rueda. Antes, uno nuevo reemplazaba al
+ * pendiente: varios giros rápidos contaban como uno. */
 static void
 icon_click (Icon *icon, gint button)
 {
-  icon->click_button = button;
+  if (icon->n_clicks >= MAX_PENDING_CLICKS)
+    return;
+
+  icon->click_buttons[icon->n_clicks++] = (guint8) button;
   icon->click_tries = 0;
   if (icon->click_id == 0)
     icon->click_id = g_timeout_add (10, click_try, icon);
@@ -913,22 +1155,37 @@ item_method_call (GDBusConnection       *conn,
       g_variant_get (params, "(i)", &size);
       icon_set_size (icon, size);
     }
-  else if (g_strcmp0 (method, "Activate") == 0)
-    icon_click (icon, 1);
-  else if (g_strcmp0 (method, "SecondaryActivate") == 0)
-    icon_click (icon, 2);
-  else if (g_strcmp0 (method, "ContextMenu") == 0)
-    icon_click (icon, 3);
+  else if (g_strcmp0 (iface, TO_IFACE) == 0 && g_strcmp0 (method, "SetPointer") == 0)
+    {
+      /* El host avisa dónde está el puntero antes de Scroll, que no trae
+       * posición (en Wayland hace falta para llevar ahí el de XWayland) */
+      g_variant_get (params, "(ii)", &icon->click_x, &icon->click_y);
+    }
+  else if (g_strcmp0 (method, "Activate") == 0
+           || g_strcmp0 (method, "SecondaryActivate") == 0
+           || g_strcmp0 (method, "ContextMenu") == 0)
+    {
+      gint x = 0, y = 0;
+
+      g_variant_get (params, "(ii)", &x, &y);
+      icon->click_x = x;
+      icon->click_y = y;
+      icon_click (icon, method[0] == 'A' ? 1 : method[0] == 'S' ? 2 : 3);
+    }
   else if (g_strcmp0 (method, "Scroll") == 0)
     {
-      gint delta = 0;
+      gint delta = 0, button, steps;
       const gchar *orientation = NULL;
 
       g_variant_get (params, "(i&s)", &delta, &orientation);
       if (g_ascii_strcasecmp (orientation, "horizontal") == 0)
-        icon_click (icon, delta < 0 ? 6 : 7);
+        button = delta < 0 ? 6 : 7;
       else
-        icon_click (icon, delta < 0 ? 4 : 5);
+        button = delta < 0 ? 4 : 5;
+
+      /* Un paso de rueda por unidad (en X, cada paso es un clic) */
+      for (steps = MIN (ABS (delta), MAX_PENDING_CLICKS); steps > 0; steps--)
+        icon_click (icon, button);
     }
   else
     {
@@ -1139,6 +1396,8 @@ icon_free (gpointer data)
     g_source_remove (icon->late_update_id);
   if (icon->click_id != 0)
     g_source_remove (icon->click_id);
+  if (icon->park_id != 0)
+    g_source_remove (icon->park_id);
   icon_unpublish (icon);
 
   trap_push ();
@@ -1192,7 +1451,10 @@ dock (Window win)
   attrs.override_redirect = True;
   attrs.colormap = P.colormap;
   attrs.event_mask = SubstructureNotifyMask | SubstructureRedirectMask;
-  icon->container = XCreateWindow (P.dpy, P.root, 0, 0, icon->size, icon->size, 0,
+  /* --wayland: fuera de la pantalla hasta el primer clic (ver park_container) */
+  icon->container = XCreateWindow (P.dpy, P.root,
+                                   P.wayland ? -2 * MAX_SIZE : 0, P.wayland ? -2 * MAX_SIZE : 0,
+                                   icon->size, icon->size, 0,
                                    P.depth, InputOutput, P.visual,
                                    CWBackPixel | CWBorderPixel | CWOverrideRedirect
                                    | CWColormap | CWEventMask, &attrs);
@@ -1455,7 +1717,8 @@ handle_event (XEvent *ev)
         {
           gchar *title = get_window_title (icon->win);
 
-          if (title != NULL && *title != '\0' && g_strcmp0 (title, icon->title) != 0)
+          if (title != NULL && *title != '\0' && !title_is_generic (title)
+              && g_strcmp0 (title, icon->title) != 0)
             {
               g_free (icon->title);
               icon->title = title;
@@ -1476,8 +1739,46 @@ handle_event (XEvent *ev)
 
 
 
+/* Fuente de eventos de X para el bucle de GLib. Mirar solo el socket no
+ * alcanza: XSync, XGetImage o XQueryPointer (en trap_pop, icon_update,
+ * click_try…) pueden leer eventos a la cola de Xlib, y ahí quedarían sin
+ * atender hasta que llegue otro. prepare y check miran también esa cola
+ * (como hace GDK). GLib no despacha una fuente dentro de sí misma, así
+ * que handle_event no se llama de forma reentrante. */
+typedef struct
+{
+  GSource  source;
+  gpointer fd_tag;
+} XSource;
+
+
+
 static gboolean
-x_events_ready (gint fd, GIOCondition condition, gpointer user_data)
+x_source_prepare (GSource *source, gint *timeout)
+{
+  /* Mandar lo pendiente antes de dormir: las respuestas y los eventos
+   * que provoque llegan al socket */
+  XFlush (P.dpy);
+  *timeout = -1;
+  return XEventsQueued (P.dpy, QueuedAlready) > 0;
+}
+
+
+
+static gboolean
+x_source_check (GSource *source)
+{
+  XSource *xs = (XSource *) source;
+
+  if (g_source_query_unix_fd (source, xs->fd_tag) & G_IO_IN)
+    return XEventsQueued (P.dpy, QueuedAfterReading) > 0;
+  return XEventsQueued (P.dpy, QueuedAlready) > 0;
+}
+
+
+
+static void
+x_events_drain (void)
 {
   while (XPending (P.dpy))
     {
@@ -1487,7 +1788,38 @@ x_events_ready (gint fd, GIOCondition condition, gpointer user_data)
       handle_event (&ev);
     }
   XFlush (P.dpy);
+}
+
+
+
+static gboolean
+x_source_dispatch (GSource *source, GSourceFunc callback, gpointer user_data)
+{
+  x_events_drain ();
   return G_SOURCE_CONTINUE;
+}
+
+
+
+static GSourceFuncs x_source_funcs = {
+  x_source_prepare,
+  x_source_check,
+  x_source_dispatch,
+  NULL, NULL, NULL
+};
+
+
+
+static void
+x_source_attach (void)
+{
+  GSource *source = g_source_new (&x_source_funcs, sizeof (XSource));
+  XSource *xs = (XSource *) source;
+
+  xs->fd_tag = g_source_add_unix_fd (source, ConnectionNumber (P.dpy), G_IO_IN);
+  g_source_set_name (source, "X events");
+  g_source_attach (source, NULL);
+  g_source_unref (source);
 }
 
 
@@ -1602,6 +1934,8 @@ main (int argc, char **argv)
   GOptionEntry entries[] = {
     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Mostrar mensajes de diagnóstico", NULL },
     { "version", 0, 0, G_OPTION_ARG_NONE, &version, "Mostrar la versión", NULL },
+    { "wayland", 0, 0, G_OPTION_ARG_NONE, &P.wayland,
+      "Sesión Wayland: usar la posición que manda el host en los clics", NULL },
     { NULL }
   };
   GOptionContext *context;
@@ -1644,9 +1978,7 @@ main (int argc, char **argv)
   g_bus_watch_name_on_connection (P.bus, WATCHER_NAME, G_BUS_NAME_WATCHER_FLAGS_NONE,
                                   watcher_appeared, NULL, NULL, NULL);
 
-  /* Todas las peticiones a X terminan en XSync/XFlush (trap_pop, do_click
-   * o el manejador de eventos), así que no hace falta un vaciado periódico */
-  g_unix_fd_add (ConnectionNumber (P.dpy), G_IO_IN, x_events_ready, NULL);
+  x_source_attach ();
   g_unix_signal_add (SIGTERM, quit_signal, NULL);
   g_unix_signal_add (SIGINT, quit_signal, NULL);
   g_unix_signal_add (SIGHUP, quit_signal, NULL);
@@ -1655,7 +1987,7 @@ main (int argc, char **argv)
   if (!P.owner)
     g_printerr (PROXY_NAME ": hay otra bandeja clásica activa; esperando a que se libere\n");
 
-  x_events_ready (0, G_IO_IN, NULL);
+  x_events_drain ();
   g_main_loop_run (P.loop);
 
   /* Salida limpia: devolver las ventanas y liberar la bandeja para que

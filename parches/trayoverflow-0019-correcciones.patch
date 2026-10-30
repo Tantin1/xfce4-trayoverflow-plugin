@@ -1,0 +1,641 @@
+diff --git a/meson.build b/meson.build
+index a85f9d4..25abb74 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.16',
++  version: '0.2.17',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 0df4a0b..f001e30 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.16\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.17\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 0ce89d8..4b29497 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -48,6 +48,8 @@
+ #define MIN_SIZE                  8
+ #define MAX_SIZE                  256
+ 
++/* Clics y pasos de rueda que pueden esperar a la vez (giros rápidos) */
++#define MAX_PENDING_CLICKS        16
+ #define TO_IFACE                  "org.xfce.TrayOverflow.XEmbedItem"
+ 
+ /* Capturas: silencio a esperar tras el último dibujado de la app, tope
+@@ -93,6 +95,8 @@ static const gchar item_xml[] =
+   "  </interface>"
+   "  <interface name='" TO_IFACE "'>"
+   "    <method name='SetIconSize'><arg type='i' name='pixels' direction='in'/></method>"
++  "    <method name='SetPointer'><arg type='i' name='x' direction='in'/>"
++  "      <arg type='i' name='y' direction='in'/></method>"
+   "  </interface>"
+   "</node>";
+ 
+@@ -133,7 +137,8 @@ typedef struct
+   /* Clic pendiente (se espera a que se suelte el botón físico) */
+   guint            click_id;
+   guint            park_id;          /* --wayland: sacar el contenedor de la vista */
+-  gint             click_button;
++  guint8           click_buttons[MAX_PENDING_CLICKS];   /* en orden de llegada */
++  gint             n_clicks;
+   gint             click_tries;
+   gint             click_x;          /* --wayland: posición que manda el host */
+   gint             click_y;
+@@ -1058,7 +1063,7 @@ click_try (gpointer user_data)
+ {
+   Icon *icon = user_data;
+   Window root_ret, child_ret;
+-  gint rx, ry, wx, wy;
++  gint rx, ry, wx, wy, i;
+   guint mask = 0;
+ 
+   XQueryPointer (P.dpy, P.root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask);
+@@ -1068,18 +1073,18 @@ click_try (gpointer user_data)
+    * app muestre su menú junto a él. El botón físico tampoco se ve desde X. */
+   if (P.wayland)
+     {
+-      icon->click_id = 0;
+-      do_click (icon, icon->click_button, icon->click_x, icon->click_y);
+-      return G_SOURCE_REMOVE;
++      rx = icon->click_x;
++      ry = icon->click_y;
+     }
+-
+   /* Si el botón físico sigue presionado (p. ej. el clic derecho llega al
+    * presionar), un clic simulado se fusionaría con él y se perdería */
+-  if ((mask & (Button1Mask | Button2Mask | Button3Mask)) && ++icon->click_tries < 100)
++  else if ((mask & (Button1Mask | Button2Mask | Button3Mask)) && ++icon->click_tries < 100)
+     return G_SOURCE_CONTINUE;
+ 
+   icon->click_id = 0;
+-  do_click (icon, icon->click_button, rx, ry);
++  for (i = 0; i < icon->n_clicks; i++)
++    do_click (icon, icon->click_buttons[i], rx, ry);
++  icon->n_clicks = 0;
+   return G_SOURCE_REMOVE;
+ }
+ 
+@@ -1111,12 +1116,15 @@ icon_set_size (Icon *icon, gint size)
+ 
+ 
+ 
++/* Encola un clic o un paso de rueda. Antes, uno nuevo reemplazaba al
++ * pendiente: varios giros rápidos contaban como uno. */
+ static void
+-icon_click (Icon *icon, gint button, gint x, gint y)
++icon_click (Icon *icon, gint button)
+ {
+-  icon->click_button = button;
+-  icon->click_x = x;
+-  icon->click_y = y;
++  if (icon->n_clicks >= MAX_PENDING_CLICKS)
++    return;
++
++  icon->click_buttons[icon->n_clicks++] = (guint8) button;
+   icon->click_tries = 0;
+   if (icon->click_id == 0)
+     icon->click_id = g_timeout_add (10, click_try, icon);
+@@ -1147,6 +1155,12 @@ item_method_call (GDBusConnection       *conn,
+       g_variant_get (params, "(i)", &size);
+       icon_set_size (icon, size);
+     }
++  else if (g_strcmp0 (iface, TO_IFACE) == 0 && g_strcmp0 (method, "SetPointer") == 0)
++    {
++      /* El host avisa dónde está el puntero antes de Scroll, que no trae
++       * posición (en Wayland hace falta para llevar ahí el de XWayland) */
++      g_variant_get (params, "(ii)", &icon->click_x, &icon->click_y);
++    }
+   else if (g_strcmp0 (method, "Activate") == 0
+            || g_strcmp0 (method, "SecondaryActivate") == 0
+            || g_strcmp0 (method, "ContextMenu") == 0)
+@@ -1154,19 +1168,24 @@ item_method_call (GDBusConnection       *conn,
+       gint x = 0, y = 0;
+ 
+       g_variant_get (params, "(ii)", &x, &y);
+-      icon_click (icon, method[0] == 'A' ? 1 : method[0] == 'S' ? 2 : 3, x, y);
++      icon->click_x = x;
++      icon->click_y = y;
++      icon_click (icon, method[0] == 'A' ? 1 : method[0] == 'S' ? 2 : 3);
+     }
+   else if (g_strcmp0 (method, "Scroll") == 0)
+     {
+-      gint delta = 0;
++      gint delta = 0, button, steps;
+       const gchar *orientation = NULL;
+ 
+       g_variant_get (params, "(i&s)", &delta, &orientation);
+-      /* Sin posición: la del último clic (en Wayland, sobre el ícono) */
+       if (g_ascii_strcasecmp (orientation, "horizontal") == 0)
+-        icon_click (icon, delta < 0 ? 6 : 7, icon->click_x, icon->click_y);
++        button = delta < 0 ? 6 : 7;
+       else
+-        icon_click (icon, delta < 0 ? 4 : 5, icon->click_x, icon->click_y);
++        button = delta < 0 ? 4 : 5;
++
++      /* Un paso de rueda por unidad (en X, cada paso es un clic) */
++      for (steps = MIN (ABS (delta), MAX_PENDING_CLICKS); steps > 0; steps--)
++        icon_click (icon, button);
+     }
+   else
+     {
+@@ -1720,8 +1739,46 @@ handle_event (XEvent *ev)
+ 
+ 
+ 
++/* Fuente de eventos de X para el bucle de GLib. Mirar solo el socket no
++ * alcanza: XSync, XGetImage o XQueryPointer (en trap_pop, icon_update,
++ * click_try…) pueden leer eventos a la cola de Xlib, y ahí quedarían sin
++ * atender hasta que llegue otro. prepare y check miran también esa cola
++ * (como hace GDK). GLib no despacha una fuente dentro de sí misma, así
++ * que handle_event no se llama de forma reentrante. */
++typedef struct
++{
++  GSource  source;
++  gpointer fd_tag;
++} XSource;
++
++
++
++static gboolean
++x_source_prepare (GSource *source, gint *timeout)
++{
++  /* Mandar lo pendiente antes de dormir: las respuestas y los eventos
++   * que provoque llegan al socket */
++  XFlush (P.dpy);
++  *timeout = -1;
++  return XEventsQueued (P.dpy, QueuedAlready) > 0;
++}
++
++
++
+ static gboolean
+-x_events_ready (gint fd, GIOCondition condition, gpointer user_data)
++x_source_check (GSource *source)
++{
++  XSource *xs = (XSource *) source;
++
++  if (g_source_query_unix_fd (source, xs->fd_tag) & G_IO_IN)
++    return XEventsQueued (P.dpy, QueuedAfterReading) > 0;
++  return XEventsQueued (P.dpy, QueuedAlready) > 0;
++}
++
++
++
++static void
++x_events_drain (void)
+ {
+   while (XPending (P.dpy))
+     {
+@@ -1731,11 +1788,42 @@ x_events_ready (gint fd, GIOCondition condition, gpointer user_data)
+       handle_event (&ev);
+     }
+   XFlush (P.dpy);
++}
++
++
++
++static gboolean
++x_source_dispatch (GSource *source, GSourceFunc callback, gpointer user_data)
++{
++  x_events_drain ();
+   return G_SOURCE_CONTINUE;
+ }
+ 
+ 
+ 
++static GSourceFuncs x_source_funcs = {
++  x_source_prepare,
++  x_source_check,
++  x_source_dispatch,
++  NULL, NULL, NULL
++};
++
++
++
++static void
++x_source_attach (void)
++{
++  GSource *source = g_source_new (&x_source_funcs, sizeof (XSource));
++  XSource *xs = (XSource *) source;
++
++  xs->fd_tag = g_source_add_unix_fd (source, ConnectionNumber (P.dpy), G_IO_IN);
++  g_source_set_name (source, "X events");
++  g_source_attach (source, NULL);
++  g_source_unref (source);
++}
++
++
++
+ static gboolean
+ quit_signal (gpointer user_data)
+ {
+@@ -1890,9 +1978,7 @@ main (int argc, char **argv)
+   g_bus_watch_name_on_connection (P.bus, WATCHER_NAME, G_BUS_NAME_WATCHER_FLAGS_NONE,
+                                   watcher_appeared, NULL, NULL, NULL);
+ 
+-  /* Todas las peticiones a X terminan en XSync/XFlush (trap_pop, do_click
+-   * o el manejador de eventos), así que no hace falta un vaciado periódico */
+-  g_unix_fd_add (ConnectionNumber (P.dpy), G_IO_IN, x_events_ready, NULL);
++  x_source_attach ();
+   g_unix_signal_add (SIGTERM, quit_signal, NULL);
+   g_unix_signal_add (SIGINT, quit_signal, NULL);
+   g_unix_signal_add (SIGHUP, quit_signal, NULL);
+@@ -1901,7 +1987,7 @@ main (int argc, char **argv)
+   if (!P.owner)
+     g_printerr (PROXY_NAME ": hay otra bandeja clásica activa; esperando a que se libere\n");
+ 
+-  x_events_ready (0, G_IO_IN, NULL);
++  x_events_drain ();
+   g_main_loop_run (P.loop);
+ 
+   /* Salida limpia: devolver las ventanas y liberar la bandeja para que
+diff --git a/src/to-button.c b/src/to-button.c
+index 95b3e2e..aa73596 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -54,10 +54,11 @@ static guint signals[N_SIGNALS];
+ 
+ /* Coordenadas de pantalla en píxeles de dispositivo, como espera SNI */
+ static void
+-event_root_coords (GtkWidget      *widget,
+-                   GdkEventButton *event,
+-                   gint           *x,
+-                   gint           *y)
++event_root_coords (GtkWidget *widget,
++                   gdouble    x_root,
++                   gdouble    y_root,
++                   gint      *x,
++                   gint      *y)
+ {
+   gint scale = gtk_widget_get_scale_factor (widget);
+ 
+@@ -93,8 +94,8 @@ event_root_coords (GtkWidget      *widget,
+          * de que aparezca el menú de la app) */
+         if (plugin == NULL)
+           {
+-            *x = ox + (gint) event->x_root;
+-            *y = oy + (gint) event->y_root;
++            *x = ox + (gint) x_root;
++            *y = oy + (gint) y_root;
+             return;
+           }
+ 
+@@ -122,8 +123,8 @@ event_root_coords (GtkWidget      *widget,
+   }
+ #endif
+ 
+-  *x = (gint) (event->x_root * scale);
+-  *y = (gint) (event->y_root * scale);
++  *x = (gint) (x_root * scale);
++  *y = (gint) (y_root * scale);
+ }
+ 
+ 
+@@ -176,7 +177,7 @@ tray_button_button_press (GtkWidget      *widget,
+         }
+ 
+       /* Sin menú D-Bus: que la app muestre el suyo */
+-      event_root_coords (widget, event, &x, &y);
++      event_root_coords (widget, event->x_root, event->y_root, &x, &y);
+       tray_item_context_menu (button->item, x, y);
+       g_signal_emit (button, signals[SIGNAL_ACTED], 0, TRUE);
+       return TRUE;
+@@ -214,7 +215,7 @@ tray_button_button_release (GtkWidget      *widget,
+   if (!inside)
+     return TRUE;
+ 
+-  event_root_coords (widget, event, &x, &y);
++  event_root_coords (widget, event->x_root, event->y_root, &x, &y);
+ 
+   if (event->button == 1 && tray_item_get_is_menu (button->item))
+     {
+@@ -252,7 +253,7 @@ tray_button_scroll (GtkWidget      *widget,
+                     GdkEventScroll *event)
+ {
+   TrayButton *button = TRAY_BUTTON (widget);
+-  gint dx = 0, dy = 0;
++  gint dx = 0, dy = 0, x, y;
+ 
+   switch (event->direction)
+     {
+@@ -277,10 +278,11 @@ tray_button_scroll (GtkWidget      *widget,
+       break;
+     }
+ 
++  event_root_coords (widget, event->x_root, event->y_root, &x, &y);
+   if (dy != 0)
+-    tray_item_scroll (button->item, dy, FALSE);
++    tray_item_scroll (button->item, dy, FALSE, x, y);
+   if (dx != 0)
+-    tray_item_scroll (button->item, dx, TRUE);
++    tray_item_scroll (button->item, dx, TRUE, x, y);
+ 
+   return TRUE;
+ }
+diff --git a/src/to-item.c b/src/to-item.c
+index 053f812..04e6bf1 100644
+--- a/src/to-item.c
++++ b/src/to-item.c
+@@ -174,12 +174,18 @@ tray_item_get_is_legacy (TrayItem *item)
+ static gchar *
+ tooltip_text_to_markup (const gchar *text)
+ {
+-  GRegex *regex;
++  static gsize regex_once = 0;
++  static GRegex *regex = NULL;
+   gchar *normalized;
+ 
+-  regex = g_regex_new ("<br\\s*/?>", G_REGEX_CASELESS, 0, NULL);
++  /* Se compila una sola vez: los tooltips cambian a menudo */
++  if (g_once_init_enter (&regex_once))
++    {
++      regex = g_regex_new ("<br\\s*/?>", G_REGEX_CASELESS | G_REGEX_OPTIMIZE, 0, NULL);
++      g_once_init_leave (&regex_once, 1);
++    }
++
+   normalized = g_regex_replace_literal (regex, text, -1, 0, "\n", 0, NULL);
+-  g_regex_unref (regex);
+ 
+   if (normalized == NULL)
+     normalized = g_strdup (text);
+@@ -537,14 +543,14 @@ tray_item_context_menu (TrayItem *item, gint x, gint y)
+ 
+ 
+ void
+-tray_item_scroll (TrayItem *item, gint delta, gboolean horizontal)
++tray_item_scroll (TrayItem *item, gint delta, gboolean horizontal, gint x, gint y)
+ {
+   TrayItemClass *klass;
+ 
+   g_return_if_fail (TRAY_IS_ITEM (item));
+   klass = TRAY_ITEM_GET_CLASS (item);
+   if (klass->scroll != NULL)
+-    klass->scroll (item, delta, horizontal);
++    klass->scroll (item, delta, horizontal, x, y);
+ }
+ 
+ 
+diff --git a/src/to-item.h b/src/to-item.h
+index 54548a3..606927a 100644
+--- a/src/to-item.h
++++ b/src/to-item.h
+@@ -42,7 +42,8 @@ struct _TrayItemClass
+   void       (*activate)           (TrayItem *item, gint x, gint y);
+   void       (*secondary_activate) (TrayItem *item, gint x, gint y);
+   void       (*context_menu)       (TrayItem *item, gint x, gint y);
+-  void       (*scroll)             (TrayItem *item, gint delta, gboolean horizontal);
++  void       (*scroll)             (TrayItem *item, gint delta, gboolean horizontal,
++                                    gint x, gint y);
+   /* Opcional: el backend puede pedirle a la app que dibuje a ese tamaño
+    * (en píxeles de dispositivo), para no tener que reescalar */
+   void       (*set_icon_size)      (TrayItem *item, gint pixels);
+@@ -80,7 +81,8 @@ GtkWidget      *tray_item_get_menu           (TrayItem *item);
+ void            tray_item_activate           (TrayItem *item, gint x, gint y);
+ void            tray_item_secondary_activate (TrayItem *item, gint x, gint y);
+ void            tray_item_context_menu       (TrayItem *item, gint x, gint y);
+-void            tray_item_scroll             (TrayItem *item, gint delta, gboolean horizontal);
++void            tray_item_scroll             (TrayItem *item, gint delta, gboolean horizontal,
++                                              gint x, gint y);
+ 
+ /* Cada vista que muestra el ítem declara a qué tamaño lo dibuja
+  * (@requester la identifica); se usa el mayor de los pedidos */
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 503589b..211c29e 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -935,64 +935,53 @@ popup_draw (GtkWidget  *widget,
+  * Menús abiertos desde el popup
+  * ════════════════════════════════════════════════════════════════════════ */
+ 
+-typedef struct
+-{
+-  GObject *object;
+-  gulong   handler;
+-} MenuHook;
+-
+-
+-
+-static void
+-menu_item_activated (GtkMenuItem *item,
+-                     TrayPlugin  *p)
++/* Mientras un menú abierto desde el popup está visible, cualquier
++ * "activate" de un GtkMenuItem pasa por acá. Así también cuentan los
++ * ítems que la app agrega después de abrirse el menú (DBusMenu tras
++ * AboutToShow). "selection-done" no sirve: llega también al descartar. */
++static gboolean
++menu_activate_hook (GSignalInvocationHint *hint,
++                    guint                  n_values,
++                    const GValue          *values,
++                    gpointer               user_data)
+ {
+-  p->menu_chosen = TRUE;
+-}
+-
+-
++  TrayPlugin *p = user_data;
++  GtkWidget *item = g_value_get_object (&values[0]);
+ 
+-static void
+-menu_hooks_add (TrayPlugin *p,
+-                GtkWidget  *menu)
+-{
+-  GList *children, *l;
++  /* Los ítems con submenú solo lo abren: no son una elección */
++  if (p->menu_shown == NULL || !GTK_IS_MENU_ITEM (item)
++      || gtk_menu_item_get_submenu (GTK_MENU_ITEM (item)) != NULL)
++    return TRUE;
+ 
+-  children = gtk_container_get_children (GTK_CONTAINER (menu));
+-  for (l = children; l != NULL; l = l->next)
++  /* ¿Pertenece a nuestro menú o a uno de sus submenús? */
++  while (item != NULL)
+     {
+-      GtkWidget *submenu;
+-      MenuHook *hook;
++      GtkWidget *menu = gtk_widget_get_parent (item);
+ 
+-      if (!GTK_IS_MENU_ITEM (l->data))
+-        continue;
+-
+-      submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (l->data));
+-      if (submenu != NULL)
++      if (!GTK_IS_MENU (menu))
++        break;
++      if (menu == p->menu_shown)
+         {
+-          menu_hooks_add (p, submenu);
+-          continue;
++          p->menu_chosen = TRUE;
++          break;
+         }
+-
+-      hook = g_new (MenuHook, 1);
+-      hook->object = g_object_ref (l->data);
+-      hook->handler = g_signal_connect (l->data, "activate",
+-                                        G_CALLBACK (menu_item_activated), p);
+-      g_ptr_array_add (p->menu_hooks, hook);
++      item = gtk_menu_get_attach_widget (GTK_MENU (menu));
+     }
+-  g_list_free (children);
++
++  return TRUE;   /* seguir enganchado hasta que se cierre el menú */
+ }
+ 
+ 
+ 
+ static void
+-menu_hook_free (gpointer data)
++menu_hook_remove (TrayPlugin *p)
+ {
+-  MenuHook *hook = data;
+-
+-  g_signal_handler_disconnect (hook->object, hook->handler);
+-  g_object_unref (hook->object);
+-  g_free (hook);
++  if (p->menu_hook_id != 0)
++    {
++      g_signal_remove_emission_hook (g_signal_lookup ("activate", GTK_TYPE_MENU_ITEM),
++                                     p->menu_hook_id);
++      p->menu_hook_id = 0;
++    }
+ }
+ 
+ 
+@@ -1002,7 +991,7 @@ menu_closed_idle (gpointer user_data)
+ {
+   TrayPlugin *p = user_data;
+ 
+-  g_ptr_array_set_size (p->menu_hooks, 0);
++  menu_hook_remove (p);
+ 
+   if (p->menu_shown != NULL)
+     {
+@@ -1075,7 +1064,9 @@ button_show_menu (TrayButton *button,
+   p->menu_shown = g_object_ref (menu);
+   p->menu_deactivate_id = g_signal_connect (menu, "deactivate",
+                                             G_CALLBACK (menu_deactivated), p);
+-  menu_hooks_add (p, menu);
++  menu_hook_remove (p);
++  p->menu_hook_id = g_signal_add_emission_hook (g_signal_lookup ("activate", GTK_TYPE_MENU_ITEM),
++                                                0, menu_activate_hook, p, NULL);
+ 
+   if (event != NULL)
+     gtk_menu_popup_at_pointer (GTK_MENU (menu), event);
+@@ -2157,7 +2148,7 @@ plugin_free (XfcePanelPlugin *panel_plugin,
+   g_clear_handle_id (&p->corners_idle_id, g_source_remove);
+   g_idle_remove_by_data (p);
+ 
+-  g_ptr_array_unref (p->menu_hooks);
++  menu_hook_remove (p);
+   if (p->menu_shown != NULL)
+     {
+       g_clear_signal_handler (&p->menu_deactivate_id, p->menu_shown);
+@@ -2220,7 +2211,6 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+   p->buttons = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, button_value_free);
+   p->panel_order = g_ptr_array_new ();
+   p->popup_order = g_ptr_array_new ();
+-  p->menu_hooks = g_ptr_array_new_with_free_func (menu_hook_free);
+ 
+   p->css = gtk_css_provider_new ();
+   gtk_css_provider_load_from_data (p->css, plugin_css, -1, NULL);
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index 08568d1..b9bc3a3 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -84,7 +84,7 @@ struct _TrayPlugin
+   gboolean         menu_chosen;
+   GtkWidget       *menu_shown;
+   gulong           menu_deactivate_id;
+-  GPtrArray       *menu_hooks;
++  gulong           menu_hook_id;     /* "activate" de los ítems del menú */
+ 
+   /* Arrastre */
+   gboolean         dragging;
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 85a39dd..e89dad6 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -82,6 +82,18 @@ known_free (gpointer data)
+ 
+ 
+ 
++/* Borra la copia del ícono en la caché, si era nuestra. No va en
++ * known_free: al releer la configuración se vacía la lista entera. */
++static void
++known_unlink_cached_icon (TrayKnown *known)
++{
++  if (known->icon_name != NULL && g_path_is_absolute (known->icon_name)
++      && g_str_has_prefix (known->icon_name, g_get_user_cache_dir ()))
++    g_unlink (known->icon_name);
++}
++
++
++
+ static gchar *
+ prop (TraySettings *s, const gchar *name)
+ {
+@@ -877,6 +889,7 @@ tray_settings_remember (TraySettings *s,
+           if (!g_hash_table_contains (s->hidden, old->key)
+               && !g_hash_table_contains (s->visible, old->key))
+             {
++              known_unlink_cached_icon (old);
+               g_ptr_array_remove_index (s->known, i);
+               break;
+             }
+@@ -905,13 +918,7 @@ tray_settings_forget (TraySettings *s,
+   index = tray_settings_get_index (s, key);
+   if (index >= 0)
+     {
+-      TrayKnown *k = g_ptr_array_index (s->known, index);
+-
+-      /* Borrar la copia del ícono en la caché, si era nuestra */
+-      if (k->icon_name != NULL && g_path_is_absolute (k->icon_name)
+-          && g_str_has_prefix (k->icon_name, g_get_user_cache_dir ()))
+-        g_unlink (k->icon_name);
+-
++      known_unlink_cached_icon (g_ptr_array_index (s->known, index));
+       g_ptr_array_remove_index (s->known, index);
+       changed = TRUE;
+     }
+diff --git a/src/to-sni.c b/src/to-sni.c
+index ec227a3..54e50d6 100644
+--- a/src/to-sni.c
++++ b/src/to-sni.c
+@@ -265,9 +265,20 @@ sni_item_context_menu (TrayItem *tray_item, gint x, gint y)
+ 
+ 
+ static void
+-sni_item_scroll (TrayItem *tray_item, gint delta, gboolean horizontal)
++sni_item_scroll (TrayItem *tray_item, gint delta, gboolean horizontal, gint x, gint y)
+ {
+-  sni_item_call (SNI_ITEM (tray_item), "Scroll",
++  SniItem *item = SNI_ITEM (tray_item);
++
++  /* Scroll no trae posición: a nuestro proxy se la mandamos antes (llega
++   * primero, mismo origen y destino), para que en Wayland la rueda caiga
++   * sobre el ícono aunque no haya habido un clic antes */
++  if (item->from_proxy && item->owner != NULL && !item->removed && backend != NULL)
++    g_dbus_connection_call (backend->conn, item->owner, item->object_path,
++                            PROXY_IFACE, "SetPointer", g_variant_new ("(ii)", x, y),
++                            NULL, G_DBUS_CALL_FLAGS_NONE, -1, item->cancellable,
++                            NULL, NULL);
++
++  sni_item_call (item, "Scroll",
+                  g_variant_new ("(is)", delta, horizontal ? "horizontal" : "vertical"),
+                  NULL, NULL);
+ }

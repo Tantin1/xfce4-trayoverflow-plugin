@@ -1,0 +1,405 @@
+diff --git a/README.md b/README.md
+index ee8a5f5..1de37d4 100644
+--- a/README.md
++++ b/README.md
+@@ -28,6 +28,7 @@ Windows 10/11.
+ - Tamaño de ícono y separación **independientes** para el panel y la
+   ventana emergente; columnas de la ventana emergente configurables.
+ - Paneles horizontales, verticales y de varias filas; HiDPI.
++- X11 y **Wayland** (sesión Wayland de XFCE 4.20).
+ - Varias instancias (p. ej. una por panel), cada una con su configuración.
+ - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
+   las demás, con ventana emergente y arrastre incluidos. Incluye apps Java
+@@ -44,12 +45,13 @@ Windows 10/11.
+ 
+ | Distribución | Comando |
+ |---|---|
+-| Debian / Ubuntu / Mint | `sudo apt install build-essential meson ninja-build gettext libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev libdbusmenu-gtk3-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxtst-dev libxext-dev` |
+-| Arch / Manjaro / CachyOS | `sudo pacman -S base-devel meson gettext gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 libxcomposite libxdamage libxfixes libxtst libxext` |
+-| Fedora | `sudo dnf install gcc meson gettext gtk3-devel xfce4-panel-devel libxfce4ui-devel xfconf-devel libdbusmenu-gtk3-devel libXcomposite-devel libXdamage-devel libXfixes-devel libXtst-devel libXext-devel` |
++| Debian / Ubuntu / Mint | `sudo apt install build-essential meson ninja-build gettext libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev libdbusmenu-gtk3-dev libgtk-layer-shell-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxtst-dev libxext-dev` |
++| Arch / Manjaro / CachyOS | `sudo pacman -S base-devel meson gettext gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 gtk-layer-shell libxcomposite libxdamage libxfixes libxtst libxext` |
++| Fedora | `sudo dnf install gcc meson gettext gtk3-devel xfce4-panel-devel libxfce4ui-devel xfconf-devel libdbusmenu-gtk3-devel gtk-layer-shell-devel libXcomposite-devel libXdamage-devel libXfixes-devel libXtst-devel libXext-devel` |
+ 
+-Las bibliotecas `libX*` son solo para el soporte de apps antiguas. Si
+-faltan, el plugin se compila igual, sin esa opción.
++Las bibliotecas `libX*` son solo para el soporte de apps antiguas, y
++gtk-layer-shell solo para Wayland. Si faltan, el plugin se compila igual,
++sin esa opción.
+ 
+ ## Instalación
+ 
+@@ -196,8 +198,18 @@ activa.
+ 
+ ### Wayland
+ 
+-Pensado para X11. Bajo la sesión Wayland experimental de XFCE 4.20 la
+-posición de la ventana emergente puede no ser correcta.
++Funciona en la sesión Wayland de XFCE 4.20 con compositores que tengan
++*layer-shell* (labwc, Wayfire, xfwl4…). Hace falta compilar con
++**gtk-layer-shell** (la misma biblioteca que usa el panel); `meson` indica
++al final si quedó incluido. El mismo plugin sirve para X11 y Wayland: elige
++solo al arrancar.
++
++Diferencias con X11:
++
++- La ventana emergente se cierra cuando otra app pasa a primer plano (al
++  hacer clic en ella o al abrir una ventana). Un clic sobre el **escritorio
++  vacío** puede no cerrarla, según el compositor: usá Escape o la flecha.
++- Las apps antiguas (XEmbed) todavía no están adaptadas a Wayland.
+ 
+ ### Apps Flatpak con ID genérico
+ 
+diff --git a/meson.build b/meson.build
+index 92fedbb..c0118dc 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.8',
++  version: '0.2.9',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+@@ -23,6 +23,9 @@ libxfce4util     = dependency('libxfce4util-1.0',  version: '>= 4.16')
+ libxfconf        = dependency('libxfconf-0',       version: '>= 4.16')
+ dbusmenu_dep     = dependency('dbusmenu-gtk3-0.4')
+ x11_dep          = dependency('x11', required: false)
++# Wayland: el popup se muestra como capa (como los popups del propio panel)
++layer_shell_dep  = dependency('gtk-layer-shell-0', version: '>= 0.6.0',
++                              required: get_option('gtk-layer-shell'))
+ math_dep         = cc.find_library('m', required: false)
+ 
+ # Proxy XEmbed → SNI (programa aparte; solo Xlib y GLib)
+@@ -64,6 +67,9 @@ conf.set_quoted('PACKAGE_VERSION', meson.project_version())
+ conf.set_quoted('PROXY_PATH', proxy_path)
+ conf.set_quoted('DEFAULT_ICONS_PATH', pkg_datadir / 'icon-defaults.conf')
+ conf.set10('HAVE_XEMBED_PROXY', have_proxy)
++if layer_shell_dep.found()
++  conf.set('HAVE_GTK_LAYER_SHELL', 1)
++endif
+ configure_file(output: 'config.h', configuration: conf)
+ 
+ add_project_arguments(
+@@ -91,7 +97,7 @@ shared_module(
+   name_prefix: 'lib',
+   include_directories: include_directories('.'),
+   dependencies: [gtk_dep, libxfce4panel, libxfce4ui, libxfce4util, libxfconf,
+-                 dbusmenu_dep, x11_dep, math_dep],
++                 dbusmenu_dep, x11_dep, layer_shell_dep, math_dep],
+   link_args: ['-Wl,--no-undefined'],
+   install: true,
+   install_dir: plugin_libdir,
+@@ -134,3 +140,7 @@ summary({
+   'Traducciones': localedir,
+   'Proxy XEmbed': have_proxy ? proxy_path : 'no (faltan bibliotecas X11)',
+ }, section: 'Instalación')
++
++summary({
++  'Popup en Wayland': layer_shell_dep.found() ? 'sí (gtk-layer-shell)' : 'no (falta gtk-layer-shell)',
++}, section: 'Wayland')
+diff --git a/meson_options.txt b/meson_options.txt
+index 1368873..cbd16a0 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1,4 +1,6 @@
+ option('plugin-libdir', type: 'string', value: '',
+        description: 'Carpeta de plugins del panel (por defecto: la del libxfce4panel instalado)')
++option('gtk-layer-shell', type: 'feature', value: 'auto',
++       description: 'Mostrar el popup en Wayland (necesita gtk-layer-shell)')
+ option('xembed-proxy', type: 'feature', value: 'auto',
+        description: 'Compilar el proxy que muestra apps antiguas (bandeja XEmbed)')
+diff --git a/po/es.po b/po/es.po
+index d1ae53a..e24abdd 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.8\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.9\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-26 10:50-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index ed6c2b4..b8d31e6 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -31,6 +31,10 @@
+ #include <X11/Xatom.h>
+ #endif
+ 
++#ifdef HAVE_GTK_LAYER_SHELL
++#include <gtk-layer-shell.h>
++#endif
++
+ #define DND_TARGET     "application/x-" TO_CSS_PREFIX "-item"
+ #define DRAG_OPEN_MS   450
+ #define POPUP_GAP      4
+@@ -228,9 +232,14 @@ popup_try_grab (gpointer user_data)
+   seat = gdk_display_get_default_seat (gtk_widget_get_display (p->popup));
+ 
+   /* owner_events = TRUE: los clics dentro de nuestras ventanas llegan
+-   * normalmente; los de afuera llegan al popup y lo cierran */
++   * normalmente; los de afuera llegan al popup y lo cierran.
++   * Wayland: solo el puntero. Un grab de teclado no alcanza a otras apps
++   * y ocultaría la pérdida de foco, que es lo que cierra el popup. */
+   status = window != NULL
+-           ? gdk_seat_grab (seat, window, GDK_SEAT_CAPABILITY_ALL, TRUE,
++           ? gdk_seat_grab (seat, window,
++                            p->popup_layer ? GDK_SEAT_CAPABILITY_ALL_POINTING
++                                           : GDK_SEAT_CAPABILITY_ALL,
++                            TRUE,
+                             NULL, NULL, NULL, NULL)
+            : GDK_GRAB_NOT_VIEWABLE;
+ 
+@@ -385,6 +394,65 @@ active_watch_stop (TrayPlugin *p)
+ 
+ 
+ 
++/* ── Wayland: foco ───────────────────────────────────────────────────────
++ * Sin _NET_ACTIVE_WINDOW ni grabs fuera del proceso: como los popups del
++ * propio panel, se cierra al perder el foco del teclado (otra app pasó a
++ * primer plano, p. ej. tras un clic en su ícono, o se hizo clic en ella). */
++
++#ifdef HAVE_GTK_LAYER_SHELL
++static gboolean
++pointer_over_panel (TrayPlugin *p)
++{
++  GdkSeat *seat = gdk_display_get_default_seat (gtk_widget_get_display (p->popup));
++  GdkDevice *pointer = seat != NULL ? gdk_seat_get_pointer (seat) : NULL;
++  GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (p->panel_plugin));
++  GdkWindow *window;
++
++  if (pointer == NULL || !GTK_IS_WINDOW (toplevel))
++    return FALSE;
++
++  window = gdk_device_get_window_at_position (pointer, NULL, NULL);
++  return window != NULL
++         && gdk_window_get_effective_toplevel (window) == gtk_widget_get_window (toplevel);
++}
++
++
++
++static gboolean
++focus_check (gpointer user_data)
++{
++  TrayPlugin *p = user_data;
++
++  p->focus_check_id = 0;
++
++  if (p->popup == NULL || !gtk_widget_get_visible (p->popup)
++      || p->menu_open || p->dragging
++      || gtk_window_has_toplevel_focus (GTK_WINDOW (p->popup)))
++    return G_SOURCE_REMOVE;
++
++  /* Clic sobre el panel: lo decide ese clic (p. ej. sobre la flecha
++   * solo cierra; si cerráramos acá, el clic volvería a abrir) */
++  if (pointer_over_panel (p))
++    return G_SOURCE_REMOVE;
++
++  popup_hide (p);
++  return G_SOURCE_REMOVE;
++}
++
++
++
++static void
++popup_focus_changed (GObject    *object,
++                     GParamSpec *pspec,
++                     TrayPlugin *p)
++{
++  if (!gtk_window_has_toplevel_focus (GTK_WINDOW (p->popup)) && p->focus_check_id == 0)
++    p->focus_check_id = g_idle_add (focus_check, p);
++}
++#endif
++
++
++
+ static void
+ popup_grab (TrayPlugin *p)
+ {
+@@ -443,6 +511,27 @@ popup_reposition (TrayPlugin *p)
+     default: break;
+     }
+ 
++#ifdef HAVE_GTK_LAYER_SHELL
++  if (p->popup_layer)
++    {
++      /* Wayland: sin coordenadas absolutas; la capa se ubica con márgenes
++       * respecto del monitor del panel (como hace el propio panel) */
++      GdkWindow *panel_window = gtk_widget_get_window (GTK_WIDGET (p->panel_plugin));
++      GdkMonitor *monitor = panel_window != NULL
++                            ? gdk_display_get_monitor_at_window (gtk_widget_get_display (p->popup),
++                                                                 panel_window)
++                            : NULL;
++      GdkRectangle geometry = { 0, 0, 0, 0 };
++
++      if (monitor != NULL)
++        gdk_monitor_get_geometry (monitor, &geometry);
++
++      gtk_layer_set_margin (GTK_WINDOW (p->popup), GTK_LAYER_SHELL_EDGE_LEFT, x - geometry.x);
++      gtk_layer_set_margin (GTK_WINDOW (p->popup), GTK_LAYER_SHELL_EDGE_TOP, y - geometry.y);
++      return;
++    }
++#endif
++
+   gtk_window_move (GTK_WINDOW (p->popup), x, y);
+ }
+ 
+@@ -473,6 +562,17 @@ popup_show (TrayPlugin *p)
+        * que esté esperando su turno */
+       if (p->relayout_id != 0 || !p->layout_valid)
+         tray_plugin_relayout (p);
++#ifdef HAVE_GTK_LAYER_SHELL
++      if (p->popup_layer)
++        {
++          GdkWindow *panel_window = gtk_widget_get_window (GTK_WIDGET (p->panel_plugin));
++
++          if (panel_window != NULL)
++            gtk_layer_set_monitor (GTK_WINDOW (p->popup),
++                                   gdk_display_get_monitor_at_window (
++                                     gtk_widget_get_display (p->popup), panel_window));
++        }
++#endif
+       popup_reposition (p);
+       gtk_widget_show (p->popup);
+       active_watch_start (p);
+@@ -506,6 +606,11 @@ popup_hide (TrayPlugin *p)
+       p->act_id = 0;
+     }
+   p->hide_if_no_grab = FALSE;
++  if (p->focus_check_id != 0)
++    {
++      g_source_remove (p->focus_check_id);
++      p->focus_check_id = 0;
++    }
+ 
+   if (p->popup != NULL)
+     {
+@@ -567,6 +672,31 @@ widget_contains_root (GtkWidget *widget,
+ 
+ 
+ 
++/* Wayland: ¿el puntero está sobre @widget? No hay coordenadas de
++ * pantalla; se mira qué ventana propia está bajo el puntero. */
++static gboolean
++pointer_on_widget (GtkWidget *widget,
++                   GdkDevice *device)
++{
++  GdkWindow *window;
++  gpointer data = NULL;
++
++  if (widget == NULL || device == NULL || !gtk_widget_get_mapped (widget))
++    return FALSE;
++
++  window = gdk_device_get_window_at_position (device, NULL, NULL);
++  if (window == NULL)
++    return FALSE;
++
++  if (GTK_IS_WINDOW (widget))
++    return gdk_window_get_effective_toplevel (window) == gtk_widget_get_window (widget);
++
++  gdk_window_get_user_data (window, &data);
++  return data == widget || (GTK_IS_WIDGET (data) && gtk_widget_is_ancestor (data, widget));
++}
++
++
++
+ /* Reenvía un clic a la ventana de este proceso que está bajo el puntero
+  * (otro ícono del panel, otro plugin...). Debe llamarse ya sin grab. */
+ static void
+@@ -608,10 +738,21 @@ popup_button_press (GtkWidget      *widget,
+ {
+   gboolean on_arrow;
+ 
+-  if (widget_contains_root (p->popup, event->x_root, event->y_root))
+-    return FALSE;
++  if (p->popup_layer)
++    {
++      GdkDevice *device = gdk_event_get_device ((GdkEvent *) event);
++
++      if (pointer_on_widget (p->popup, device))
++        return FALSE;
++      on_arrow = pointer_on_widget (p->arrow, device);
++    }
++  else
++    {
++      if (widget_contains_root (p->popup, event->x_root, event->y_root))
++        return FALSE;
++      on_arrow = widget_contains_root (p->arrow, event->x_root, event->y_root);
++    }
+ 
+-  on_arrow = widget_contains_root (p->arrow, event->x_root, event->y_root);
+   popup_hide (p);
+ 
+   if (on_arrow)
+@@ -900,6 +1041,11 @@ button_acted (TrayButton *button,
+       return;
+     }
+ 
++  /* Wayland: nuestro grab no afecta a otras apps; si la app pasa a primer
++   * plano, el popup pierde el foco y se cierra (ver focus_check) */
++  if (p->popup_layer)
++    return;
++
+   /* Activar: el popup queda abierto. Se cierra solo si la app pasa a
+    * primer plano (ver active_window_check). Mientras tanto, sin grab:
+    * con él, el clic simulado de una app antigua llegaría al popup. */
+@@ -1608,14 +1754,38 @@ popup_create (TrayPlugin *p)
+   GdkVisual *visual = gdk_screen_get_rgba_visual (screen);
+   GtkStyleContext *context;
+ 
+-  /* Ventana tipo POPUP (override-redirect): posición exacta y sin
++#ifdef HAVE_GTK_LAYER_SHELL
++  /* Wayland: capa sobre todo lo demás, como los popups del propio panel */
++  p->popup_layer = gtk_layer_is_supported ();
++#endif
++
++  /* X11: ventana tipo POPUP (override-redirect): posición exacta y sin
+    * decoraciones; el cierre por clic externo lo manejamos con un grab */
+-  p->popup = gtk_window_new (GTK_WINDOW_POPUP);
++  p->popup = gtk_window_new (p->popup_layer ? GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP);
+   gtk_window_set_type_hint (GTK_WINDOW (p->popup), GDK_WINDOW_TYPE_HINT_DROPDOWN_MENU);
+   gtk_window_set_screen (GTK_WINDOW (p->popup), screen);
+   gtk_window_set_resizable (GTK_WINDOW (p->popup), FALSE);
+   gtk_widget_add_events (p->popup, GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK);
+ 
++#ifdef HAVE_GTK_LAYER_SHELL
++  if (p->popup_layer)
++    {
++      GtkWindow *window = GTK_WINDOW (p->popup);
++
++      gtk_window_set_decorated (window, FALSE);
++      gtk_layer_init_for_window (window);
++      gtk_layer_set_namespace (window, "xfce4-panel");
++      gtk_layer_set_layer (window, GTK_LAYER_SHELL_LAYER_OVERLAY);
++      gtk_layer_set_exclusive_zone (window, -1);
++      gtk_layer_set_anchor (window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
++      gtk_layer_set_anchor (window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
++      /* Con foco: Esc y el cierre al pasar a otra app */
++      gtk_layer_set_keyboard_mode (window, GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
++      g_signal_connect (p->popup, "notify::has-toplevel-focus",
++                        G_CALLBACK (popup_focus_changed), p);
++    }
++#endif
++
+   context = gtk_widget_get_style_context (p->popup);
+   gtk_style_context_add_class (context, TO_CSS_PREFIX "-popup");
+ 
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index f82193b..de411c3 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -56,6 +56,8 @@ struct _TrayPlugin
+   GtkWidget       *popup_grid;
+   GtkWidget       *popup_empty;
+   gboolean         popup_rounded;
++  gboolean         popup_layer;       /* Wayland: popup como capa (layer-shell) */
++  guint            focus_check_id;    /* Wayland: cierre al perder el foco */
+   gboolean         seat_grabbed;
+   gboolean         gtk_grabbed;
+   guint            grab_retry_id;

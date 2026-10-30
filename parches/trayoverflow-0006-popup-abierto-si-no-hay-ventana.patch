@@ -1,0 +1,394 @@
+diff --git a/meson.build b/meson.build
+index 61917c2..3c8e22e 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.3',
++  version: '0.2.4',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 46fbf86..a68c721 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,9 +4,9 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.3\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.4\n"
+ "Report-Msgid-Bugs-To: \n"
+-"PO-Revision-Date: 2026-10-25 19:30-0300\n"
++"PO-Revision-Date: 2026-10-25 19:40-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+ "Language-Team: Spanish\n"
+ "Language: es\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 0f3d676..9de5e91 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -914,23 +914,41 @@ static void
+ send_button_event (Icon *icon, gint type, gint button, gint rx, gint ry, gint cx, gint cy)
+ {
+   XEvent ev;
++  Window target = icon->win, child = None;
++  gint tx = cx, ty = cy, depth;
++
++  /* El clic va a la subventana más profunda bajo el punto, como haría
++   * el servidor con un clic real: Java, por ejemplo, lo escucha en una
++   * subventana y no en la ventana del ícono */
++  for (depth = 0; depth < 8; depth++)
++    {
++      gint nx, ny;
++
++      if (!XTranslateCoordinates (P.dpy, icon->win, target, cx, cy, &nx, &ny, &child))
++        break;
++      tx = nx;
++      ty = ny;
++      if (child == None)
++        break;
++      target = child;
++    }
+ 
+   memset (&ev, 0, sizeof (ev));
+   ev.xbutton.type = type;
+   ev.xbutton.display = P.dpy;
+-  ev.xbutton.window = icon->win;
++  ev.xbutton.window = target;
+   ev.xbutton.root = P.root;
+   ev.xbutton.subwindow = None;
+   ev.xbutton.time = CurrentTime;
+-  ev.xbutton.x = cx;
+-  ev.xbutton.y = cy;
++  ev.xbutton.x = tx;
++  ev.xbutton.y = ty;
+   ev.xbutton.x_root = rx;
+   ev.xbutton.y_root = ry;
+   ev.xbutton.button = button;
+   ev.xbutton.same_screen = True;
+   ev.xbutton.state = type == ButtonRelease ? (Button1Mask << (button - 1)) : 0;
+ 
+-  XSendEvent (P.dpy, icon->win, False,
++  XSendEvent (P.dpy, target, False,
+               type == ButtonPress ? ButtonPressMask : ButtonReleaseMask, &ev);
+ }
+ 
+diff --git a/src/to-button.c b/src/to-button.c
+index 02b26e3..2105cd1 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -108,7 +108,7 @@ tray_button_button_press (GtkWidget      *widget,
+       /* Sin menú D-Bus: que la app muestre el suyo */
+       event_root_coords (widget, event, &x, &y);
+       tray_item_context_menu (button->item, x, y);
+-      g_signal_emit (button, signals[SIGNAL_ACTED], 0);
++      g_signal_emit (button, signals[SIGNAL_ACTED], 0, TRUE);
+       return TRUE;
+     }
+ 
+@@ -127,7 +127,7 @@ tray_button_button_release (GtkWidget      *widget,
+ {
+   TrayButton *button = TRAY_BUTTON (widget);
+   GtkAllocation alloc;
+-  gboolean inside;
++  gboolean inside, app_menu = FALSE;
+   guint pressed = button->pressed_button;
+   gint x, y;
+ 
+@@ -156,6 +156,7 @@ tray_button_button_release (GtkWidget      *widget,
+           return TRUE;
+         }
+       tray_item_context_menu (button->item, x, y);
++      app_menu = TRUE;
+     }
+   else if (event->button == 1)
+     tray_item_activate (button->item, x, y);
+@@ -164,7 +165,7 @@ tray_button_button_release (GtkWidget      *widget,
+   else
+     return TRUE;
+ 
+-  g_signal_emit (button, signals[SIGNAL_ACTED], 0);
++  g_signal_emit (button, signals[SIGNAL_ACTED], 0, app_menu);
+   return TRUE;
+ }
+ 
+@@ -314,11 +315,12 @@ tray_button_class_init (TrayButtonClass *klass)
+                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
+                   G_TYPE_NONE, 2, GTK_TYPE_WIDGET, G_TYPE_POINTER);
+ 
+-  /* El usuario activó el ítem (la app puede abrir una ventana) */
++  /* El usuario activó el ítem (la app puede abrir una ventana).
++   * (app_menu): TRUE si se le pidió a la app que muestre su propio menú */
+   signals[SIGNAL_ACTED] =
+     g_signal_new ("acted", G_TYPE_FROM_CLASS (klass),
+                   G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
+-                  G_TYPE_NONE, 0);
++                  G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
+ }
+ 
+ 
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index d75f7ef..c279d38 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -26,9 +26,17 @@
+ #include <stdio.h>
+ #include <string.h>
+ 
++#ifdef GDK_WINDOWING_X11
++#include <gdk/gdkx.h>
++#include <X11/Xatom.h>
++#endif
++
+ #define DND_TARGET     "application/x-" TO_CSS_PREFIX "-item"
+ #define DRAG_OPEN_MS   450
+ #define POPUP_GAP      4
++/* Tras un clic en un ícono del popup: cuánto esperar sin grab, para que
++ * la app reciba el clic (las apps antiguas lo reciben simulado) */
++#define ACT_REGRAB_MS  600
+ 
+ static const GtkTargetEntry dnd_targets[] = {
+   { (gchar *) DND_TARGET, GTK_TARGET_SAME_APP, 0 },
+@@ -232,6 +240,7 @@ popup_try_grab (gpointer user_data)
+   if (status == GDK_GRAB_SUCCESS)
+     {
+       p->seat_grabbed = TRUE;
++      p->hide_if_no_grab = FALSE;
+       /* El grab de GTK redirige al popup los clics sobre el resto del
+        * panel (mismo proceso), así también lo cierran */
+       if (!p->gtk_grabbed)
+@@ -245,12 +254,137 @@ popup_try_grab (gpointer user_data)
+       /* Otro grab (p. ej. un menú que se cierra) aún no se liberó */
+       p->grab_retry_id = g_timeout_add (50, popup_try_grab, p);
+     }
++  else if (p->hide_if_no_grab)
++    {
++      /* Tras un clic, la app tomó el control (p. ej. abrió un menú o un
++       * control propio): sin grab el popup no se cerraría solo */
++      popup_hide (p);
++    }
++
++  return G_SOURCE_REMOVE;
++}
++
++
++
++/* ── Ventana activa ──────────────────────────────────────────────────────
++ * Como en Windows: el popup se cierra cuando otra app pasa a primer
++ * plano (p. ej. abrió su ventana tras un clic), no por el clic en sí. */
++
++#ifdef GDK_WINDOWING_X11
++static gulong
++read_active_window (GdkDisplay *display)
++{
++  Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
++  Atom type;
++  gint format;
++  gulong n_items, after, window = 0;
++  guchar *data = NULL;
++
++  gdk_x11_display_error_trap_push (display);
++  if (XGetWindowProperty (xdisplay, DefaultRootWindow (xdisplay),
++                          gdk_x11_get_xatom_by_name_for_display (display, "_NET_ACTIVE_WINDOW"),
++                          0, 1, False, XA_WINDOW, &type, &format, &n_items, &after,
++                          &data) == Success
++      && data != NULL && format == 32 && n_items == 1)
++    window = *(gulong *) data;
++  if (data != NULL)
++    XFree (data);
++  gdk_x11_display_error_trap_pop_ignored (display);
++
++  return window;
++}
++
++
++
++static gboolean
++active_window_check (gpointer user_data)
++{
++  TrayPlugin *p = user_data;
++  GdkDisplay *display;
++  gulong window;
++
++  p->active_check_id = 0;
++
++  if (p->popup == NULL || !gtk_widget_get_visible (p->popup))
++    return G_SOURCE_REMOVE;
++
++  display = gtk_widget_get_display (p->popup);
++  window = read_active_window (display);
++  if (window == p->active_window)
++    return G_SOURCE_REMOVE;
++  p->active_window = window;
++
++  /* Ninguna, o una ventana de este proceso (el panel, el diálogo) */
++  if (window == 0 || gdk_x11_window_lookup_for_display (display, window) != NULL)
++    return G_SOURCE_REMOVE;
+ 
++  popup_hide (p);
+   return G_SOURCE_REMOVE;
+ }
+ 
+ 
+ 
++static GdkFilterReturn
++root_event_filter (GdkXEvent *gdk_xevent,
++                   GdkEvent  *event,
++                   gpointer   user_data)
++{
++  TrayPlugin *p = user_data;
++  XEvent *xevent = gdk_xevent;
++
++  if (xevent->type == PropertyNotify && p->active_check_id == 0
++      && xevent->xproperty.atom
++         == gdk_x11_get_xatom_by_name_for_display (gtk_widget_get_display (p->popup),
++                                                   "_NET_ACTIVE_WINDOW"))
++    p->active_check_id = g_idle_add (active_window_check, p);
++
++  return GDK_FILTER_CONTINUE;
++}
++#endif
++
++
++
++static void
++active_watch_start (TrayPlugin *p)
++{
++#ifdef GDK_WINDOWING_X11
++  GdkDisplay *display = gtk_widget_get_display (p->popup);
++  GdkWindow *root;
++
++  if (p->watching_active || !GDK_IS_X11_DISPLAY (display))
++    return;
++
++  root = gdk_screen_get_root_window (gtk_widget_get_screen (p->popup));
++  gdk_window_set_events (root, gdk_window_get_events (root) | GDK_PROPERTY_CHANGE_MASK);
++  gdk_window_add_filter (root, root_event_filter, p);
++  p->active_window = read_active_window (display);
++  p->watching_active = TRUE;
++#endif
++}
++
++
++
++static void
++active_watch_stop (TrayPlugin *p)
++{
++#ifdef GDK_WINDOWING_X11
++  if (p->active_check_id != 0)
++    {
++      g_source_remove (p->active_check_id);
++      p->active_check_id = 0;
++    }
++
++  if (p->watching_active)
++    {
++      gdk_window_remove_filter (gdk_screen_get_root_window (gtk_widget_get_screen (p->popup)),
++                                root_event_filter, p);
++      p->watching_active = FALSE;
++    }
++#endif
++}
++
++
++
+ static void
+ popup_grab (TrayPlugin *p)
+ {
+@@ -341,6 +475,7 @@ popup_show (TrayPlugin *p)
+         tray_plugin_relayout (p);
+       popup_reposition (p);
+       gtk_widget_show (p->popup);
++      active_watch_start (p);
+ 
+       if (!p->autohide_blocked)
+         {
+@@ -365,9 +500,16 @@ popup_hide (TrayPlugin *p)
+       g_source_remove (p->drag_open_id);
+       p->drag_open_id = 0;
+     }
++  if (p->act_id != 0)
++    {
++      g_source_remove (p->act_id);
++      p->act_id = 0;
++    }
++  p->hide_if_no_grab = FALSE;
+ 
+   if (p->popup != NULL)
+     {
++      active_watch_stop (p);
+       popup_ungrab (p);
+       gtk_widget_hide (p->popup);
+     }
+@@ -726,13 +868,45 @@ button_show_menu (TrayButton *button,
+ 
+ 
+ 
++static gboolean
++act_regrab (gpointer user_data)
++{
++  TrayPlugin *p = user_data;
++
++  p->act_id = 0;
++
++  /* La app no abrió ninguna ventana (si no, ya se habría cerrado):
++   * el popup sigue abierto y recupera el grab. Si no puede (la app
++   * tomó el control con un menú propio), se cierra. */
++  p->hide_if_no_grab = TRUE;
++  popup_grab (p);
++  return G_SOURCE_REMOVE;
++}
++
++
++
+ static void
+ button_acted (TrayButton *button,
++              gboolean    app_menu,
+               TrayPlugin *p)
+ {
+-  /* Activar un ícono oculto suele abrir una ventana: cerrar el popup */
+-  if (in_popup (p, GTK_WIDGET (button)))
+-    popup_hide (p);
++  if (!in_popup (p, GTK_WIDGET (button)))
++    return;
++
++  /* La app va a mostrar su propio menú: el popup estorbaría */
++  if (app_menu)
++    {
++      popup_hide (p);
++      return;
++    }
++
++  /* Activar: el popup queda abierto. Se cierra solo si la app pasa a
++   * primer plano (ver active_window_check). Mientras tanto, sin grab:
++   * con él, el clic simulado de una app antigua llegaría al popup. */
++  popup_ungrab (p);
++  if (p->act_id != 0)
++    g_source_remove (p->act_id);
++  p->act_id = g_timeout_add (ACT_REGRAB_MS, act_regrab, p);
+ }
+ 
+ 
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index 81182b0..f82193b 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -63,6 +63,14 @@ struct _TrayPlugin
+   guint            grab_check_id;
+   gboolean         autohide_blocked;
+ 
++  /* Clic en un ícono del popup: el popup sigue abierto salvo que la app
++   * active otra ventana. Mientras la app recibe el clic, sin grab. */
++  guint            act_id;
++  gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
++  gboolean         watching_active;
++  gulong           active_window;     /* _NET_ACTIVE_WINDOW conocido */
++  guint            active_check_id;
++
+   /* Menú abierto desde el popup */
+   gboolean         menu_open;
+   gboolean         menu_chosen;
