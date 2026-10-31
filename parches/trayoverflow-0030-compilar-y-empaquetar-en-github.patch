@@ -1,0 +1,246 @@
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+new file mode 100644
+index 0000000..d8e991f
+--- /dev/null
++++ b/.github/workflows/build.yml
+@@ -0,0 +1,130 @@
++# Compila Tray Overflow en varias distros, arma los .deb, corre las pruebas
++# automáticas y, al subir una etiqueta v*, publica una Release con los .deb.
++#
++#   Cada push / pull request → compilar, empaquetar y probar (los .deb
++#                              quedan como "artifacts" en la pestaña Actions)
++#   git tag v0.2.27 && git push --tags → además, Release con los .deb
++name: Compilar y empaquetar
++
++on:
++  push:
++    branches: [main]
++    tags: ['v*']
++  pull_request:
++  workflow_dispatch:
++
++permissions:
++  contents: read
++
++jobs:
++  deb:
++    name: ${{ matrix.name }}
++    runs-on: ubuntu-latest
++    container: ${{ matrix.image }}
++    timeout-minutes: 30
++    strategy:
++      fail-fast: false   # que una distro rota no oculte el resultado de las otras
++      matrix:
++        include:
++          - name: Debian 12 (XFCE 4.18)
++            image: debian:12
++            slug: debian12
++          - name: Debian 13 (XFCE 4.20)
++            image: debian:13
++            slug: debian13
++          - name: Ubuntu 24.04 (XFCE 4.18, Mint 22, Xubuntu)
++            image: ubuntu:24.04
++            slug: ubuntu24.04
++    env:
++      DEBIAN_FRONTEND: noninteractive
++    steps:
++      - name: Instalar dependencias de compilación
++        run: |
++          apt-get update
++          apt-get install -y --no-install-recommends \
++            ca-certificates git build-essential binutils pkg-config \
++            meson ninja-build gettext \
++            libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev \
++            libdbusmenu-gtk3-dev libgtk-layer-shell-dev \
++            libx11-dev libxcomposite-dev libxdamage-dev libxfixes-dev \
++            libxtst-dev libxext-dev
++
++      - uses: actions/checkout@v4
++
++      - name: Compilar (advertencias = errores)
++        run: |
++          meson setup build-ci --prefix=/usr -Dwarning_level=2 -Dwerror=true
++          ninja -C build-ci
++
++      - name: Compilar sin gtk-layer-shell ni proxy (opciones mínimas)
++        run: |
++          meson setup build-min --prefix=/usr -Dwerror=true \
++            -Dgtk-layer-shell=disabled -Dxembed-proxy=disabled
++          ninja -C build-min
++
++      - name: Armar el .deb
++        run: bash packaging/build-deb.sh
++
++      - name: Instalar el .deb y lo necesario para las pruebas
++        run: |
++          apt-get install -y --no-install-recommends ./xfce4-trayoverflow-plugin_*.deb \
++            xfce4-panel xfwm4 xfconf dbus xvfb xdotool imagemagick \
++            python3 python3-gi gir1.2-gtk-3.0 adwaita-icon-theme librsvg2-common
++
++      - name: Pruebas automáticas (X11)
++        run: bash tests/run.sh
++
++      - name: Guardar registros si fallaron las pruebas
++        if: failure()
++        uses: actions/upload-artifact@v4
++        with:
++          name: registros-${{ matrix.slug }}
++          path: /tmp/trayoverflow-test.*
++          if-no-files-found: ignore
++
++      - uses: actions/upload-artifact@v4
++        with:
++          name: deb-${{ matrix.slug }}
++          path: xfce4-trayoverflow-plugin_*.deb
++          if-no-files-found: error
++
++  arch:
++    name: Arch Linux (solo compilar)
++    runs-on: ubuntu-latest
++    container: archlinux:latest
++    timeout-minutes: 30
++    steps:
++      - name: Instalar dependencias de compilación
++        run: |
++          pacman -Syu --noconfirm --needed git base-devel meson gettext \
++            gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 gtk-layer-shell \
++            libx11 libxcomposite libxdamage libxfixes libxtst libxext
++
++      - uses: actions/checkout@v4
++
++      - name: Compilar (advertencias = errores)
++        run: |
++          meson setup build-ci --prefix=/usr -Dwarning_level=2 -Dwerror=true
++          ninja -C build-ci
++
++  release:
++    name: Publicar la Release
++    if: startsWith(github.ref, 'refs/tags/v')
++    needs: [deb, arch]
++    runs-on: ubuntu-latest
++    permissions:
++      contents: write
++    steps:
++      - uses: actions/download-artifact@v4
++        with:
++          pattern: deb-*
++          merge-multiple: true
++
++      - name: Crear la Release con los .deb
++        env:
++          GH_TOKEN: ${{ github.token }}
++        run: |
++          gh release create "$GITHUB_REF_NAME" xfce4-trayoverflow-plugin_*.deb \
++            --repo "$GITHUB_REPOSITORY" \
++            --title "Tray Overflow ${GITHUB_REF_NAME#v}" \
++            --generate-notes
+diff --git a/README.md b/README.md
+index 2ef4eea..228b8f5 100644
+--- a/README.md
++++ b/README.md
+@@ -69,12 +69,27 @@ plugins. Con `/usr/local` el panel no lo encuentra en muchas distribuciones.
+ 
+ ### Paquete .deb (Debian, Ubuntu, Mint)
+ 
++En la página de **Releases** del repositorio hay paquetes listos para
++**Debian 12**, **Debian 13** y **Ubuntu 24.04** (también Linux Mint 22 y
++Xubuntu 24.04). Bajá el de tu distro y:
++
++```bash
++sudo apt install ./xfce4-trayoverflow-plugin_*_debian12.deb   # o el que corresponda
++xfce4-panel -r
++```
++
++Para armarlo vos (queda con el nombre de tu distro al final):
++
+ ```bash
+ bash packaging/build-deb.sh
+ sudo apt install ./xfce4-trayoverflow-plugin_*.deb
+ xfce4-panel -r
+ ```
+ 
++Cada cambio que se sube a GitHub se compila y se prueba automáticamente en
++Debian 12, Debian 13, Ubuntu 24.04 y Arch (ver
++`.github/workflows/build.yml`).
++
+ ### Desinstalar
+ 
+ ```bash
+diff --git a/meson.build b/meson.build
+index 86ec260..4c0dda6 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.27',
++  version: '0.2.28',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/packaging/build-deb.sh b/packaging/build-deb.sh
+index d2714cf..9d6513e 100755
+--- a/packaging/build-deb.sh
++++ b/packaging/build-deb.sh
+@@ -2,7 +2,9 @@
+ # build-deb.sh — Genera un paquete .deb de Tray Overflow para Debian/Ubuntu/Mint.
+ #
+ # Uso: bash packaging/build-deb.sh
+-# Resultado: xfce4-trayoverflow-plugin_<versión>_<arquitectura>.deb en la raíz.
++# Resultado: xfce4-trayoverflow-plugin_<versión>_<arquitectura>_<distro>.deb
++# en la raíz (p. ej. ..._0.2.27_amd64_debian12.deb). Las dependencias se
++# toman de la distro donde se arma: usá el .deb de tu distro.
+ set -euo pipefail
+ 
+ cd "$(dirname "$0")/.."
+@@ -11,6 +13,9 @@ ROOT=$(pwd)
+ NAME=xfce4-trayoverflow-plugin
+ VERSION=$(sed -n "s/^  version: '\(.*\)',$/\1/p" meson.build | head -1)
+ ARCH=$(dpkg --print-architecture)
++# Distro donde se arma (debian12, debian13, ubuntu24.04...): va en el
++# nombre del archivo para no confundir paquetes de distintas distros
++DISTRO=$(. /etc/os-release && echo "${ID:-linux}${VERSION_ID:-}")
+ BUILD="$ROOT/build-deb"
+ STAGE="$BUILD/stage"
+ 
+@@ -51,7 +56,7 @@ cat > "$STAGE/usr/share/doc/$NAME/copyright" <<EOF
+ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+ Upstream-Name: $NAME
+ Files: *
+-Copyright: 2026 Juan Pérez
++Copyright: 2026 Juan Sebastian Perez <juanchiperez97@gmail.com>
+ License: GPL-2+
+  On Debian systems, the full text of the GNU General Public License
+  version 2 can be found in /usr/share/common-licenses/GPL-2.
+@@ -62,7 +67,7 @@ cat > "$STAGE/DEBIAN/control" <<EOF
+ Package: $NAME
+ Version: $VERSION
+ Architecture: $ARCH
+-Maintainer: Juan Pérez <juanchiperez97@gmail.com>
++Maintainer: Juan Sebastian Perez <juanchiperez97@gmail.com>
+ Installed-Size: $SIZE
+ Depends: $DEPENDS_LINE
+ Recommends: xfce4-panel
+@@ -91,7 +96,7 @@ exit 0
+ EOF
+ chmod 0755 "$STAGE/DEBIAN/postinst"
+ 
+-OUT="$ROOT/${NAME}_${VERSION}_${ARCH}.deb"
++OUT="$ROOT/${NAME}_${VERSION}_${ARCH}_${DISTRO}.deb"
+ dpkg-deb --root-owner-group --build "$STAGE" "$OUT" >/dev/null
+ echo "==> Paquete: $OUT"
+ echo "    Depends: $DEPENDS_LINE"
+diff --git a/po/es.po b/po/es.po
+index 3da5639..69f37b0 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.27\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.28\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"

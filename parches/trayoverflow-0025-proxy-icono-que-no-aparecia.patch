@@ -1,0 +1,52 @@
+diff --git a/meson.build b/meson.build
+index 202acfa..5541fff 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.22',
++  version: '0.2.23',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 8bd36bf..ec1a3a4 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.22\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.23\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index 4b29497..b2de810 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -1432,7 +1432,12 @@ dock (Window win)
+   if (win == None || g_hash_table_contains (P.icons, GSIZE_TO_POINTER (win)))
+     return;
+ 
++  /* Vigilar la ventana de la app (cierre, cambios de título,
++   * XEMBED_MAPPED) ANTES de leer su estado: si la app lo cambia justo
++   * después de leerlo, el aviso llega igual. Al revés, se perdía y el
++   * ícono quedaba anclado sin publicarse nunca. */
+   trap_push ();
++  XSelectInput (P.dpy, win, StructureNotifyMask | PropertyChangeMask);
+   if (!XGetWindowAttributes (P.dpy, win, &wa) || trap_pop () != 0)
+     return;
+ 
+@@ -1464,8 +1469,6 @@ dock (Window win)
+   container_set_input (icon, 0, 0, FALSE);
+   XMapWindow (P.dpy, icon->container);
+ 
+-  /* Vigilar la ventana de la app: cierre, cambios de título, XEMBED_MAPPED */
+-  XSelectInput (P.dpy, win, StructureNotifyMask | PropertyChangeMask);
+   XAddToSaveSet (P.dpy, win);
+   XReparentWindow (P.dpy, win, icon->container, 0, 0);
+ 

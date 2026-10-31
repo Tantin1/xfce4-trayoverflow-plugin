@@ -1,0 +1,601 @@
+diff --git a/README.md b/README.md
+index 4a0d822..3ec28d1 100644
+--- a/README.md
++++ b/README.md
+@@ -259,6 +259,26 @@ patch -p1 < cambio.patch
+ bash install.sh
+ ```
+ 
++## Pruebas automáticas
++
++Después de instalar con `install.sh`:
++
++```bash
++bash tests/run.sh           # todas (alrededor de un minuto)
++bash tests/run.sh --lista   # ver los nombres
++bash tests/run.sh popup_rueda
++```
++
++Cada prueba levanta su propia pantalla virtual (Xvfb), con su propio panel,
++D-Bus y configuración en una carpeta temporal: no toca tu panel ni tu
++configuración. Usan apps de prueba (una antigua y una moderna) y prueban el
++popup, la rueda, los menús de apps antiguas y el proxy. Solo cubren X11;
++Wayland se prueba a mano.
++
++Necesitan `Xvfb`, `xfwm4`, `xdotool`, ImageMagick y PyGObject (la cabecera
++de `tests/run.sh` dice qué paquetes instalar). Si una prueba falla, se
++indica la carpeta con sus registros y la última captura de pantalla.
++
+ ## Estructura del código
+ 
+ | Archivo | Contenido |
+@@ -272,6 +292,7 @@ bash install.sh
+ | `src/to-dialog.[ch]` | Diálogo de configuración |
+ | `src/to-legacy.[ch]` | Arranque y parada del proxy de apps antiguas |
+ | `proxy/xembed-proxy.c` | Proxy XEmbed → StatusNotifier (programa aparte) |
++| `tests/` | Pruebas automáticas (`run.sh`) y apps de prueba (`apps/`) |
+ 
+ El proxy es un programa independiente a propósito: si una app antigua
+ hace algo inesperado y el proxy falla, el panel no se ve afectado.
+diff --git a/meson.build b/meson.build
+index e7cfa44..202acfa 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.21',
++  version: '0.2.22',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 6f0066b..8bd36bf 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.21\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.22\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/tests/apps/legacy_app.py b/tests/apps/legacy_app.py
+new file mode 100755
+index 0000000..737c2f5
+--- /dev/null
++++ b/tests/apps/legacy_app.py
+@@ -0,0 +1,30 @@
++#!/usr/bin/env python3
++# App antigua de prueba (bandeja clásica XEmbed, GtkStatusIcon).
++# Anota en el archivo $1 los giros, clics y su menú propio (clic derecho).
++import sys, warnings
++import gi
++gi.require_version('Gtk', '3.0')
++from gi.repository import GLib, Gtk
++
++# Clave fija para el plugin (WM_CLASS): "legacy-app"
++GLib.set_prgname('legacy-app')
++
++warnings.simplefilter('ignore')
++log = open(sys.argv[1], 'a', buffering=1)
++
++icon = Gtk.StatusIcon.new_from_icon_name('dialog-information')
++icon.set_title('legacy-app')
++icon.set_name('legacy-app')
++icon.connect('scroll-event', lambda w, e: log.write('SCROLL %s\n' % e.direction.value_nick))
++icon.connect('activate', lambda w: log.write('ACTIVATE\n'))
++
++menu = Gtk.Menu()
++item = Gtk.MenuItem(label='Opcion')
++item.connect('activate', lambda *a: log.write('ELEGIDA\n'))
++menu.append(item)
++menu.show_all()
++menu.connect('show', lambda *a: log.write('MENU-ABIERTO\n'))
++menu.connect('hide', lambda *a: log.write('MENU-CERRADO\n'))
++icon.connect('popup-menu', lambda i, b, t: menu.popup(None, None, None, None, b, t))
++
++Gtk.main()
+diff --git a/tests/apps/sni_app.py b/tests/apps/sni_app.py
+new file mode 100755
+index 0000000..1e71055
+--- /dev/null
++++ b/tests/apps/sni_app.py
+@@ -0,0 +1,62 @@
++#!/usr/bin/env python3
++# App moderna de prueba (StatusNotifierItem, sin menú D-Bus).
++# Uso: sni_app.py ARCHIVO_LOG ID
++import os, sys
++import gi
++gi.require_version('Gio', '2.0')
++from gi.repository import Gio, GLib
++
++log = open(sys.argv[1], 'a', buffering=1)
++app_id = sys.argv[2] if len(sys.argv) > 2 else 'sni-app'
++
++XML = '''<node><interface name="org.kde.StatusNotifierItem">
++<property name="Category" type="s" access="read"/>
++<property name="Id" type="s" access="read"/>
++<property name="Title" type="s" access="read"/>
++<property name="Status" type="s" access="read"/>
++<property name="IconName" type="s" access="read"/>
++<property name="ItemIsMenu" type="b" access="read"/>
++<method name="Activate"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
++<method name="SecondaryActivate"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
++<method name="ContextMenu"><arg type="i" direction="in"/><arg type="i" direction="in"/></method>
++<method name="Scroll"><arg type="i" direction="in"/><arg type="s" direction="in"/></method>
++</interface></node>'''
++
++PROPS = {'Category': GLib.Variant('s', 'ApplicationStatus'),
++         'Id': GLib.Variant('s', app_id),
++         'Title': GLib.Variant('s', app_id),
++         'Status': GLib.Variant('s', 'Active'),
++         'IconName': GLib.Variant('s', 'dialog-information'),
++         'ItemIsMenu': GLib.Variant('b', False)}
++
++node = Gio.DBusNodeInfo.new_for_xml(XML)
++name = 'org.kde.StatusNotifierItem-%d-1' % os.getpid()
++
++
++def call(conn, sender, path, iface, method, args, inv):
++    log.write('%s %s\n' % (method.upper(), ' '.join(str(a) for a in args.unpack())))
++    inv.return_value(None)
++
++
++def get_prop(conn, sender, path, iface, prop):
++    return PROPS.get(prop)
++
++
++def register(conn):
++    conn.call('org.kde.StatusNotifierWatcher', '/StatusNotifierWatcher',
++              'org.kde.StatusNotifierWatcher', 'RegisterStatusNotifierItem',
++              GLib.Variant('(s)', (name,)), None, Gio.DBusCallFlags.NONE, -1, None, None)
++
++
++def acquired(conn, n):
++    register(conn)
++    # Volver a registrarse si el watcher aparece después (o se reinicia)
++    Gio.bus_watch_name_on_connection(conn, 'org.kde.StatusNotifierWatcher',
++                                     Gio.BusNameWatcherFlags.NONE,
++                                     lambda c, n, o: register(c), None)
++
++
++bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
++bus.register_object('/StatusNotifierItem', node.interfaces[0], call, get_prop, None)
++Gio.bus_own_name_on_connection(bus, name, Gio.BusNameOwnerFlags.NONE, acquired, None)
++GLib.MainLoop().run()
+diff --git a/tests/apps/watcher.py b/tests/apps/watcher.py
+new file mode 100755
+index 0000000..009b0c9
+--- /dev/null
++++ b/tests/apps/watcher.py
+@@ -0,0 +1,38 @@
++#!/usr/bin/env python3
++# Watcher StatusNotifier mínimo, para probar el proxy sin el panel.
++# Anota en el archivo $1 cada ítem que se registra: "ITEM <emisor> <servicio>".
++import sys
++import gi
++gi.require_version('Gio', '2.0')
++from gi.repository import Gio, GLib
++
++log = open(sys.argv[1], 'a', buffering=1)
++XML = '''<node><interface name="org.kde.StatusNotifierWatcher">
++<method name="RegisterStatusNotifierItem"><arg type="s" direction="in"/></method>
++<method name="RegisterStatusNotifierHost"><arg type="s" direction="in"/></method>
++<property name="RegisteredStatusNotifierItems" type="as" access="read"/>
++<property name="IsStatusNotifierHostRegistered" type="b" access="read"/>
++<property name="ProtocolVersion" type="i" access="read"/>
++</interface></node>'''
++node = Gio.DBusNodeInfo.new_for_xml(XML)
++
++
++def call(conn, sender, path, iface, method, args, inv):
++    if method == 'RegisterStatusNotifierItem':
++        log.write('ITEM %s %s\n' % (sender, args.unpack()[0]))
++    inv.return_value(None)
++
++
++def get_prop(conn, sender, path, iface, prop):
++    return {'IsStatusNotifierHostRegistered': GLib.Variant('b', True),
++            'ProtocolVersion': GLib.Variant('i', 0),
++            'RegisteredStatusNotifierItems': GLib.Variant('as', [])}[prop]
++
++
++def acquired(conn, name):
++    conn.register_object('/StatusNotifierWatcher', node.interfaces[0], call, get_prop, None)
++
++
++Gio.bus_own_name(Gio.BusType.SESSION, 'org.kde.StatusNotifierWatcher',
++                 Gio.BusNameOwnerFlags.NONE, acquired, None, None)
++GLib.MainLoop().run()
+diff --git a/tests/run.sh b/tests/run.sh
+new file mode 100755
+index 0000000..a8327a5
+--- /dev/null
++++ b/tests/run.sh
+@@ -0,0 +1,382 @@
++#!/usr/bin/env bash
++# run.sh — Pruebas automáticas de Tray Overflow (sesión X11 aislada).
++#
++# Uso:  bash tests/run.sh              (todas las pruebas)
++#       bash tests/run.sh popup_rueda  (solo las nombradas)
++#       bash tests/run.sh --lista      (ver los nombres)
++#
++# Prueba el plugin INSTALADO (el que deja install.sh). Cada prueba corre en
++# su propia pantalla virtual (Xvfb), con su propio D-Bus y su propia
++# configuración en una carpeta temporal: no toca tu panel ni tu
++# configuración. Wayland no se prueba acá.
++#
++# Necesita: Xvfb, xfwm4, xfce4-panel, xdotool, ImageMagick y PyGObject.
++#   Arch:   sudo pacman -S xorg-server-xvfb xdotool imagemagick python-gobject
++#   Debian: sudo apt install xvfb xdotool imagemagick python3-gi gir1.2-gtk-3.0
++set -u
++
++HERE=$(cd "$(dirname "$0")" && pwd)
++ROOT=$(dirname "$HERE")
++APPS="$HERE/apps"
++
++# Tamaño de la pantalla virtual y del panel (abajo, de lado a lado)
++SCREEN_W=1024
++SCREEN_H=600
++PANEL_SIZE=30
++PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
++
++TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
++       panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua)
++
++
++# ════════════════════════════════════════════════════════════════════════
++# Utilidades
++# ════════════════════════════════════════════════════════════════════════
++
++say()  { printf '%s\n' "$*"; }
++fail() { say "    FALLA: $*"; FAILED=1; }
++ok()   { say "    ok: $*"; }
++
++find_python() {
++  local p
++  for p in python3 python3.13 python3.12 python3.11 python; do
++    if command -v "$p" >/dev/null 2>&1 \
++       && "$p" -c 'import gi; gi.require_version("Gtk", "3.0"); from gi.repository import Gtk' \
++          >/dev/null 2>&1; then
++      echo "$p"
++      return 0
++    fi
++  done
++  return 1
++}
++
++find_proxy() {
++  local path=""
++  [ -n "${TRAYOVERFLOW_TEST_PROXY:-}" ] && { echo "$TRAYOVERFLOW_TEST_PROXY"; return; }
++  [ -f "$ROOT/build/config.h" ] \
++    && path=$(sed -n 's/^#define PROXY_PATH "\(.*\)"$/\1/p' "$ROOT/build/config.h")
++  [ -x "$path" ] || path=/usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy
++  echo "$path"
++}
++
++check_requirements() {
++  local missing=() cmd
++  for cmd in Xvfb xfwm4 xfce4-panel xfconf-query xdotool import convert gdbus dbus-run-session; do
++    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
++  done
++  PYTHON=$(find_python) || missing+=("PyGObject con GTK 3")
++  if [ ${#missing[@]} -gt 0 ]; then
++    say "Faltan: ${missing[*]}"
++    say "Ver la cabecera de tests/run.sh para instalarlos."
++    exit 2
++  fi
++  PROXY=$(find_proxy)
++  export PYTHON PROXY
++}
++
++# Espera hasta $2 segundos a que el comando $1 tenga éxito
++wait_for() {
++  local i
++  for i in $(seq $(( $2 * 10 ))); do
++    eval "$1" >/dev/null 2>&1 && return 0
++    sleep 0.1
++  done
++  return 1
++}
++
++count() { grep -c -- "$1" "$2" 2>/dev/null || true; }
++
++click() {   # x y botón
++  xdotool mousemove "$1" "$2" sleep 0.2 mousedown "$3" sleep 0.05 mouseup "$3"
++}
++
++shot() { import -window root "$WORK/s.png"; }
++
++# Rectángulo de lo que no es fondo (negro) por encima del panel: "w h x y"
++above_panel_rect() {
++  shot
++  convert "$WORK/s.png" -crop "${SCREEN_W}x$((SCREEN_H - PANEL_SIZE - 3))+0+0" +repage \
++          -trim -format '%w %h %X %Y' info: 2>/dev/null | tr -d '+'
++}
++
++# Color de un píxel de la última captura
++pixel() { convert "$WORK/s.png" -format "%[pixel:p{$1,$2}]" info: 2>/dev/null; }
++
++# ¿El popup está abierto? Mira un píxel de su borde inferior izquierdo
++# (fuera de donde salen los menús de las apps)
++popup_is_open() {
++  shot
++  [ "$(pixel "$POPUP_PX" "$POPUP_PY")" != "srgb(0,0,0)" ]
++}
++
++# Abre el popup con un clic en la flecha y toma su posición
++open_popup() {
++  local w h x y
++  click "$ARROW_X" "$PANEL_Y" 1
++  sleep 1
++  read -r w h x y <<<"$(above_panel_rect)"
++  if [ "${w:-0}" -lt 10 ] || [ "${h:-0}" -lt 10 ]; then
++    return 1
++  fi
++  POPUP_PX=$((x + 3)); POPUP_PY=$((y + h - 4))
++  POPUP_CX=$((x + w / 2)); POPUP_CY=$((y + h / 2))
++  return 0
++}
++
++
++# ════════════════════════════════════════════════════════════════════════
++# Sesión aislada (se ejecuta dentro de dbus-run-session)
++# ════════════════════════════════════════════════════════════════════════
++
++PIDS=()
++
++start_x() {
++  local n
++  for n in $(seq 91 120); do
++    [ -e "/tmp/.X$n-lock" ] || [ -e "/tmp/.X11-unix/X$n" ] || break
++  done
++  Xvfb ":$n" -screen 0 "${SCREEN_W}x${SCREEN_H}x24" -nolisten tcp >/dev/null 2>&1 &
++  PIDS+=($!)
++  export DISPLAY=":$n"
++  wait_for 'xdotool getdisplaygeometry' 5 || { say "    Xvfb no arrancó"; exit 1; }
++}
++
++start_app() {   # nombre-de-script args...
++  local script=$1; shift
++  "$PYTHON" "$APPS/$script" "$@" >>"$WORK/apps.err" 2>&1 &
++  PIDS+=($!)
++  LAST_PID=$!
++}
++
++# Panel con una sola instancia del plugin; $1 = apps ocultas (claves)
++start_panel() {
++  local q="xfconf-query -c xfce4-panel"
++  $q -p /panels -n -a -t int -s 1
++  $q -p /panels/panel-1/position -n -t string -s "p=8;x=$((SCREEN_W / 2));y=$PANEL_Y"
++  $q -p /panels/panel-1/size -n -t uint -s "$PANEL_SIZE"
++  $q -p /panels/panel-1/length -n -t uint -s 100
++  $q -p /panels/panel-1/position-locked -n -t bool -s true
++  $q -p /panels/panel-1/plugin-ids -n -a -t int -s 1
++  $q -p /plugins/plugin-1 -n -t string -s trayoverflow
++  $q -p /plugins/plugin-1/legacy-tray -n -t bool -s true
++  $q -p /plugins/plugin-1/arrow-position -n -t int -s 0
++  if [ -n "${1:-}" ]; then
++    $q -p /plugins/plugin-1/hidden-items -n -a -t string -s "$1"
++  fi
++
++  xfwm4 --compositor=off >/dev/null 2>&1 &
++  PIDS+=($!)
++  sleep 1
++  TRAYOVERFLOW_PROXY_DEBUG=1 xfce4-panel >"$WORK/panel.log" 2>&1 &
++  PANEL_PID=$!
++  PIDS+=($PANEL_PID)
++  sleep 4
++  ARROW_X=10
++}
++
++cleanup() {
++  local pid
++  # Solo nuestros procesos, por PID: nunca por nombre (mataría tu panel)
++  for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null; done
++  wait 2>/dev/null
++}
++
++
++# ════════════════════════════════════════════════════════════════════════
++# Pruebas
++# ════════════════════════════════════════════════════════════════════════
++
++# Proxy solo (sin panel): giros encolados y Scroll(n) = n pasos
++t_proxy_rueda() {
++  local item svc i pids=()
++  start_app watcher.py "$WORK/watcher.log"
++  sleep 0.5
++  "$PROXY" --verbose >"$WORK/proxy.log" 2>&1 & PIDS+=($!)
++  sleep 0.5
++  start_app legacy_app.py "$WORK/app.log"
++  wait_for "grep -q ITEM '$WORK/watcher.log'" 10 || { fail "el proxy no publicó la app"; return; }
++  sleep 1
++  svc=$(awk '/ITEM/{print $2; exit}' "$WORK/watcher.log")
++  item="--session --dest $svc --object-path /StatusNotifierItem --method org.kde.StatusNotifierItem"
++  gdbus call $item.Scroll 3 vertical >/dev/null
++  sleep 0.5
++  for i in 1 2 3 4 5; do gdbus call $item.Scroll -- -1 vertical >/dev/null & pids+=($!); done
++  wait "${pids[@]}"
++  sleep 1
++  [ "$(count 'SCROLL down' "$WORK/app.log")" = 3 ] && ok "Scroll(3) = 3 pasos" \
++    || fail "Scroll(3): $(count 'SCROLL down' "$WORK/app.log") pasos (esperado 3)"
++  [ "$(count 'SCROLL up' "$WORK/app.log")" = 5 ] && ok "5 giros rápidos = 5 pasos" \
++    || fail "5 giros rápidos: $(count 'SCROLL up' "$WORK/app.log") pasos (esperado 5)"
++}
++
++# Proxy en modo Wayland: la rueda usa la posición de SetPointer
++t_proxy_wayland_rueda() {
++  local item svc
++  start_app watcher.py "$WORK/watcher.log"
++  sleep 0.5
++  "$PROXY" --verbose --wayland >"$WORK/proxy.log" 2>&1 & PIDS+=($!)
++  sleep 0.5
++  start_app legacy_app.py "$WORK/app.log"
++  wait_for "grep -q ITEM '$WORK/watcher.log'" 10 || { fail "el proxy no publicó la app"; return; }
++  sleep 1
++  svc=$(awk '/ITEM/{print $2; exit}' "$WORK/watcher.log")
++  item="--session --dest $svc --object-path /StatusNotifierItem"
++  gdbus call $item --method org.xfce.TrayOverflow.XEmbedItem.SetPointer \
++    $((SCREEN_W / 2)) $((SCREEN_H - 20)) >/dev/null
++  gdbus call $item --method org.kde.StatusNotifierItem.Scroll 2 vertical >/dev/null
++  sleep 1.5
++  [ "$(count 'SCROLL down' "$WORK/app.log")" = 2 ] && ok "rueda sin clic previo" \
++    || fail "rueda sin clic previo: $(count 'SCROLL down' "$WORK/app.log") pasos (esperado 2)"
++}
++
++# Proxy: no gasta CPU en reposo y nota enseguida que una app se cerró
++t_proxy_baja() {
++  local proxy_pid app_pid a b t0 ms
++  start_app watcher.py "$WORK/watcher.log"
++  sleep 0.5
++  "$PROXY" --verbose >"$WORK/proxy.log" 2>&1 & proxy_pid=$!; PIDS+=($proxy_pid)
++  sleep 0.5
++  start_app legacy_app.py "$WORK/app.log"; app_pid=$LAST_PID
++  wait_for "grep -q ITEM '$WORK/watcher.log'" 10 || { fail "el proxy no publicó la app"; return; }
++  sleep 1
++  a=$(awk '{print $14 + $15}' "/proc/$proxy_pid/stat")
++  sleep 3
++  b=$(awk '{print $14 + $15}' "/proc/$proxy_pid/stat")
++  [ $((b - a)) -le 1 ] && ok "sin CPU en reposo" || fail "usó $((b - a)) ticks de CPU en reposo"
++  kill "$app_pid"
++  t0=$(date +%s%N)
++  if wait_for "grep -q desanclado '$WORK/proxy.log'" 3; then
++    ms=$(( ($(date +%s%N) - t0) / 1000000 ))
++    [ "$ms" -lt 1000 ] && ok "baja detectada en $ms ms" || fail "baja tardó $ms ms"
++  else
++    fail "no notó que la app se cerró"
++  fi
++}
++
++# App moderna: aparece en el panel y un clic la activa
++t_panel_app_moderna() {
++  start_panel
++  start_app sni_app.py "$WORK/app.log" prueba-moderna
++  sleep 2
++  shot
++  # Sin apps ocultas no hay flecha: el ícono queda al principio del panel.
++  # Probar unas posiciones hasta que la app registre el clic.
++  local x
++  for x in 15 25 35 45; do
++    click "$x" "$PANEL_Y" 1
++    sleep 0.5
++    grep -q ACTIVATE "$WORK/app.log" && break
++  done
++  grep -q ACTIVATE "$WORK/app.log" && ok "clic en el panel activa la app" \
++    || fail "la app no recibió Activate"
++}
++
++# El popup se abre con la flecha y se cierra con Esc, con la flecha y con
++# un clic afuera
++t_popup_cierre() {
++  start_panel legacy-app
++  start_app legacy_app.py "$WORK/app.log"
++  sleep 3
++  open_popup || { fail "el popup no se abrió"; return; }
++  ok "la flecha abre el popup"
++  xdotool key Escape; sleep 0.7
++  popup_is_open && fail "Esc no cerró el popup" || ok "Esc cierra"
++  open_popup || { fail "el popup no se volvió a abrir"; return; }
++  click "$ARROW_X" "$PANEL_Y" 1; sleep 0.7
++  popup_is_open && fail "la flecha no cerró el popup" || ok "la flecha cierra"
++  open_popup || { fail "el popup no se volvió a abrir"; return; }
++  click $((SCREEN_W / 2)) $((SCREEN_H / 3)) 1; sleep 0.7
++  popup_is_open && fail "un clic afuera no cerró el popup" || ok "un clic afuera cierra"
++}
++
++# Rueda sobre una app antigua del popup: llega cada giro y el popup sigue
++t_popup_rueda() {
++  local i
++  start_panel legacy-app
++  start_app legacy_app.py "$WORK/app.log"
++  sleep 3
++  open_popup || { fail "el popup no se abrió"; return; }
++  xdotool mousemove "$POPUP_CX" "$POPUP_CY"; sleep 0.3
++  for i in 1 2 3; do xdotool click 5; sleep 0.15; done
++  sleep 1
++  [ "$(count 'SCROLL down' "$WORK/app.log")" = 3 ] && ok "llegan los 3 giros" \
++    || fail "llegaron $(count 'SCROLL down' "$WORK/app.log") giros (esperado 3)"
++  popup_is_open && ok "el popup sigue abierto" || fail "el popup se cerró"
++}
++
++# Menú propio de una app antigua (X11): el popup queda abierto, recupera
++# el puntero al cerrarse el menú y después un clic afuera lo cierra
++t_popup_menu_app_antigua() {
++  start_panel legacy-app
++  start_app legacy_app.py "$WORK/app.log"
++  sleep 3
++  open_popup || { fail "el popup no se abrió"; return; }
++  xdotool mousemove "$POPUP_CX" "$POPUP_CY"; sleep 0.3
++  xdotool mousedown 3 sleep 0.05 mouseup 3; sleep 2
++  grep -q MENU-ABIERTO "$WORK/app.log" && ok "se abre el menú de la app" \
++    || fail "no se abrió el menú de la app"
++  popup_is_open && ok "el popup sigue abierto con el menú" || fail "el menú cerró el popup"
++  xdotool key Escape; sleep 1.5
++  popup_is_open && ok "sigue abierto tras cerrar el menú" || fail "se cerró al cerrar el menú"
++  click $((SCREEN_W / 2)) $((SCREEN_H / 3)) 1; sleep 1
++  popup_is_open && fail "un clic afuera no lo cerró (¿no recuperó el puntero?)" \
++    || ok "un clic afuera lo cierra"
++}
++
++
++# ════════════════════════════════════════════════════════════════════════
++# Principal
++# ════════════════════════════════════════════════════════════════════════
++
++if [ "${1:-}" = "--interno" ]; then
++  # Dentro de la sesión aislada: una sola prueba
++  FAILED=0
++  WORK=$2
++  trap cleanup EXIT
++  start_x
++  "t_$3"
++  exit $FAILED
++fi
++
++if [ "${1:-}" = "--lista" ]; then
++  printf '%s\n' "${TESTS[@]}"
++  exit 0
++fi
++
++check_requirements
++[ $# -gt 0 ] && TESTS=("$@")
++
++desktop=$(ls /usr/share/xfce4/panel/plugins/trayoverflow.desktop 2>/dev/null)
++[ -n "$desktop" ] || { say "No encuentro el plugin instalado: ejecutá install.sh primero."; exit 2; }
++say "Proxy: $PROXY"
++TOTAL=0; BAD=0
++for t in "${TESTS[@]}"; do
++  if ! declare -F "t_$t" >/dev/null; then
++    say "No existe la prueba '$t' (ver --lista)"; BAD=$((BAD + 1)); continue
++  fi
++  TOTAL=$((TOTAL + 1))
++  say "• $t"
++  work=$(mktemp -d "${TMPDIR:-/tmp}/trayoverflow-test.XXXXXX")
++  mkdir -p "$work/config" "$work/cache" "$work/data"
++  # Todo aislado: configuración, caché y D-Bus propios. Las variables se
++  # fijan antes de dbus-run-session para que xfconfd (activado por D-Bus)
++  # use la configuración temporal.
++  if ! env -u WAYLAND_DISPLAY -u SESSION_MANAGER \
++       XDG_CONFIG_HOME="$work/config" XDG_CACHE_HOME="$work/cache" \
++       XDG_DATA_HOME="$work/data" GDK_BACKEND=x11 GTK_THEME=Adwaita NO_AT_BRIDGE=1 \
++       PYTHON="$PYTHON" PROXY="$PROXY" \
++       timeout 120 dbus-run-session -- bash "$0" --interno "$work" "$t" 2>/dev/null; then
++    BAD=$((BAD + 1))
++    say "    (registros en $work)"
++  else
++    rm -rf "$work"
++  fi
++done
++
++say ""
++if [ $BAD -eq 0 ]; then
++  say "Todas las pruebas pasaron ($TOTAL)."
++else
++  say "$BAD de $TOTAL pruebas fallaron."
++fi
++[ $BAD -eq 0 ]

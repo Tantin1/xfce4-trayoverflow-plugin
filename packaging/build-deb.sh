@@ -2,7 +2,9 @@
 # build-deb.sh — Genera un paquete .deb de Tray Overflow para Debian/Ubuntu/Mint.
 #
 # Uso: bash packaging/build-deb.sh
-# Resultado: xfce4-trayoverflow-plugin_<versión>_<arquitectura>.deb en la raíz.
+# Resultado: xfce4-trayoverflow-plugin_<versión>_<arquitectura>_<distro>.deb
+# en la raíz (p. ej. ..._0.2.27_amd64_debian12.deb). Las dependencias se
+# toman de la distro donde se arma: usá el .deb de tu distro.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -11,6 +13,9 @@ ROOT=$(pwd)
 NAME=xfce4-trayoverflow-plugin
 VERSION=$(sed -n "s/^  version: '\(.*\)',$/\1/p" meson.build | head -1)
 ARCH=$(dpkg --print-architecture)
+# Distro donde se arma (debian12, debian13, ubuntu24.04...): va en el
+# nombre del archivo para no confundir paquetes de distintas distros
+DISTRO=$(. /etc/os-release && echo "${ID:-linux}${VERSION_ID:-}")
 BUILD="$ROOT/build-deb"
 STAGE="$BUILD/stage"
 
@@ -51,7 +56,7 @@ cat > "$STAGE/usr/share/doc/$NAME/copyright" <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: $NAME
 Files: *
-Copyright: 2026 Juan Pérez
+Copyright: 2026 Juan Sebastian Perez <juanchiperez97@gmail.com>
 License: GPL-2+
  On Debian systems, the full text of the GNU General Public License
  version 2 can be found in /usr/share/common-licenses/GPL-2.
@@ -62,7 +67,7 @@ cat > "$STAGE/DEBIAN/control" <<EOF
 Package: $NAME
 Version: $VERSION
 Architecture: $ARCH
-Maintainer: Juan Pérez <juanchiperez97@gmail.com>
+Maintainer: Juan Sebastian Perez <juanchiperez97@gmail.com>
 Installed-Size: $SIZE
 Depends: $DEPENDS_LINE
 Recommends: xfce4-panel
@@ -91,7 +96,7 @@ exit 0
 EOF
 chmod 0755 "$STAGE/DEBIAN/postinst"
 
-OUT="$ROOT/${NAME}_${VERSION}_${ARCH}.deb"
+OUT="$ROOT/${NAME}_${VERSION}_${ARCH}_${DISTRO}.deb"
 dpkg-deb --root-owner-group --build "$STAGE" "$OUT" >/dev/null
 echo "==> Paquete: $OUT"
 echo "    Depends: $DEPENDS_LINE"

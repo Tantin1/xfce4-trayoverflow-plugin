@@ -69,11 +69,26 @@ plugins. Con `/usr/local` el panel no lo encuentra en muchas distribuciones.
 
 ### Paquete .deb (Debian, Ubuntu, Mint)
 
+En la página de **Releases** del repositorio hay paquetes listos para
+**Debian 12**, **Debian 13** y **Ubuntu 24.04** (también Linux Mint 22 y
+Xubuntu 24.04). Bajá el de tu distro y:
+
+```bash
+sudo apt install ./xfce4-trayoverflow-plugin_*_debian12.deb   # o el que corresponda
+xfce4-panel -r
+```
+
+Para armarlo vos (queda con el nombre de tu distro al final):
+
 ```bash
 bash packaging/build-deb.sh
 sudo apt install ./xfce4-trayoverflow-plugin_*.deb
 xfce4-panel -r
 ```
+
+Cada cambio que se sube a GitHub se compila y se prueba automáticamente en
+Debian 12, Debian 13, Ubuntu 24.04 y Arch (ver
+`.github/workflows/build.yml`).
 
 ### Desinstalar
 
@@ -94,6 +109,10 @@ sudo apt remove xfce4-trayoverflow-plugin   # si se instaló el .deb
 | Arrastrar un ícono a la flecha o a la ventana emergente | Lo oculta |
 | Arrastrar desde la ventana emergente al panel | Lo vuelve a mostrar |
 | Clic derecho en la flecha | Menú del plugin (Propiedades, Acerca de...) |
+| Atajo de teclado (ver abajo) | Abre o cierra la ventana emergente |
+| Flechas, Inicio, Fin, Tab (en la ventana emergente) | Eligen un ícono |
+| Enter o espacio | Activa el ícono elegido, como un clic |
+| Tecla de menú o Mayús+F10 | Menú del ícono elegido, como el clic derecho |
 
 La ventana emergente se cierra con un clic fuera o con Escape. Al hacer
 clic en uno de sus íconos, se cierra solo si la app abre o activa una
@@ -101,15 +120,33 @@ ventana, o muestra su menú; si la app no hace nada, queda abierta. Las apps
 que solo tienen menú (muchas que usan AppIndicator) abren su menú también
 con el clic izquierdo.
 
+### Atajo de teclado
+
+Como Win+B en Windows. En **Configuración → Teclado → Atajos de
+aplicaciones**, agregá un atajo con el comando:
+
+```
+xfce4-panel --plugin-event=trayoverflow:popup
+```
+
+Abre la ventana emergente con el primer ícono elegido (seguí con las
+flechas y Enter) o la cierra si ya está abierta. Con
+`trayoverflow:popup:bool:true` solo abre y con `:bool:false` solo cierra.
+Si tenés varias instancias del plugin, responde la primera que tenga íconos
+ocultos.
+
 ## Configuración
 
 **Apariencia**: tamaño de ícono del panel (automático o fijo), separación
-entre íconos, tamaño y separación en la ventana emergente, número de
+entre íconos, **íconos simbólicos** (monocromos, del color del texto del
+panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
 columnas, y si los íconos inactivos van a la ventana emergente.
 
 **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
 para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
-y **Olvidar** para quitar apps que ya no usás.
+y **Olvidar** para quitar apps que ya no usás. Con **Poner las apps nuevas en la
+ventana emergente**, cada app que aparece por primera vez empieza oculta,
+como en Windows 11; las que ya estaban en la lista no cambian.
 
 ### Elegir otro ícono
 
@@ -259,6 +296,26 @@ patch -p1 < cambio.patch
 bash install.sh
 ```
 
+## Pruebas automáticas
+
+Después de instalar con `install.sh`:
+
+```bash
+bash tests/run.sh           # todas (alrededor de un minuto)
+bash tests/run.sh --lista   # ver los nombres
+bash tests/run.sh popup_rueda
+```
+
+Cada prueba levanta su propia pantalla virtual (Xvfb), con su propio panel,
+D-Bus y configuración en una carpeta temporal: no toca tu panel ni tu
+configuración. Usan apps de prueba (una antigua y una moderna) y prueban el
+popup, la rueda, los menús de apps antiguas y el proxy. Solo cubren X11;
+Wayland se prueba a mano.
+
+Necesitan `Xvfb`, `xfwm4`, `xdotool`, ImageMagick y PyGObject (la cabecera
+de `tests/run.sh` dice qué paquetes instalar). Si una prueba falla, se
+indica la carpeta con sus registros y la última captura de pantalla.
+
 ## Estructura del código
 
 | Archivo | Contenido |
@@ -268,10 +325,13 @@ bash install.sh
 | `src/to-model.[ch]` | Lista compartida de íconos (una por proceso) |
 | `src/to-settings.[ch]` | Configuración y registro de apps (xfconf) |
 | `src/to-button.[ch]` | Botón de cada ícono: clics, scroll, tooltip |
-| `src/to-plugin.[ch]` | Panel, flecha, ventana emergente, arrastre |
+| `src/to-plugin.[ch]` | Panel, flecha, distribución de los íconos, construcción |
+| `src/to-popup.[ch]` | Ventana emergente: mostrar, ubicar, cerrar (X11 y Wayland), menús, esquinas |
+| `src/to-dnd.[ch]` | Arrastrar y soltar entre el panel y la ventana emergente |
 | `src/to-dialog.[ch]` | Diálogo de configuración |
 | `src/to-legacy.[ch]` | Arranque y parada del proxy de apps antiguas |
 | `proxy/xembed-proxy.c` | Proxy XEmbed → StatusNotifier (programa aparte) |
+| `tests/` | Pruebas automáticas (`run.sh`) y apps de prueba (`apps/`) |
 
 El proxy es un programa independiente a propósito: si una app antigua
 hace algo inesperado y el proxy falla, el panel no se ve afectado.

@@ -272,7 +272,8 @@ load_named (TrayItem        *item,
             const gchar     *name,
             gint             size,
             gint             scale,
-            GtkStyleContext *context)
+            GtkStyleContext *context,
+            gboolean         prefer_symbolic)
 {
   TrayItemPrivate *priv = PRIV (item);
   GdkPixbuf *pixbuf;
@@ -284,6 +285,19 @@ load_named (TrayItem        *item,
   /* Algunas apps envían una ruta absoluta en vez de un nombre */
   if (g_path_is_absolute (name))
     return gdk_pixbuf_new_from_file_at_scale (name, px, px, TRUE, NULL);
+
+  /* Opción "íconos simbólicos": la variante -symbolic del tema del
+   * usuario, coloreada como el texto del panel. Si no existe, el ícono
+   * de siempre (como la bandeja de XFCE). */
+  if (prefer_symbolic && !g_str_has_suffix (name, "-symbolic"))
+    {
+      gchar *symbolic = g_strconcat (name, "-symbolic", NULL);
+
+      pixbuf = load_from_theme (gtk_icon_theme_get_default (), symbolic, size, scale, context);
+      g_free (symbolic);
+      if (pixbuf != NULL)
+        return pixbuf;
+    }
 
   /* Primero el tema del usuario, así se respeta su estilo */
   pixbuf = load_from_theme (gtk_icon_theme_get_default (), name, size, scale, context);
@@ -422,12 +436,13 @@ render_role (TrayItem         *item,
              TrayItemIconRole  role,
              gint              size,
              gint              scale,
-             GtkStyleContext  *context)
+             GtkStyleContext  *context,
+             gboolean          prefer_symbolic)
 {
   TrayItemPrivate *priv = PRIV (item);
   GdkPixbuf *pixbuf;
 
-  pixbuf = load_named (item, priv->icon_name[role], size, scale, context);
+  pixbuf = load_named (item, priv->icon_name[role], size, scale, context, prefer_symbolic);
   if (pixbuf == NULL)
     pixbuf = pick_pixmap (priv->pixmaps[role], size * scale);
 
@@ -440,7 +455,8 @@ GdkPixbuf *
 tray_item_render_icon (TrayItem        *item,
                        gint             size,
                        gint             scale,
-                       GtkStyleContext *context)
+                       GtkStyleContext *context,
+                       gboolean         prefer_symbolic)
 {
   TrayItemPrivate *priv;
   GdkPixbuf *base = NULL;
@@ -453,17 +469,18 @@ tray_item_render_icon (TrayItem        *item,
   scale = MAX (scale, 1);
 
   if (priv->status == TRAY_ITEM_STATUS_ATTENTION)
-    base = render_role (item, TRAY_ITEM_ICON_ATTENTION, size, scale, context);
+    base = render_role (item, TRAY_ITEM_ICON_ATTENTION, size, scale, context, prefer_symbolic);
   if (base == NULL)
-    base = render_role (item, TRAY_ITEM_ICON_MAIN, size, scale, context);
+    base = render_role (item, TRAY_ITEM_ICON_MAIN, size, scale, context, prefer_symbolic);
   if (base == NULL)
     base = load_from_theme (gtk_icon_theme_get_default (), "image-missing",
                             size, scale, context);
   if (base == NULL)
     return NULL;
 
-  /* Ícono superpuesto (overlay): esquina inferior derecha, a mitad de tamaño */
-  overlay = render_role (item, TRAY_ITEM_ICON_OVERLAY, MAX (size / 2, 1), scale, context);
+  /* Ícono superpuesto (overlay): esquina inferior derecha, a mitad de
+   * tamaño. Siempre en color: suele ser un aviso. */
+  overlay = render_role (item, TRAY_ITEM_ICON_OVERLAY, MAX (size / 2, 1), scale, context, FALSE);
   if (overlay != NULL)
     {
       GdkPixbuf *composed;

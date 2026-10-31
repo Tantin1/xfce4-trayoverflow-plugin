@@ -68,7 +68,8 @@ gchar          *tray_item_get_tooltip_markup (TrayItem *item);
 GdkPixbuf      *tray_item_render_icon        (TrayItem        *item,
                                               gint             size,
                                               gint             scale,
-                                              GtkStyleContext *context);
+                                              GtkStyleContext *context,
+                                              gboolean         prefer_symbolic);
 
 /* Carga un ícono por nombre (del tema del usuario) o por ruta de archivo,
  * a (size * scale) píxeles. NULL si no existe. */

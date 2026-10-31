@@ -47,6 +47,8 @@ typedef struct
   GtkWidget    *popup_columns;
   GtkWidget    *popup_corners;
   GtkWidget    *passive;
+  GtkWidget    *new_in_popup;
+  GtkWidget    *symbolic;
 
   GtkListStore *store;
   GtkWidget    *tree;
@@ -151,6 +153,26 @@ passive_toggled (GtkToggleButton *toggle,
 
 
 
+static void
+symbolic_toggled (GtkToggleButton *toggle,
+                  DialogData      *d)
+{
+  if (!d->syncing)
+    tray_settings_set_symbolic_icons (d->p->settings, gtk_toggle_button_get_active (toggle));
+}
+
+
+
+static void
+new_in_popup_toggled (GtkToggleButton *toggle,
+                      DialogData      *d)
+{
+  if (!d->syncing)
+    tray_settings_set_new_in_popup (d->p->settings, gtk_toggle_button_get_active (toggle));
+}
+
+
+
 static GtkWidget *
 make_spin (DialogData *d, gint min, gint max, gint value)
 {
@@ -222,6 +244,18 @@ appearance_page (DialogData *d)
 
   d->panel_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_panel_spacing (s));
   add_row (grid, &row, _("Icon s_pacing (px):"), d->panel_spacing, NULL);
+
+  /* También vale para el popup, como en la bandeja de XFCE */
+  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
+  gtk_widget_set_tooltip_text (d->symbolic,
+                               _("Monochrome icons in the color of the panel text, in the "
+                                 "panel and in the popup. Only for apps whose icon comes "
+                                 "from the icon theme; the rest keep their own icon."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
+                                tray_settings_get_symbolic_icons (s));
+  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
+  gtk_widget_set_margin_start (d->symbolic, 12);
+  gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
 
   /* Mismo orden que TrayArrowPosition */
   d->arrow_position = gtk_combo_box_text_new ();
@@ -388,7 +422,7 @@ rebuild_list (DialogData *d)
       if (item != NULL)
         {
           if (pixbuf == NULL)
-            pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context);
+            pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context, FALSE);
           title = tray_item_get_display_name (item);
           hidden = tray_settings_is_hidden (d->p->settings, k->key,
                                             tray_item_get_status (item) == TRAY_ITEM_STATUS_PASSIVE);
@@ -1057,6 +1091,16 @@ items_page (DialogData *d)
   gtk_box_pack_end (GTK_BOX (buttons), d->icon_button, FALSE, FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
 
+  /* Junto a la lista: decide con qué casilla empieza una app nueva */
+  d->new_in_popup = gtk_check_button_new_with_mnemonic (_("Put _new apps in the popup"));
+  gtk_widget_set_tooltip_text (d->new_in_popup,
+                               _("Apps that appear for the first time start hidden. "
+                                 "Apps already in the list are not changed."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
+                                tray_settings_get_new_in_popup (d->p->settings));
+  g_signal_connect (d->new_in_popup, "toggled", G_CALLBACK (new_in_popup_toggled), d);
+  gtk_box_pack_start (GTK_BOX (vbox), d->new_in_popup, FALSE, FALSE, 0);
+
   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
 
   rebuild_list (d);
@@ -1102,6 +1146,10 @@ sync_from_settings (DialogData *d)
                             tray_settings_get_arrow_position (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
                                 tray_settings_get_passive_in_popup (s));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
+                                tray_settings_get_new_in_popup (s));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
+                                tray_settings_get_symbolic_icons (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
                                 tray_settings_get_legacy_tray (s));
 

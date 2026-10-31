@@ -77,6 +77,7 @@ struct _TrayPlugin
   gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
   gboolean         wait_app_menu;     /* X11: o esperar al menú de una app antigua */
   gboolean         refocus_hold;      /* Wayland: ver focus_check */
+  GtkWidget       *kbd_button;        /* ícono del popup elegido con el teclado */
   gint             refocus_count;
   gint64           refocus_last;
   gboolean         watching_active;
@@ -107,5 +108,12 @@ struct _TrayPlugin
 
 /* Para el diálogo de configuración */
 gint tray_plugin_get_panel_icon_size (TrayPlugin *plugin);
+
+/* Compartido entre to-plugin.c, to-popup.c y to-dnd.c */
+gboolean tray_plugin_is_horizontal       (TrayPlugin *p);
+gboolean tray_plugin_in_popup            (TrayPlugin *p, GtkWidget *widget);
+void     tray_plugin_arrow_set_active    (TrayPlugin *p, gboolean active);
+void     tray_plugin_relayout            (TrayPlugin *p);
+void     tray_plugin_schedule_relayout   (TrayPlugin *p);
 
 G_END_DECLS

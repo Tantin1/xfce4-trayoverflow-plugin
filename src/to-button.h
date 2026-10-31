@@ -23,6 +23,8 @@ void       tray_button_set_icon_size (TrayButton *button, gint size);
 void       tray_button_update        (TrayButton *button);
 /* Ícono elegido por el usuario (nombre del tema o ruta), NULL = el de la app */
 void       tray_button_set_icon_override (TrayButton *button, const gchar *icon);
+void       tray_button_set_symbolic      (TrayButton *button, gboolean symbolic);
 void       tray_button_set_panel_anchor  (TrayButton *button, GtkWidget *anchor);
+void       tray_button_activate_from_keyboard (TrayButton *button, gboolean menu);
 
 G_END_DECLS

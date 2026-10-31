@@ -18,6 +18,8 @@
 #define DEFAULT_POPUP_CORNERS    TRAY_CORNERS_THEME
 #define DEFAULT_ARROW_POSITION   TRAY_ARROW_START
 #define DEFAULT_PASSIVE_IN_POPUP TRUE
+#define DEFAULT_NEW_IN_POPUP     FALSE
+#define DEFAULT_SYMBOLIC_ICONS   FALSE
 #define DEFAULT_LEGACY_TRAY      FALSE
 #define MAX_KNOWN                200
 #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
@@ -38,6 +40,8 @@ struct _TraySettings
   gint           popup_corners;
   gint           arrow_position;
   gboolean       passive_in_popup;
+  gboolean       new_in_popup;      /* apps nuevas: directo al popup */
+  gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
   gboolean       legacy_tray;
 
   GHashTable    *hidden;   /* claves ocultas explícitamente */
@@ -243,6 +247,12 @@ save_all (TraySettings *s)
     gchar *p = prop (s, "passive-in-popup");
     xfconf_channel_set_bool (s->channel, p, s->passive_in_popup);
     g_free (p);
+    p = prop (s, "new-in-popup");
+    xfconf_channel_set_bool (s->channel, p, s->new_in_popup);
+    g_free (p);
+    p = prop (s, "symbolic-icons");
+    xfconf_channel_set_bool (s->channel, p, s->symbolic_icons);
+    g_free (p);
     p = prop (s, "legacy-tray");
     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
     g_free (p);
@@ -299,6 +309,15 @@ load_all (TraySettings *s)
 
   p = prop (s, "passive-in-popup");
   s->passive_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_PASSIVE_IN_POPUP);
+  g_free (p);
+
+  p = prop (s, "new-in-popup");
+  s->new_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_NEW_IN_POPUP);
+  g_free (p);
+
+  /* Mismo nombre que la opción de la bandeja de XFCE */
+  p = prop (s, "symbolic-icons");
+  s->symbolic_icons = xfconf_channel_get_bool (s->channel, p, DEFAULT_SYMBOLIC_ICONS);
   g_free (p);
 
   p = prop (s, "legacy-tray");
@@ -500,11 +519,11 @@ snapshot (TraySettings *s)
   GString *out = g_string_new (NULL);
   guint i;
 
-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d\n",
+  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d\n",
                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
                           s->popup_spacing, s->popup_columns, s->popup_corners,
-                          s->arrow_position,
-                          s->passive_in_popup, s->legacy_tray);
+                          s->arrow_position, s->symbolic_icons,
+                          s->passive_in_popup, s->new_in_popup, s->legacy_tray);
   snapshot_set (out, "hidden", s->hidden, FALSE);
   snapshot_set (out, "visible", s->visible, FALSE);
   snapshot_set (out, "icons", s->icons, TRUE);
@@ -746,6 +765,52 @@ tray_settings_set_passive_in_popup (TraySettings *s, gboolean value)
 
 
 
+gboolean
+tray_settings_get_symbolic_icons (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  return s->symbolic_icons;
+}
+
+
+
+void
+tray_settings_set_symbolic_icons (TraySettings *s, gboolean value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  if (s->symbolic_icons != !!value)
+    {
+      s->symbolic_icons = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
+gboolean
+tray_settings_get_new_in_popup (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  return s->new_in_popup;
+}
+
+
+
+void
+tray_settings_set_new_in_popup (TraySettings *s, gboolean value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  if (s->new_in_popup != !!value)
+    {
+      s->new_in_popup = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
 /* ── Visibilidad ─────────────────────────────────────────────────────── */
 
 gboolean
@@ -870,6 +935,12 @@ tray_settings_remember (TraySettings *s,
         }
       return FALSE;
     }
+
+  /* App que nunca se vio (o que se olvidó): con la opción, va oculta,
+   * como en Windows 11. Queda como una elección más: se ve en la lista y
+   * se puede cambiar. Las apps ya conocidas no se tocan. */
+  if (s->new_in_popup && !g_hash_table_contains (s->visible, key))
+    g_hash_table_add (s->hidden, g_strdup (key));
 
   k = g_new0 (TrayKnown, 1);
   k->key = g_strdup (key);

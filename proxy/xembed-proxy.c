@@ -1432,7 +1432,12 @@ dock (Window win)
   if (win == None || g_hash_table_contains (P.icons, GSIZE_TO_POINTER (win)))
     return;
 
+  /* Vigilar la ventana de la app (cierre, cambios de título,
+   * XEMBED_MAPPED) ANTES de leer su estado: si la app lo cambia justo
+   * después de leerlo, el aviso llega igual. Al revés, se perdía y el
+   * ícono quedaba anclado sin publicarse nunca. */
   trap_push ();
+  XSelectInput (P.dpy, win, StructureNotifyMask | PropertyChangeMask);
   if (!XGetWindowAttributes (P.dpy, win, &wa) || trap_pop () != 0)
     return;
 
@@ -1464,8 +1469,6 @@ dock (Window win)
   container_set_input (icon, 0, 0, FALSE);
   XMapWindow (P.dpy, icon->container);
 
-  /* Vigilar la ventana de la app: cierre, cambios de título, XEMBED_MAPPED */
-  XSelectInput (P.dpy, win, StructureNotifyMask | PropertyChangeMask);
   XAddToSaveSet (P.dpy, win);
   XReparentWindow (P.dpy, win, icon->container, 0, 0);
 

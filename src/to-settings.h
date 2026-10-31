@@ -55,6 +55,8 @@ gint     tray_settings_get_panel_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_columns     (TraySettings *s);
 gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
+gboolean tray_settings_get_new_in_popup      (TraySettings *s);
+gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
 gint     tray_settings_get_popup_corners     (TraySettings *s);
 gint     tray_settings_get_arrow_position    (TraySettings *s);
 
@@ -64,6 +66,8 @@ void     tray_settings_set_panel_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
 void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
+void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
+void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
 void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
 void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
 

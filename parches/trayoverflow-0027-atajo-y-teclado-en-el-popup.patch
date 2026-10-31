@@ -1,0 +1,486 @@
+diff --git a/README.md b/README.md
+index 7c8174c..f4f1856 100644
+--- a/README.md
++++ b/README.md
+@@ -94,6 +94,10 @@ sudo apt remove xfce4-trayoverflow-plugin   # si se instaló el .deb
+ | Arrastrar un ícono a la flecha o a la ventana emergente | Lo oculta |
+ | Arrastrar desde la ventana emergente al panel | Lo vuelve a mostrar |
+ | Clic derecho en la flecha | Menú del plugin (Propiedades, Acerca de...) |
++| Atajo de teclado (ver abajo) | Abre o cierra la ventana emergente |
++| Flechas, Inicio, Fin, Tab (en la ventana emergente) | Eligen un ícono |
++| Enter o espacio | Activa el ícono elegido, como un clic |
++| Tecla de menú o Mayús+F10 | Menú del ícono elegido, como el clic derecho |
+ 
+ La ventana emergente se cierra con un clic fuera o con Escape. Al hacer
+ clic en uno de sus íconos, se cierra solo si la app abre o activa una
+@@ -101,6 +105,21 @@ ventana, o muestra su menú; si la app no hace nada, queda abierta. Las apps
+ que solo tienen menú (muchas que usan AppIndicator) abren su menú también
+ con el clic izquierdo.
+ 
++### Atajo de teclado
++
++Como Win+B en Windows. En **Configuración → Teclado → Atajos de
++aplicaciones**, agregá un atajo con el comando:
++
++```
++xfce4-panel --plugin-event=trayoverflow:popup
++```
++
++Abre la ventana emergente con el primer ícono elegido (seguí con las
++flechas y Enter) o la cierra si ya está abierta. Con
++`trayoverflow:popup:bool:true` solo abre y con `:bool:false` solo cierra.
++Si tenés varias instancias del plugin, responde la primera que tenga íconos
++ocultos.
++
+ ## Configuración
+ 
+ **Apariencia**: tamaño de ícono del panel (automático o fijo), separación
+diff --git a/meson.build b/meson.build
+index b1826b6..b43ed83 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.24',
++  version: '0.2.25',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index a775066..a353174 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.24\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.25\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-button.c b/src/to-button.c
+index 1577d06..4f28973 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -621,3 +621,50 @@ tray_button_set_panel_anchor (TrayButton *button,
+   g_return_if_fail (TRAY_IS_BUTTON (button));
+   g_set_weak_pointer (&button->panel_anchor, anchor);
+ }
++
++
++
++/* Activar desde el teclado, como un clic en el centro del ícono.
++ * @menu: TRUE para la tecla de menú (como el clic derecho), FALSE para
++ * Enter (como el clic izquierdo) */
++void
++tray_button_activate_from_keyboard (TrayButton *button,
++                                    gboolean    menu)
++{
++  GtkWidget *widget = GTK_WIDGET (button);
++  GtkWidget *toplevel = gtk_widget_get_toplevel (widget);
++  GdkWindow *window = gtk_widget_get_window (toplevel);
++  GtkWidget *item_menu;
++  gint wx = 0, wy = 0, ox = 0, oy = 0, x, y;
++
++  g_return_if_fail (TRAY_IS_BUTTON (button));
++
++  /* Lo que valdrían x_root/y_root de un clic en el centro. En Wayland no
++   * hay coordenadas globales: el origen es 0,0 y quedan relativas a la
++   * ventana, igual que en los eventos (ver event_root_coords) */
++  gtk_widget_translate_coordinates (widget, toplevel,
++                                    gtk_widget_get_allocated_width (widget) / 2,
++                                    gtk_widget_get_allocated_height (widget) / 2,
++                                    &wx, &wy);
++  if (window != NULL)
++    gdk_window_get_origin (window, &ox, &oy);
++  event_root_coords (widget, wx + ox, wy + oy, &x, &y);
++
++  if (menu || tray_item_get_is_menu (button->item))
++    {
++      item_menu = tray_item_get_menu (button->item);
++      if (menu_has_children (item_menu))
++        {
++          g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, item_menu, NULL);
++          return;
++        }
++      /* Sin menú D-Bus: que la app muestre el suyo */
++      tray_item_context_menu (button->item, x, y);
++      g_signal_emit (button, signals[SIGNAL_ACTED], 0, TRUE);
++      return;
++    }
++
++  g_clear_pointer (&button->activate_event, gdk_event_free);
++  tray_item_activate (button->item, x, y);
++  g_signal_emit (button, signals[SIGNAL_ACTED], 0, FALSE);
++}
+diff --git a/src/to-button.h b/src/to-button.h
+index 5b95749..b7bfbd2 100644
+--- a/src/to-button.h
++++ b/src/to-button.h
+@@ -24,5 +24,6 @@ void       tray_button_update        (TrayButton *button);
+ /* Ícono elegido por el usuario (nombre del tema o ruta), NULL = el de la app */
+ void       tray_button_set_icon_override (TrayButton *button, const gchar *icon);
+ void       tray_button_set_panel_anchor  (TrayButton *button, GtkWidget *anchor);
++void       tray_button_activate_from_keyboard (TrayButton *button, gboolean menu);
+ 
+ G_END_DECLS
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 716b925..286f2c3 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -338,6 +338,7 @@ tray_plugin_relayout (TrayPlugin *p)
+       g_ptr_array_unref (p->popup_order);
+       p->panel_order = g_steal_pointer (&new_panel);
+       p->popup_order = g_steal_pointer (&new_popup);
++      tray_popup_clear_selection (p);   /* los íconos cambiaron de lugar */
+ 
+       /* Panel: horizontal se llena por columnas de @nrows filas;
+        * vertical/deskbar, por filas de @nrows columnas */
+@@ -691,6 +692,31 @@ plugin_about (XfcePanelPlugin *panel_plugin,
+ 
+ 
+ 
++/* Atajo de teclado: xfce4-panel --plugin-event=trayoverflow:popup
++ * (abre o cierra), o con :bool:true / :bool:false para solo abrir o
++ * cerrar. Con varias instancias, responde la primera que tenga íconos
++ * ocultos (devolver TRUE corta el aviso a las demás). */
++static gboolean
++plugin_remote_event (XfcePanelPlugin *panel_plugin,
++                     const gchar     *name,
++                     const GValue    *value,
++                     TrayPlugin      *p)
++{
++  gboolean open;
++
++  if (g_strcmp0 (name, "popup") != 0)
++    return FALSE;
++
++  if (value != NULL && G_VALUE_HOLDS_BOOLEAN (value))
++    open = g_value_get_boolean (value);
++  else
++    open = p->popup == NULL || !gtk_widget_get_visible (p->popup);
++
++  return tray_popup_toggle_from_keyboard (p, open);
++}
++
++
++
+ static void
+ apply_legacy (TrayPlugin *p)
+ {
+@@ -853,6 +879,7 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+                     G_CALLBACK (plugin_screen_position_changed), p);
+   g_signal_connect (panel_plugin, "configure-plugin", G_CALLBACK (plugin_configure), p);
+   g_signal_connect (panel_plugin, "about", G_CALLBACK (plugin_about), p);
++  g_signal_connect (panel_plugin, "remote-event", G_CALLBACK (plugin_remote_event), p);
+   g_signal_connect_swapped (panel_plugin, "notify::scale-factor",
+                             G_CALLBACK (refresh_all_icons), p);
+   /* Cambió el "tamaño de ícono" global del panel (modo automático) */
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index 402138b..b0ede2f 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -77,6 +77,7 @@ struct _TrayPlugin
+   gboolean         hide_if_no_grab;   /* tras un clic: sin grab, cerrar */
+   gboolean         wait_app_menu;     /* X11: o esperar al menú de una app antigua */
+   gboolean         refocus_hold;      /* Wayland: ver focus_check */
++  GtkWidget       *kbd_button;        /* ícono del popup elegido con el teclado */
+   gint             refocus_count;
+   gint64           refocus_last;
+   gboolean         watching_active;
+diff --git a/src/to-popup.c b/src/to-popup.c
+index 3930863..205dd3f 100644
+--- a/src/to-popup.c
++++ b/src/to-popup.c
+@@ -40,6 +40,8 @@
+ #define POPUP_RADIUS_ROUNDED 8
+ #define POPUP_RADIUS_MAX     24
+ 
++static void kbd_select (TrayPlugin *p, GtkWidget *button);
++
+ 
+ 
+ /* ════════════════════════════════════════════════════════════════════════
+@@ -576,6 +578,7 @@ tray_popup_hide (TrayPlugin *p)
+     }
+   p->hide_if_no_grab = FALSE;
+   p->wait_app_menu = FALSE;
++  kbd_select (p, NULL);
+   if (p->focus_check_id != 0)
+     {
+       g_source_remove (p->focus_check_id);
+@@ -751,17 +754,176 @@ popup_button_press (GtkWidget      *widget,
+ 
+ 
+ 
++/* ── Teclado ─────────────────────────────────────────────────────────────
++ * El ícono elegido con las flechas se marca con el mismo resaltado que al
++ * pasar el ratón (PRELIGHT). Los botones no toman el foco de GTK: así un
++ * clic no deja un recuadro de foco ni le quita el foco a nadie. */
++
++static void
++kbd_select (TrayPlugin *p,
++            GtkWidget  *button)
++{
++  if (p->kbd_button == button)
++    return;
++
++  if (p->kbd_button != NULL)
++    {
++      gtk_widget_unset_state_flags (p->kbd_button, GTK_STATE_FLAG_PRELIGHT);
++      g_clear_weak_pointer (&p->kbd_button);
++    }
++  if (button != NULL)
++    {
++      g_set_weak_pointer (&p->kbd_button, button);
++      gtk_widget_set_state_flags (button, GTK_STATE_FLAG_PRELIGHT, FALSE);
++    }
++}
++
++
++
++void
++tray_popup_clear_selection (TrayPlugin *p)
++{
++  kbd_select (p, NULL);
++}
++
++
++
++/* El ratón pasa por un ícono: deja de valer la elección del teclado */
++static gboolean
++button_entered (GtkWidget        *widget,
++                GdkEventCrossing *event,
++                TrayPlugin       *p)
++{
++  if (p->kbd_button != NULL && p->kbd_button != widget)
++    kbd_select (p, NULL);
++  return FALSE;
++}
++
++
++
++/* Posición del ícono elegido después de la tecla @keyval, o -1 si la
++ * tecla no es de movimiento. Cuadrícula por filas de "columns" íconos. */
++static gint
++kbd_move (TrayPlugin *p,
++          guint       keyval,
++          gint        current)
++{
++  gint n = (gint) p->popup_order->len;
++  gint cols = MAX (p->layout_params.columns, 1);
++
++  if (current < 0)   /* nada elegido: cualquier movimiento elige el primero */
++    {
++      switch (keyval)
++        {
++        case GDK_KEY_End: case GDK_KEY_KP_End:
++          return n - 1;
++        case GDK_KEY_Left: case GDK_KEY_Right: case GDK_KEY_Up: case GDK_KEY_Down:
++        case GDK_KEY_KP_Left: case GDK_KEY_KP_Right: case GDK_KEY_KP_Up: case GDK_KEY_KP_Down:
++        case GDK_KEY_Home: case GDK_KEY_KP_Home: case GDK_KEY_Tab: case GDK_KEY_ISO_Left_Tab:
++          return 0;
++        default:
++          return -1;
++        }
++    }
++
++  switch (keyval)
++    {
++    case GDK_KEY_Left: case GDK_KEY_KP_Left:
++      return MAX (current - 1, 0);
++    case GDK_KEY_Right: case GDK_KEY_KP_Right:
++      return MIN (current + 1, n - 1);
++    case GDK_KEY_Up: case GDK_KEY_KP_Up:
++      return current - cols >= 0 ? current - cols : current;
++    case GDK_KEY_Down: case GDK_KEY_KP_Down:
++      if (current + cols < n)
++        return current + cols;
++      /* Última fila incompleta: ir al último ícono */
++      return current / cols < (n - 1) / cols ? n - 1 : current;
++    case GDK_KEY_Home: case GDK_KEY_KP_Home:
++      return 0;
++    case GDK_KEY_End: case GDK_KEY_KP_End:
++      return n - 1;
++    case GDK_KEY_Tab:
++      return (current + 1) % n;
++    case GDK_KEY_ISO_Left_Tab:
++      return (current + n - 1) % n;
++    default:
++      return -1;
++    }
++}
++
++
++
+ static gboolean
+ popup_key_press (GtkWidget   *widget,
+                  GdkEventKey *event,
+                  TrayPlugin  *p)
+ {
++  guint current_index = 0;
++  gint current = -1, next;
++  gboolean menu;
++
+   if (event->keyval == GDK_KEY_Escape)
+     {
+       tray_popup_hide (p);
+       return TRUE;
+     }
+-  return FALSE;
++
++  if (p->popup_order->len == 0 || p->menu_open)
++    return FALSE;
++
++  if (p->kbd_button != NULL
++      && g_ptr_array_find (p->popup_order, p->kbd_button, &current_index))
++    current = (gint) current_index;
++
++  /* Enter / espacio: como un clic; tecla de menú o Mayús+F10: como el
++   * clic derecho */
++  menu = event->keyval == GDK_KEY_Menu
++         || (event->keyval == GDK_KEY_F10 && (event->state & GDK_SHIFT_MASK));
++  if (menu || event->keyval == GDK_KEY_Return || event->keyval == GDK_KEY_KP_Enter
++      || event->keyval == GDK_KEY_ISO_Enter || event->keyval == GDK_KEY_space
++      || event->keyval == GDK_KEY_KP_Space)
++    {
++      if (current < 0)
++        return TRUE;
++      tray_button_activate_from_keyboard (TRAY_BUTTON (p->kbd_button), menu);
++      return TRUE;
++    }
++
++  next = kbd_move (p, event->keyval, current);
++  if (next < 0)
++    return FALSE;
++
++  kbd_select (p, g_ptr_array_index (p->popup_order, next));
++  return TRUE;
++}
++
++
++
++/* Abrir o cerrar desde un atajo de teclado (ver plugin_remote_event).
++ * Al abrir, se elige el primer ícono para seguir con las flechas.
++ * Devuelve FALSE si no hay nada que mostrar (sin íconos ocultos). */
++gboolean
++tray_popup_toggle_from_keyboard (TrayPlugin *p,
++                                 gboolean    open)
++{
++  if (p->popup == NULL)
++    return FALSE;
++
++  if (!open)
++    {
++      if (gtk_widget_get_visible (p->popup))
++        tray_popup_hide (p);
++      return TRUE;
++    }
++
++  if (p->popup_order->len == 0)
++    return FALSE;
++
++  if (!gtk_widget_get_visible (p->popup))
++    tray_popup_show (p);
++  kbd_select (p, g_ptr_array_index (p->popup_order, 0));
++  return TRUE;
+ }
+ 
+ 
+@@ -1289,5 +1451,6 @@ tray_popup_setup_button (TrayPlugin *p,
+   g_signal_connect (button, "show-menu", G_CALLBACK (button_show_menu), p);
+   g_signal_connect (button, "acted", G_CALLBACK (button_acted), p);
+   g_signal_connect (button, "scrolled", G_CALLBACK (button_scrolled), p);
++  g_signal_connect (button, "enter-notify-event", G_CALLBACK (button_entered), p);
+   tray_button_set_panel_anchor (TRAY_BUTTON (button), GTK_WIDGET (p->panel_plugin));
+ }
+diff --git a/src/to-popup.h b/src/to-popup.h
+index b294c4e..f482621 100644
+--- a/src/to-popup.h
++++ b/src/to-popup.h
+@@ -23,4 +23,7 @@ gboolean tray_popup_try_grab          (gpointer    user_data);   /* GSourceFunc
+ void     tray_popup_apply_corners     (TrayPlugin *p);
+ void     tray_popup_menu_hook_remove  (TrayPlugin *p);
+ 
++gboolean tray_popup_toggle_from_keyboard (TrayPlugin *p, gboolean open);
++void     tray_popup_clear_selection   (TrayPlugin *p);
++
+ G_END_DECLS
+diff --git a/tests/run.sh b/tests/run.sh
+index a86ebd8..1f3f460 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -27,7 +27,7 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
+ 
+ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
+        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
+-       arrastre_ocultar arrastre_mostrar)
++       arrastre_ocultar arrastre_mostrar atajo teclado)
+ 
+ 
+ # ════════════════════════════════════════════════════════════════════════
+@@ -183,7 +183,9 @@ start_panel() {
+   $q -p /plugins/plugin-1/legacy-tray -n -t bool -s true
+   $q -p /plugins/plugin-1/arrow-position -n -t int -s 0
+   if [ -n "${1:-}" ]; then
+-    $q -p /plugins/plugin-1/hidden-items -n -a -t string -s "$1"
++    local key args=()
++    for key in $1; do args+=(-t string -s "$key"); done
++    $q -p /plugins/plugin-1/hidden-items -n -a "${args[@]}"
+   fi
+ 
+   xfwm4 --compositor=off >/dev/null 2>&1 &
+@@ -373,6 +375,50 @@ t_arrastre_mostrar() {
+     || ok "arrastrar del popup al panel la muestra"
+ }
+ 
++# Atajo de teclado (evento del panel): abre y cierra el popup
++t_atajo() {
++  start_panel legacy-app
++  start_app legacy_app.py "$WORK/app.log"
++  sleep 3
++  # Tomar la posición del popup con un clic y cerrarlo
++  open_popup || { fail "el popup no se abrió"; return; }
++  xdotool key Escape; sleep 0.7
++  xfce4-panel --plugin-event=trayoverflow:popup; sleep 1
++  popup_is_open && ok "el atajo abre el popup" || fail "el atajo no abrió el popup"
++  xfce4-panel --plugin-event=trayoverflow:popup; sleep 1
++  popup_is_open && fail "el atajo no cerró el popup" || ok "el atajo lo cierra"
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:true; sleep 1
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:true; sleep 1
++  popup_is_open && ok ":bool:true solo abre" || fail ":bool:true lo cerró"
++}
++
++# Teclado dentro del popup: Enter activa el ícono elegido, las flechas
++# eligen otro y la tecla de menú abre el menú de la app
++t_teclado() {
++  start_panel "legacy-app prueba-moderna"
++  start_app legacy_app.py "$WORK/app.log"
++  start_app sni_app.py "$WORK/sni.log" prueba-moderna
++  sleep 3
++  # Primer ícono (el atajo lo elige al abrir) y después el segundo
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:true; sleep 1
++  xdotool key Return; sleep 1.5
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:true; sleep 1
++  xdotool key Right; sleep 0.3
++  xdotool key Return; sleep 1.5
++  if grep -q ACTIVATE "$WORK/app.log" && grep -q ACTIVATE "$WORK/sni.log"; then
++    ok "Enter y las flechas activan cada ícono"
++  else
++    fail "Enter/flechas: antigua=$(count ACTIVATE "$WORK/app.log") moderna=$(count ACTIVATE "$WORK/sni.log") (esperado 1 y 1)"
++  fi
++  # Tecla de menú sobre la app antigua (su menú propio)
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:false; sleep 0.5
++  xfce4-panel --plugin-event=trayoverflow:popup:bool:true; sleep 1
++  xdotool key Menu; sleep 1.5
++  grep -q "CONTEXTMENU" "$WORK/sni.log" || grep -q MENU-ABIERTO "$WORK/app.log" \
++    && ok "la tecla de menú abre el menú de la app" \
++    || fail "la tecla de menú no abrió ningún menú"
++}
++
+ # ════════════════════════════════════════════════════════════════════════
+ # Principal
+ # ════════════════════════════════════════════════════════════════════════

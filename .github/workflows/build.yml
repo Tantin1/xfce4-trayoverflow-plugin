@@ -1,0 +1,130 @@
+# Compila Tray Overflow en varias distros, arma los .deb, corre las pruebas
+# automáticas y, al subir una etiqueta v*, publica una Release con los .deb.
+#
+#   Cada push / pull request → compilar, empaquetar y probar (los .deb
+#                              quedan como "artifacts" en la pestaña Actions)
+#   git tag v0.2.27 && git push --tags → además, Release con los .deb
+name: Compilar y empaquetar
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false   # que una distro rota no oculte el resultado de las otras
+      matrix:
+        include:
+          - name: Debian 12 (XFCE 4.18)
+            image: debian:12
+            slug: debian12
+          - name: Debian 13 (XFCE 4.20)
+            image: debian:13
+            slug: debian13
+          - name: Ubuntu 24.04 (XFCE 4.18, Mint 22, Xubuntu)
+            image: ubuntu:24.04
+            slug: ubuntu24.04
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Instalar dependencias de compilación
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git build-essential binutils pkg-config \
+            meson ninja-build gettext \
+            libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev \
+            libdbusmenu-gtk3-dev libgtk-layer-shell-dev \
+            libx11-dev libxcomposite-dev libxdamage-dev libxfixes-dev \
+            libxtst-dev libxext-dev
+
+      - uses: actions/checkout@v4
+
+      - name: Compilar (advertencias = errores)
+        run: |
+          meson setup build-ci --prefix=/usr -Dwarning_level=2 -Dwerror=true
+          ninja -C build-ci
+
+      - name: Compilar sin gtk-layer-shell ni proxy (opciones mínimas)
+        run: |
+          meson setup build-min --prefix=/usr -Dwerror=true \
+            -Dgtk-layer-shell=disabled -Dxembed-proxy=disabled
+          ninja -C build-min
+
+      - name: Armar el .deb
+        run: bash packaging/build-deb.sh
+
+      - name: Instalar el .deb y lo necesario para las pruebas
+        run: |
+          apt-get install -y --no-install-recommends ./xfce4-trayoverflow-plugin_*.deb \
+            xfce4-panel xfwm4 xfconf dbus xvfb xdotool imagemagick \
+            python3 python3-gi gir1.2-gtk-3.0 adwaita-icon-theme librsvg2-common
+
+      - name: Pruebas automáticas (X11)
+        run: bash tests/run.sh
+
+      - name: Guardar registros si fallaron las pruebas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registros-${{ matrix.slug }}
+          path: /tmp/trayoverflow-test.*
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.slug }}
+          path: xfce4-trayoverflow-plugin_*.deb
+          if-no-files-found: error
+
+  arch:
+    name: Arch Linux (solo compilar)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    timeout-minutes: 30
+    steps:
+      - name: Instalar dependencias de compilación
+        run: |
+          pacman -Syu --noconfirm --needed git base-devel meson gettext \
+            gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 gtk-layer-shell \
+            libx11 libxcomposite libxdamage libxfixes libxtst libxext
+
+      - uses: actions/checkout@v4
+
+      - name: Compilar (advertencias = errores)
+        run: |
+          meson setup build-ci --prefix=/usr -Dwarning_level=2 -Dwerror=true
+          ninja -C build-ci
+
+  release:
+    name: Publicar la Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [deb, arch]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: deb-*
+          merge-multiple: true
+
+      - name: Crear la Release con los .deb
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" xfce4-trayoverflow-plugin_*.deb \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Tray Overflow ${GITHUB_REF_NAME#v}" \
+            --generate-notes

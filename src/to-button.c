@@ -37,6 +37,7 @@ struct _TrayButton
   gchar     *tooltip;
 
   gchar     *icon_override;    /* ícono elegido por el usuario, o NULL */
+  gboolean   symbolic;         /* preferir la variante simbólica del tema */
   GtkWidget *panel_anchor;     /* el plugin en el panel (referencia débil) */
 };
 
@@ -318,7 +319,8 @@ render_icon (TrayButton *button,
 
   pixbuf = tray_icon_load (button->icon_override, button->icon_size, scale, context);
   if (pixbuf == NULL)
-    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context);
+    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context,
+                                    button->symbolic);
 
   return pixbuf;
 }
@@ -551,6 +553,21 @@ tray_button_set_icon_override (TrayButton  *button,
 
 
 void
+tray_button_set_symbolic (TrayButton *button,
+                          gboolean    symbolic)
+{
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+
+  if (button->symbolic != !!symbolic)
+    {
+      button->symbolic = !!symbolic;
+      tray_button_update (button);
+    }
+}
+
+
+
+void
 tray_button_update (TrayButton *button)
 {
   GtkWidget *widget;
@@ -620,4 +637,51 @@ tray_button_set_panel_anchor (TrayButton *button,
 {
   g_return_if_fail (TRAY_IS_BUTTON (button));
   g_set_weak_pointer (&button->panel_anchor, anchor);
+}
+
+
+
+/* Activar desde el teclado, como un clic en el centro del ícono.
+ * @menu: TRUE para la tecla de menú (como el clic derecho), FALSE para
+ * Enter (como el clic izquierdo) */
+void
+tray_button_activate_from_keyboard (TrayButton *button,
+                                    gboolean    menu)
+{
+  GtkWidget *widget = GTK_WIDGET (button);
+  GtkWidget *toplevel = gtk_widget_get_toplevel (widget);
+  GdkWindow *window = gtk_widget_get_window (toplevel);
+  GtkWidget *item_menu;
+  gint wx = 0, wy = 0, ox = 0, oy = 0, x, y;
+
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+
+  /* Lo que valdrían x_root/y_root de un clic en el centro. En Wayland no
+   * hay coordenadas globales: el origen es 0,0 y quedan relativas a la
+   * ventana, igual que en los eventos (ver event_root_coords) */
+  gtk_widget_translate_coordinates (widget, toplevel,
+                                    gtk_widget_get_allocated_width (widget) / 2,
+                                    gtk_widget_get_allocated_height (widget) / 2,
+                                    &wx, &wy);
+  if (window != NULL)
+    gdk_window_get_origin (window, &ox, &oy);
+  event_root_coords (widget, wx + ox, wy + oy, &x, &y);
+
+  if (menu || tray_item_get_is_menu (button->item))
+    {
+      item_menu = tray_item_get_menu (button->item);
+      if (menu_has_children (item_menu))
+        {
+          g_signal_emit (button, signals[SIGNAL_SHOW_MENU], 0, item_menu, NULL);
+          return;
+        }
+      /* Sin menú D-Bus: que la app muestre el suyo */
+      tray_item_context_menu (button->item, x, y);
+      g_signal_emit (button, signals[SIGNAL_ACTED], 0, TRUE);
+      return;
+    }
+
+  g_clear_pointer (&button->activate_event, gdk_event_free);
+  tray_item_activate (button->item, x, y);
+  g_signal_emit (button, signals[SIGNAL_ACTED], 0, FALSE);
 }

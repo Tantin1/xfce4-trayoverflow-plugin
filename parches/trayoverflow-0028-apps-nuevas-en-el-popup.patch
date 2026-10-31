@@ -1,0 +1,268 @@
+diff --git a/README.md b/README.md
+index f4f1856..0befc70 100644
+--- a/README.md
++++ b/README.md
+@@ -128,7 +128,9 @@ columnas, y si los íconos inactivos van a la ventana emergente.
+ 
+ **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
+ para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
+-y **Olvidar** para quitar apps que ya no usás.
++y **Olvidar** para quitar apps que ya no usás. Con **Poner las apps nuevas en la
++ventana emergente**, cada app que aparece por primera vez empieza oculta,
++como en Windows 11; las que ya estaban en la lista no cambian.
+ 
+ ### Elegir otro ícono
+ 
+diff --git a/meson.build b/meson.build
+index b43ed83..64cd8e8 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.25',
++  version: '0.2.26',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index a353174..ee309cc 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.25\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.26\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -72,6 +72,16 @@ msgstr "Comportamiento"
+ msgid "Move _inactive icons to the popup"
+ msgstr "Mover los íconos _inactivos a la ventana emergente"
+ 
++msgid "Put _new apps in the popup"
++msgstr "Poner las apps _nuevas en la ventana emergente"
++
++msgid ""
++"Apps that appear for the first time start hidden. Apps already in the list "
++"are not changed."
++msgstr ""
++"Las apps que aparecen por primera vez empiezan ocultas. Las que ya están en "
++"la lista no cambian."
++
+ msgid ""
+ "Some apps mark their icon as inactive when there is nothing to report. Icons "
+ "you place in the panel yourself stay there."
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 690a3c1..e77bdb9 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -47,6 +47,7 @@ typedef struct
+   GtkWidget    *popup_columns;
+   GtkWidget    *popup_corners;
+   GtkWidget    *passive;
++  GtkWidget    *new_in_popup;
+ 
+   GtkListStore *store;
+   GtkWidget    *tree;
+@@ -151,6 +152,16 @@ passive_toggled (GtkToggleButton *toggle,
+ 
+ 
+ 
++static void
++new_in_popup_toggled (GtkToggleButton *toggle,
++                      DialogData      *d)
++{
++  if (!d->syncing)
++    tray_settings_set_new_in_popup (d->p->settings, gtk_toggle_button_get_active (toggle));
++}
++
++
++
+ static GtkWidget *
+ make_spin (DialogData *d, gint min, gint max, gint value)
+ {
+@@ -1057,6 +1068,16 @@ items_page (DialogData *d)
+   gtk_box_pack_end (GTK_BOX (buttons), d->icon_button, FALSE, FALSE, 0);
+   gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
+ 
++  /* Junto a la lista: decide con qué casilla empieza una app nueva */
++  d->new_in_popup = gtk_check_button_new_with_mnemonic (_("Put _new apps in the popup"));
++  gtk_widget_set_tooltip_text (d->new_in_popup,
++                               _("Apps that appear for the first time start hidden. "
++                                 "Apps already in the list are not changed."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
++                                tray_settings_get_new_in_popup (d->p->settings));
++  g_signal_connect (d->new_in_popup, "toggled", G_CALLBACK (new_in_popup_toggled), d);
++  gtk_box_pack_start (GTK_BOX (vbox), d->new_in_popup, FALSE, FALSE, 0);
++
+   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
+ 
+   rebuild_list (d);
+@@ -1102,6 +1123,8 @@ sync_from_settings (DialogData *d)
+                             tray_settings_get_arrow_position (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
+                                 tray_settings_get_passive_in_popup (s));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
++                                tray_settings_get_new_in_popup (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
+                                 tray_settings_get_legacy_tray (s));
+ 
+diff --git a/src/to-settings.c b/src/to-settings.c
+index e89dad6..66bd887 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -18,6 +18,7 @@
+ #define DEFAULT_POPUP_CORNERS    TRAY_CORNERS_THEME
+ #define DEFAULT_ARROW_POSITION   TRAY_ARROW_START
+ #define DEFAULT_PASSIVE_IN_POPUP TRUE
++#define DEFAULT_NEW_IN_POPUP     FALSE
+ #define DEFAULT_LEGACY_TRAY      FALSE
+ #define MAX_KNOWN                200
+ #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
+@@ -38,6 +39,7 @@ struct _TraySettings
+   gint           popup_corners;
+   gint           arrow_position;
+   gboolean       passive_in_popup;
++  gboolean       new_in_popup;      /* apps nuevas: directo al popup */
+   gboolean       legacy_tray;
+ 
+   GHashTable    *hidden;   /* claves ocultas explícitamente */
+@@ -243,6 +245,9 @@ save_all (TraySettings *s)
+     gchar *p = prop (s, "passive-in-popup");
+     xfconf_channel_set_bool (s->channel, p, s->passive_in_popup);
+     g_free (p);
++    p = prop (s, "new-in-popup");
++    xfconf_channel_set_bool (s->channel, p, s->new_in_popup);
++    g_free (p);
+     p = prop (s, "legacy-tray");
+     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
+     g_free (p);
+@@ -301,6 +306,10 @@ load_all (TraySettings *s)
+   s->passive_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_PASSIVE_IN_POPUP);
+   g_free (p);
+ 
++  p = prop (s, "new-in-popup");
++  s->new_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_NEW_IN_POPUP);
++  g_free (p);
++
+   p = prop (s, "legacy-tray");
+   s->legacy_tray = xfconf_channel_get_bool (s->channel, p, DEFAULT_LEGACY_TRAY);
+   g_free (p);
+@@ -500,11 +509,11 @@ snapshot (TraySettings *s)
+   GString *out = g_string_new (NULL);
+   guint i;
+ 
+-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d\n",
++  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d\n",
+                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
+                           s->popup_spacing, s->popup_columns, s->popup_corners,
+                           s->arrow_position,
+-                          s->passive_in_popup, s->legacy_tray);
++                          s->passive_in_popup, s->new_in_popup, s->legacy_tray);
+   snapshot_set (out, "hidden", s->hidden, FALSE);
+   snapshot_set (out, "visible", s->visible, FALSE);
+   snapshot_set (out, "icons", s->icons, TRUE);
+@@ -746,6 +755,29 @@ tray_settings_set_passive_in_popup (TraySettings *s, gboolean value)
+ 
+ 
+ 
++gboolean
++tray_settings_get_new_in_popup (TraySettings *s)
++{
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
++  return s->new_in_popup;
++}
++
++
++
++void
++tray_settings_set_new_in_popup (TraySettings *s, gboolean value)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  if (s->new_in_popup != !!value)
++    {
++      s->new_in_popup = !!value;
++      notify (s, TRUE);
++    }
++}
++
++
++
+ /* ── Visibilidad ─────────────────────────────────────────────────────── */
+ 
+ gboolean
+@@ -871,6 +903,12 @@ tray_settings_remember (TraySettings *s,
+       return FALSE;
+     }
+ 
++  /* App que nunca se vio (o que se olvidó): con la opción, va oculta,
++   * como en Windows 11. Queda como una elección más: se ve en la lista y
++   * se puede cambiar. Las apps ya conocidas no se tocan. */
++  if (s->new_in_popup && !g_hash_table_contains (s->visible, key))
++    g_hash_table_add (s->hidden, g_strdup (key));
++
+   k = g_new0 (TrayKnown, 1);
+   k->key = g_strdup (key);
+   k->title = g_strdup (title);
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 4bf9dff..7a4429c 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -55,6 +55,7 @@ gint     tray_settings_get_panel_spacing     (TraySettings *s);
+ gint     tray_settings_get_popup_spacing     (TraySettings *s);
+ gint     tray_settings_get_popup_columns     (TraySettings *s);
+ gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
++gboolean tray_settings_get_new_in_popup      (TraySettings *s);
+ gint     tray_settings_get_popup_corners     (TraySettings *s);
+ gint     tray_settings_get_arrow_position    (TraySettings *s);
+ 
+@@ -64,6 +65,7 @@ void     tray_settings_set_panel_spacing     (TraySettings *s, gint value);
+ void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
+ void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
+ void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
++void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
+ void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
+ void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
+ 
+diff --git a/tests/run.sh b/tests/run.sh
+index 1f3f460..754202a 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -27,7 +27,7 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
+ 
+ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
+        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
+-       arrastre_ocultar arrastre_mostrar atajo teclado)
++       arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas)
+ 
+ 
+ # ════════════════════════════════════════════════════════════════════════
+@@ -419,6 +419,23 @@ t_teclado() {
+     || fail "la tecla de menú no abrió ningún menú"
+ }
+ 
++# Opción "apps nuevas en el popup": la nueva queda oculta; la que ya era
++# conocida y visible no cambia
++t_apps_nuevas() {
++  local q="xfconf-query -c xfce4-panel -p /plugins/plugin-1"
++  $q/new-in-popup -n -t bool -s true
++  $q/known-items -n -a -t string -s legacy-app
++  $q/visible-items -n -a -t string -s legacy-app
++  start_panel
++  start_app legacy_app.py "$WORK/app.log"
++  start_app sni_app.py "$WORK/sni.log" prueba-moderna
++  sleep 5   # registro de las apps + guardado agrupado (hasta 2 s)
++  is_hidden prueba-moderna && ok "la app nueva queda oculta" \
++    || fail "la app nueva no quedó oculta"
++  is_hidden legacy-app && fail "la app ya conocida se ocultó" \
++    || ok "la app ya conocida sigue visible"
++}
++
+ # ════════════════════════════════════════════════════════════════════════
+ # Principal
+ # ════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,476 @@
+diff --git a/README.md b/README.md
+index 0befc70..2ef4eea 100644
+--- a/README.md
++++ b/README.md
+@@ -123,7 +123,8 @@ ocultos.
+ ## Configuración
+ 
+ **Apariencia**: tamaño de ícono del panel (automático o fijo), separación
+-entre íconos, tamaño y separación en la ventana emergente, número de
++entre íconos, **íconos simbólicos** (monocromos, del color del texto del
++panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
+ columnas, y si los íconos inactivos van a la ventana emergente.
+ 
+ **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
+diff --git a/meson.build b/meson.build
+index 64cd8e8..86ec260 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.26',
++  version: '0.2.27',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index ee309cc..3da5639 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.26\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.27\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -72,6 +72,18 @@ msgstr "Comportamiento"
+ msgid "Move _inactive icons to the popup"
+ msgstr "Mover los íconos _inactivos a la ventana emergente"
+ 
++msgid "Use sym_bolic icons (if available)"
++msgstr "Usar íconos sim_bólicos (si están disponibles)"
++
++msgid ""
++"Monochrome icons in the color of the panel text, in the panel and in the "
++"popup. Only for apps whose icon comes from the icon theme; the rest keep "
++"their own icon."
++msgstr ""
++"Íconos monocromos del color del texto del panel, en el panel y en la "
++"ventana emergente. Solo en apps cuyo ícono viene del tema de íconos; las "
++"demás conservan su ícono."
++
+ msgid "Put _new apps in the popup"
+ msgstr "Poner las apps _nuevas en la ventana emergente"
+ 
+diff --git a/src/to-button.c b/src/to-button.c
+index 4f28973..8c0ade4 100644
+--- a/src/to-button.c
++++ b/src/to-button.c
+@@ -37,6 +37,7 @@ struct _TrayButton
+   gchar     *tooltip;
+ 
+   gchar     *icon_override;    /* ícono elegido por el usuario, o NULL */
++  gboolean   symbolic;         /* preferir la variante simbólica del tema */
+   GtkWidget *panel_anchor;     /* el plugin en el panel (referencia débil) */
+ };
+ 
+@@ -318,7 +319,8 @@ render_icon (TrayButton *button,
+ 
+   pixbuf = tray_icon_load (button->icon_override, button->icon_size, scale, context);
+   if (pixbuf == NULL)
+-    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context);
++    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context,
++                                    button->symbolic);
+ 
+   return pixbuf;
+ }
+@@ -550,6 +552,21 @@ tray_button_set_icon_override (TrayButton  *button,
+ 
+ 
+ 
++void
++tray_button_set_symbolic (TrayButton *button,
++                          gboolean    symbolic)
++{
++  g_return_if_fail (TRAY_IS_BUTTON (button));
++
++  if (button->symbolic != !!symbolic)
++    {
++      button->symbolic = !!symbolic;
++      tray_button_update (button);
++    }
++}
++
++
++
+ void
+ tray_button_update (TrayButton *button)
+ {
+diff --git a/src/to-button.h b/src/to-button.h
+index b7bfbd2..37ef6ce 100644
+--- a/src/to-button.h
++++ b/src/to-button.h
+@@ -23,6 +23,7 @@ void       tray_button_set_icon_size (TrayButton *button, gint size);
+ void       tray_button_update        (TrayButton *button);
+ /* Ícono elegido por el usuario (nombre del tema o ruta), NULL = el de la app */
+ void       tray_button_set_icon_override (TrayButton *button, const gchar *icon);
++void       tray_button_set_symbolic      (TrayButton *button, gboolean symbolic);
+ void       tray_button_set_panel_anchor  (TrayButton *button, GtkWidget *anchor);
+ void       tray_button_activate_from_keyboard (TrayButton *button, gboolean menu);
+ 
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index e77bdb9..8ddc388 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -48,6 +48,7 @@ typedef struct
+   GtkWidget    *popup_corners;
+   GtkWidget    *passive;
+   GtkWidget    *new_in_popup;
++  GtkWidget    *symbolic;
+ 
+   GtkListStore *store;
+   GtkWidget    *tree;
+@@ -152,6 +153,16 @@ passive_toggled (GtkToggleButton *toggle,
+ 
+ 
+ 
++static void
++symbolic_toggled (GtkToggleButton *toggle,
++                  DialogData      *d)
++{
++  if (!d->syncing)
++    tray_settings_set_symbolic_icons (d->p->settings, gtk_toggle_button_get_active (toggle));
++}
++
++
++
+ static void
+ new_in_popup_toggled (GtkToggleButton *toggle,
+                       DialogData      *d)
+@@ -234,6 +245,18 @@ appearance_page (DialogData *d)
+   d->panel_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_panel_spacing (s));
+   add_row (grid, &row, _("Icon s_pacing (px):"), d->panel_spacing, NULL);
+ 
++  /* También vale para el popup, como en la bandeja de XFCE */
++  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
++  gtk_widget_set_tooltip_text (d->symbolic,
++                               _("Monochrome icons in the color of the panel text, in the "
++                                 "panel and in the popup. Only for apps whose icon comes "
++                                 "from the icon theme; the rest keep their own icon."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
++                                tray_settings_get_symbolic_icons (s));
++  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
++  gtk_widget_set_margin_start (d->symbolic, 12);
++  gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
++
+   /* Mismo orden que TrayArrowPosition */
+   d->arrow_position = gtk_combo_box_text_new ();
+   gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Left"));
+@@ -399,7 +422,7 @@ rebuild_list (DialogData *d)
+       if (item != NULL)
+         {
+           if (pixbuf == NULL)
+-            pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context);
++            pixbuf = tray_item_render_icon (item, LIST_ICON_SIZE, 1, context, FALSE);
+           title = tray_item_get_display_name (item);
+           hidden = tray_settings_is_hidden (d->p->settings, k->key,
+                                             tray_item_get_status (item) == TRAY_ITEM_STATUS_PASSIVE);
+@@ -1125,6 +1148,8 @@ sync_from_settings (DialogData *d)
+                                 tray_settings_get_passive_in_popup (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
+                                 tray_settings_get_new_in_popup (s));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
++                                tray_settings_get_symbolic_icons (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
+                                 tray_settings_get_legacy_tray (s));
+ 
+diff --git a/src/to-item.c b/src/to-item.c
+index 04e6bf1..c3b12fc 100644
+--- a/src/to-item.c
++++ b/src/to-item.c
+@@ -272,7 +272,8 @@ load_named (TrayItem        *item,
+             const gchar     *name,
+             gint             size,
+             gint             scale,
+-            GtkStyleContext *context)
++            GtkStyleContext *context,
++            gboolean         prefer_symbolic)
+ {
+   TrayItemPrivate *priv = PRIV (item);
+   GdkPixbuf *pixbuf;
+@@ -285,6 +286,19 @@ load_named (TrayItem        *item,
+   if (g_path_is_absolute (name))
+     return gdk_pixbuf_new_from_file_at_scale (name, px, px, TRUE, NULL);
+ 
++  /* Opción "íconos simbólicos": la variante -symbolic del tema del
++   * usuario, coloreada como el texto del panel. Si no existe, el ícono
++   * de siempre (como la bandeja de XFCE). */
++  if (prefer_symbolic && !g_str_has_suffix (name, "-symbolic"))
++    {
++      gchar *symbolic = g_strconcat (name, "-symbolic", NULL);
++
++      pixbuf = load_from_theme (gtk_icon_theme_get_default (), symbolic, size, scale, context);
++      g_free (symbolic);
++      if (pixbuf != NULL)
++        return pixbuf;
++    }
++
+   /* Primero el tema del usuario, así se respeta su estilo */
+   pixbuf = load_from_theme (gtk_icon_theme_get_default (), name, size, scale, context);
+   if (pixbuf != NULL)
+@@ -422,12 +436,13 @@ render_role (TrayItem         *item,
+              TrayItemIconRole  role,
+              gint              size,
+              gint              scale,
+-             GtkStyleContext  *context)
++             GtkStyleContext  *context,
++             gboolean          prefer_symbolic)
+ {
+   TrayItemPrivate *priv = PRIV (item);
+   GdkPixbuf *pixbuf;
+ 
+-  pixbuf = load_named (item, priv->icon_name[role], size, scale, context);
++  pixbuf = load_named (item, priv->icon_name[role], size, scale, context, prefer_symbolic);
+   if (pixbuf == NULL)
+     pixbuf = pick_pixmap (priv->pixmaps[role], size * scale);
+ 
+@@ -440,7 +455,8 @@ GdkPixbuf *
+ tray_item_render_icon (TrayItem        *item,
+                        gint             size,
+                        gint             scale,
+-                       GtkStyleContext *context)
++                       GtkStyleContext *context,
++                       gboolean         prefer_symbolic)
+ {
+   TrayItemPrivate *priv;
+   GdkPixbuf *base = NULL;
+@@ -453,17 +469,18 @@ tray_item_render_icon (TrayItem        *item,
+   scale = MAX (scale, 1);
+ 
+   if (priv->status == TRAY_ITEM_STATUS_ATTENTION)
+-    base = render_role (item, TRAY_ITEM_ICON_ATTENTION, size, scale, context);
++    base = render_role (item, TRAY_ITEM_ICON_ATTENTION, size, scale, context, prefer_symbolic);
+   if (base == NULL)
+-    base = render_role (item, TRAY_ITEM_ICON_MAIN, size, scale, context);
++    base = render_role (item, TRAY_ITEM_ICON_MAIN, size, scale, context, prefer_symbolic);
+   if (base == NULL)
+     base = load_from_theme (gtk_icon_theme_get_default (), "image-missing",
+                             size, scale, context);
+   if (base == NULL)
+     return NULL;
+ 
+-  /* Ícono superpuesto (overlay): esquina inferior derecha, a mitad de tamaño */
+-  overlay = render_role (item, TRAY_ITEM_ICON_OVERLAY, MAX (size / 2, 1), scale, context);
++  /* Ícono superpuesto (overlay): esquina inferior derecha, a mitad de
++   * tamaño. Siempre en color: suele ser un aviso. */
++  overlay = render_role (item, TRAY_ITEM_ICON_OVERLAY, MAX (size / 2, 1), scale, context, FALSE);
+   if (overlay != NULL)
+     {
+       GdkPixbuf *composed;
+diff --git a/src/to-item.h b/src/to-item.h
+index 606927a..27dcce7 100644
+--- a/src/to-item.h
++++ b/src/to-item.h
+@@ -68,7 +68,8 @@ gchar          *tray_item_get_tooltip_markup (TrayItem *item);
+ GdkPixbuf      *tray_item_render_icon        (TrayItem        *item,
+                                               gint             size,
+                                               gint             scale,
+-                                              GtkStyleContext *context);
++                                              GtkStyleContext *context,
++                                              gboolean         prefer_symbolic);
+ 
+ /* Carga un ícono por nombre (del tema del usuario) o por ruta de archivo,
+  * a (size * scale) píxeles. NULL si no existe. */
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 286f2c3..afca408 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -458,7 +458,7 @@ item_icon_for_registry (TrayPlugin *p,
+ 
+   if (refresh_cache || !g_file_test (path, G_FILE_TEST_EXISTS))
+     {
+-      pixbuf = tray_item_render_icon (item, 32, 1, NULL);
++      pixbuf = tray_item_render_icon (item, 32, 1, NULL, FALSE);
+       if (pixbuf != NULL)
+         {
+           if (g_mkdir_with_parents (dir, 0700) != 0
+@@ -513,12 +513,16 @@ apply_icon_overrides (TrayPlugin *p)
+ {
+   GHashTableIter iter;
+   gpointer key, value;
++  gboolean symbolic = tray_settings_get_symbolic_icons (p->settings);
+ 
+   g_hash_table_iter_init (&iter, p->buttons);
+   while (g_hash_table_iter_next (&iter, &key, &value))
+-    tray_button_set_icon_override (TRAY_BUTTON (value),
+-                                   tray_settings_get_icon_override (p->settings,
+-                                                                    tray_item_get_key (key)));
++    {
++      tray_button_set_icon_override (TRAY_BUTTON (value),
++                                     tray_settings_get_icon_override (p->settings,
++                                                                      tray_item_get_key (key)));
++      tray_button_set_symbolic (TRAY_BUTTON (value), symbolic);
++    }
+ }
+ 
+ 
+@@ -550,6 +554,8 @@ model_item_added (TrayModel  *model,
+   tray_button_set_icon_override (TRAY_BUTTON (button),
+                                  tray_settings_get_icon_override (p->settings,
+                                                                   tray_item_get_key (item)));
++  tray_button_set_symbolic (TRAY_BUTTON (button),
++                            tray_settings_get_symbolic_icons (p->settings));
+ 
+   tray_popup_setup_button (p, button);
+   tray_dnd_setup_button (p, button);
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 66bd887..956ae37 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -19,6 +19,7 @@
+ #define DEFAULT_ARROW_POSITION   TRAY_ARROW_START
+ #define DEFAULT_PASSIVE_IN_POPUP TRUE
+ #define DEFAULT_NEW_IN_POPUP     FALSE
++#define DEFAULT_SYMBOLIC_ICONS   FALSE
+ #define DEFAULT_LEGACY_TRAY      FALSE
+ #define MAX_KNOWN                200
+ #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
+@@ -40,6 +41,7 @@ struct _TraySettings
+   gint           arrow_position;
+   gboolean       passive_in_popup;
+   gboolean       new_in_popup;      /* apps nuevas: directo al popup */
++  gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
+   gboolean       legacy_tray;
+ 
+   GHashTable    *hidden;   /* claves ocultas explícitamente */
+@@ -248,6 +250,9 @@ save_all (TraySettings *s)
+     p = prop (s, "new-in-popup");
+     xfconf_channel_set_bool (s->channel, p, s->new_in_popup);
+     g_free (p);
++    p = prop (s, "symbolic-icons");
++    xfconf_channel_set_bool (s->channel, p, s->symbolic_icons);
++    g_free (p);
+     p = prop (s, "legacy-tray");
+     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
+     g_free (p);
+@@ -310,6 +315,11 @@ load_all (TraySettings *s)
+   s->new_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_NEW_IN_POPUP);
+   g_free (p);
+ 
++  /* Mismo nombre que la opción de la bandeja de XFCE */
++  p = prop (s, "symbolic-icons");
++  s->symbolic_icons = xfconf_channel_get_bool (s->channel, p, DEFAULT_SYMBOLIC_ICONS);
++  g_free (p);
++
+   p = prop (s, "legacy-tray");
+   s->legacy_tray = xfconf_channel_get_bool (s->channel, p, DEFAULT_LEGACY_TRAY);
+   g_free (p);
+@@ -509,10 +519,10 @@ snapshot (TraySettings *s)
+   GString *out = g_string_new (NULL);
+   guint i;
+ 
+-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d\n",
++  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d\n",
+                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
+                           s->popup_spacing, s->popup_columns, s->popup_corners,
+-                          s->arrow_position,
++                          s->arrow_position, s->symbolic_icons,
+                           s->passive_in_popup, s->new_in_popup, s->legacy_tray);
+   snapshot_set (out, "hidden", s->hidden, FALSE);
+   snapshot_set (out, "visible", s->visible, FALSE);
+@@ -755,6 +765,29 @@ tray_settings_set_passive_in_popup (TraySettings *s, gboolean value)
+ 
+ 
+ 
++gboolean
++tray_settings_get_symbolic_icons (TraySettings *s)
++{
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
++  return s->symbolic_icons;
++}
++
++
++
++void
++tray_settings_set_symbolic_icons (TraySettings *s, gboolean value)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  if (s->symbolic_icons != !!value)
++    {
++      s->symbolic_icons = !!value;
++      notify (s, TRUE);
++    }
++}
++
++
++
+ gboolean
+ tray_settings_get_new_in_popup (TraySettings *s)
+ {
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 7a4429c..5605e72 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -56,6 +56,7 @@ gint     tray_settings_get_popup_spacing     (TraySettings *s);
+ gint     tray_settings_get_popup_columns     (TraySettings *s);
+ gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
+ gboolean tray_settings_get_new_in_popup      (TraySettings *s);
++gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
+ gint     tray_settings_get_popup_corners     (TraySettings *s);
+ gint     tray_settings_get_arrow_position    (TraySettings *s);
+ 
+@@ -66,6 +67,7 @@ void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
+ void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
+ void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
+ void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
++void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
+ void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
+ void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
+ 
+diff --git a/tests/run.sh b/tests/run.sh
+index 754202a..96e3513 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -27,7 +27,8 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
+ 
+ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
+        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
+-       arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas)
++       arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas
++       iconos_simbolicos)
+ 
+ 
+ # ════════════════════════════════════════════════════════════════════════
+@@ -436,6 +437,36 @@ t_apps_nuevas() {
+     || ok "la app ya conocida sigue visible"
+ }
+ 
++# Saturación máxima (0 a 1) del cuadrado de 24 px centrado en x,y de la
++# última captura: un ícono en color da mucho más que uno monocromo
++saturation() {
++  convert "$WORK/s.png" -crop "24x24+$(( $1 - 12 ))+$(( $2 - 12 ))" +repage \
++          -colorspace HSL -channel G -separate +channel -format '%[fx:maxima]' info:
++}
++
++# Íconos simbólicos: la app moderna (ícono del tema) pasa a monocroma al
++# activar la opción, sin reiniciar el panel
++t_iconos_simbolicos() {
++  local before after
++  start_panel
++  start_app sni_app.py "$WORK/sni.log" prueba-moderna
++  sleep 3
++  shot; before=$(saturation 15 "$PANEL_Y")
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/symbolic-icons -n -t bool -s true
++  sleep 1.5
++  shot; after=$(saturation 15 "$PANEL_Y")
++  if awk -v b="$before" -v a="$after" 'BEGIN { exit !(b > 0.3 && a < 0.2) }'; then
++    ok "el ícono pasa a monocromo (saturación $before → $after)"
++  else
++    fail "saturación $before → $after (esperado: color → monocromo)"
++  fi
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/symbolic-icons -s false
++  sleep 1.5
++  shot; after=$(saturation 15 "$PANEL_Y")
++  awk -v a="$after" 'BEGIN { exit !(a > 0.3) }' && ok "al desactivarla vuelve el color" \
++    || fail "al desactivarla no volvió el color (saturación $after)"
++}
++
+ # ════════════════════════════════════════════════════════════════════════
+ # Principal
+ # ════════════════════════════════════════════════════════════════════════

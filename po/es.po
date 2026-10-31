@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.21\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.28\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
@@ -71,6 +71,28 @@ msgstr "Comportamiento"
 
 msgid "Move _inactive icons to the popup"
 msgstr "Mover los íconos _inactivos a la ventana emergente"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "Usar íconos sim_bólicos (si están disponibles)"
+
+msgid ""
+"Monochrome icons in the color of the panel text, in the panel and in the "
+"popup. Only for apps whose icon comes from the icon theme; the rest keep "
+"their own icon."
+msgstr ""
+"Íconos monocromos del color del texto del panel, en el panel y en la "
+"ventana emergente. Solo en apps cuyo ícono viene del tema de íconos; las "
+"demás conservan su ícono."
+
+msgid "Put _new apps in the popup"
+msgstr "Poner las apps _nuevas en la ventana emergente"
+
+msgid ""
+"Apps that appear for the first time start hidden. Apps already in the list "
+"are not changed."
+msgstr ""
+"Las apps que aparecen por primera vez empiezan ocultas. Las que ya están en "
+"la lista no cambian."
 
 msgid ""
 "Some apps mark their icon as inactive when there is nothing to report. Icons "
