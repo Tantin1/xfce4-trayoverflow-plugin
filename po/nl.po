@@ -1,0 +1,204 @@
+# Dutch translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Dutch\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Panel"
+msgstr "Paneel"
+
+msgid "_Automatic"
+msgstr "_Automatisch"
+
+msgid "Icon _size (px):"
+msgstr "Pictogram_grootte (px):"
+
+msgid "Icon s_pacing (px):"
+msgstr "_Tussenruimte (px):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "_Symbolische pictogrammen gebruiken (indien beschikbaar)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "Eenkleurige pictogrammen in de tekstkleur van het paneel, in het paneel en in het pop-upvenster. Alleen voor toepassingen waarvan het pictogram uit het pictogramthema komt; de rest houdt het eigen pictogram."
+
+msgid "Left"
+msgstr "Links"
+
+msgid "Right"
+msgstr "Rechts"
+
+msgid "Arro_w position:"
+msgstr "Positie van de _pijl:"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Ten opzichte van de zichtbare pictogrammen. In verticale panelen betekent links boven en rechts onder."
+
+msgid "Popup"
+msgstr "Pop-upvenster"
+
+msgid "Icon si_ze (px):"
+msgstr "Pictogram_grootte (px):"
+
+msgid "Icon spa_cing (px):"
+msgstr "T_ussenruimte (px):"
+
+msgid "C_olumns:"
+msgstr "_Kolommen:"
+
+msgid "From theme"
+msgstr "Van thema"
+
+msgid "Rounded"
+msgstr "Afgerond"
+
+msgid "Square"
+msgstr "Recht"
+
+msgid "Co_rners:"
+msgstr "_Hoeken:"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Zonder compositor zijn de hoeken altijd recht."
+
+msgid "Behavior"
+msgstr "Gedrag"
+
+msgid "Move _inactive icons to the popup"
+msgstr "_Inactieve pictogrammen naar het pop-upvenster verplaatsen"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "Sommige toepassingen markeren hun pictogram als inactief als er niets te melden is. Pictogrammen die u zelf in het paneel plaatst, blijven daar."
+
+msgid "(not running)"
+msgstr "(niet actief)"
+
+msgid "Choose an icon file"
+msgstr "Kies een pictogrambestand"
+
+msgid "_Open"
+msgstr "_Openen"
+
+msgid "_Cancel"
+msgstr "_Annuleren"
+
+msgid "Images"
+msgstr "Afbeeldingen"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "Pictogram voor %s"
+
+msgid "Use the app's _own icon"
+msgstr "_Eigen pictogram van de toepassing gebruiken"
+
+msgid "_OK"
+msgstr "_OK"
+
+msgid "Suggested icons from your theme:"
+msgstr "Voorgestelde pictogrammen uit uw thema:"
+
+msgid "No matching icons in your theme."
+msgstr "Geen passende pictogrammen in uw thema."
+
+msgid "Icon _name or file:"
+msgstr "Pictogram_naam of bestand:"
+
+msgid "Choose _File…"
+msgstr "_Bestand kiezen…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "Zolang er een eigen pictogram is ingesteld, worden wijzigingen in het pictogram van de toepassing (bijvoorbeeld een melding) niet getoond."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "Oudere toepassingen die het klassieke systeemvak (XEmbed) gebruiken, worden hier getoond, samen met de andere."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "Er is een ander klassiek systeemvak actief (bijvoorbeeld de ingebouwde systeemvak-plug-in), dus oudere toepassingen worden daar getoond. Ze verhuizen hierheen zodra u die verwijdert."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "Ondersteuning voor oudere toepassingen kon niet starten. Voer %s --verbose uit in een terminal om te zien waarom."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "Oudere toepassingen hebben XWayland nodig, dat in deze sessie niet beschikbaar is."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "Er draait geen klassiek systeemvak: oudere toepassingen die XEmbed gebruiken, tonen geen pictogram. Schakel de optie hierboven in om ze hier te tonen."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "Er draait geen klassiek systeemvak: oudere toepassingen die XEmbed gebruiken, tonen geen pictogram. Voeg de ingebouwde systeemvak-plug-in aan het paneel toe om ze te zien."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "Oudere toepassingen die het klassieke systeemvak (XEmbed) gebruiken, worden door een ander systeemvak getoond, zoals de ingebouwde systeemvak-plug-in. Die toont ook moderne toepassingen: verberg ze in de eigenschappen ervan om ze niet dubbel te zien."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "Ook _oudere toepassingen tonen (klassiek XEmbed-systeemvak)"
+
+msgid "This build does not include support for older apps"
+msgstr "Deze versie bevat geen ondersteuning voor oudere toepassingen"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "Sleep pictogrammen tussen het paneel en het pop-upvenster, of kies hier welke verborgen zijn. Toepassingen die niet actief zijn, worden onthouden, zodat u ze vooraf kunt verbergen."
+
+msgid "Hidden"
+msgstr "Verborgen"
+
+msgid "App"
+msgstr "Toepassing"
+
+msgid "Move up"
+msgstr "Omhoog"
+
+msgid "Move down"
+msgstr "Omlaag"
+
+msgid "_Forget"
+msgstr "_Vergeten"
+
+msgid "Remove an app that is not running from the list"
+msgstr "Een toepassing die niet actief is uit de lijst verwijderen"
+
+msgid "Ic_on…"
+msgstr "Pi_ctogram…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Een ander pictogram kiezen voor de geselecteerde toepassing"
+
+msgid "Put _new apps in the popup"
+msgstr "_Nieuwe toepassingen in het pop-upvenster plaatsen"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "Toepassingen die voor het eerst verschijnen, beginnen verborgen. Toepassingen die al in de lijst staan, veranderen niet."
+
+msgid "Tray Overflow"
+msgstr "Systeemvak met overloop"
+
+msgid "_Close"
+msgstr "_Sluiten"
+
+msgid "A_ppearance"
+msgstr "_Uiterlijk"
+
+msgid "_Items"
+msgstr "_Items"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "Systeemvak met een pop-upvenster voor verborgen pictogrammen"
+
+msgid "Show hidden icons"
+msgstr "Verborgen pictogrammen tonen"
+
+msgid "Drop icons here to hide them"
+msgstr "Sleep pictogrammen hierheen om ze te verbergen"

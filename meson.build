@@ -1,7 +1,7 @@
 project(
   'xfce4-trayoverflow-plugin',
   'c',
-  version: '0.2.28',
+  version: '0.2.29',
   license: 'GPL-2.0-or-later',
   meson_version: '>= 0.56.0',
   default_options: [

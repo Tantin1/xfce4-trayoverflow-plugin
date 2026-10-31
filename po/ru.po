@@ -1,0 +1,204 @@
+# Russian translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Russian\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgid "Panel"
+msgstr "Панель"
+
+msgid "_Automatic"
+msgstr "_Автоматически"
+
+msgid "Icon _size (px):"
+msgstr "_Размер значков (пикс.):"
+
+msgid "Icon s_pacing (px):"
+msgstr "_Отступ между значками (пикс.):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "Использовать _символьные значки (если есть)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "Одноцветные значки цвета текста панели — на панели и во всплывающем окне. Только для приложений, чей значок берётся из темы значков; остальные сохраняют свой значок."
+
+msgid "Left"
+msgstr "Слева"
+
+msgid "Right"
+msgstr "Справа"
+
+msgid "Arro_w position:"
+msgstr "Положение _стрелки:"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Относительно видимых значков. На вертикальных панелях «слева» означает сверху, а «справа» — снизу."
+
+msgid "Popup"
+msgstr "Всплывающее окно"
+
+msgid "Icon si_ze (px):"
+msgstr "Ра_змер значков (пикс.):"
+
+msgid "Icon spa_cing (px):"
+msgstr "От_ступ между значками (пикс.):"
+
+msgid "C_olumns:"
+msgstr "_Столбцы:"
+
+msgid "From theme"
+msgstr "Из темы"
+
+msgid "Rounded"
+msgstr "Скруглённые"
+
+msgid "Square"
+msgstr "Прямые"
+
+msgid "Co_rners:"
+msgstr "_Углы:"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Без композитора углы всегда прямые."
+
+msgid "Behavior"
+msgstr "Поведение"
+
+msgid "Move _inactive icons to the popup"
+msgstr "Перемещать _неактивные значки во всплывающее окно"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "Некоторые приложения помечают свой значок как неактивный, когда сообщать нечего. Значки, которые вы сами разместили на панели, остаются там."
+
+msgid "(not running)"
+msgstr "(не запущено)"
+
+msgid "Choose an icon file"
+msgstr "Выберите файл значка"
+
+msgid "_Open"
+msgstr "_Открыть"
+
+msgid "_Cancel"
+msgstr "О_тмена"
+
+msgid "Images"
+msgstr "Изображения"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "Значок для %s"
+
+msgid "Use the app's _own icon"
+msgstr "Использовать _собственный значок приложения"
+
+msgid "_OK"
+msgstr "_OK"
+
+msgid "Suggested icons from your theme:"
+msgstr "Подходящие значки из вашей темы:"
+
+msgid "No matching icons in your theme."
+msgstr "В вашей теме нет похожих значков."
+
+msgid "Icon _name or file:"
+msgstr "_Имя значка или файл:"
+
+msgid "Choose _File…"
+msgstr "Выбрать _файл…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "Пока задан свой значок, изменения собственного значка приложения (например, уведомление) не показываются."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "Старые приложения, использующие классический лоток (XEmbed), показываются здесь вместе с остальными."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "Активен другой классический лоток (например, встроенный модуль области уведомлений), поэтому старые приложения показываются там. Они перейдут сюда, как только вы его уберёте."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "Не удалось запустить поддержку старых приложений. Чтобы узнать причину, выполните %s --verbose в терминале."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "Старым приложениям нужен XWayland, который недоступен в этом сеансе."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "Классический лоток не запущен: старые приложения, использующие XEmbed, не покажут значок. Включите параметр выше, чтобы показывать их здесь."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "Классический лоток не запущен: старые приложения, использующие XEmbed, не покажут значок. Добавьте на панель встроенный модуль области уведомлений, чтобы видеть их."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "Старые приложения, использующие классический лоток (XEmbed), показываются другим лотком, например встроенным модулем области уведомлений. Он показывает и современные приложения: чтобы не видеть их дважды, скройте их в его свойствах."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "Показывать также _старые приложения (классический лоток XEmbed)"
+
+msgid "This build does not include support for older apps"
+msgstr "Эта сборка не поддерживает старые приложения"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "Перетаскивайте значки между панелью и всплывающим окном или выберите здесь, какие скрыть. Незапущенные приложения запоминаются, поэтому их можно скрыть заранее."
+
+msgid "Hidden"
+msgstr "Скрыт"
+
+msgid "App"
+msgstr "Приложение"
+
+msgid "Move up"
+msgstr "Вверх"
+
+msgid "Move down"
+msgstr "Вниз"
+
+msgid "_Forget"
+msgstr "_Забыть"
+
+msgid "Remove an app that is not running from the list"
+msgstr "Удалить из списка незапущенное приложение"
+
+msgid "Ic_on…"
+msgstr "З_начок…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Выбрать другой значок для выбранного приложения"
+
+msgid "Put _new apps in the popup"
+msgstr "Помещать _новые приложения во всплывающее окно"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "Приложения, появившиеся впервые, сразу скрыты. Приложения, уже находящиеся в списке, не меняются."
+
+msgid "Tray Overflow"
+msgstr "Лоток со скрытыми значками"
+
+msgid "_Close"
+msgstr "_Закрыть"
+
+msgid "A_ppearance"
+msgstr "_Внешний вид"
+
+msgid "_Items"
+msgstr "_Элементы"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "Область уведомлений со всплывающим окном для скрытых значков"
+
+msgid "Show hidden icons"
+msgstr "Показать скрытые значки"
+
+msgid "Drop icons here to hide them"
+msgstr "Перетащите сюда значки, чтобы скрыть их"

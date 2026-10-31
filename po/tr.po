@@ -1,0 +1,204 @@
+# Turkish translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Turkish\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Panel"
+msgstr "Panel"
+
+msgid "_Automatic"
+msgstr "_Otomatik"
+
+msgid "Icon _size (px):"
+msgstr "Simge _boyutu (px):"
+
+msgid "Icon s_pacing (px):"
+msgstr "Simge _aralığı (px):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "Sem_bolik simgeler kullan (varsa)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "Panel metninin renginde tek renkli simgeler; panelde ve açılır pencerede. Yalnızca simgesi simge temasından gelen uygulamalar için; diğerleri kendi simgesini korur."
+
+msgid "Left"
+msgstr "Sol"
+
+msgid "Right"
+msgstr "Sağ"
+
+msgid "Arro_w position:"
+msgstr "_Okun konumu:"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Görünür simgelere göre. Dikey panellerde sol üst, sağ ise alt anlamına gelir."
+
+msgid "Popup"
+msgstr "Açılır pencere"
+
+msgid "Icon si_ze (px):"
+msgstr "Simge b_oyutu (px):"
+
+msgid "Icon spa_cing (px):"
+msgstr "Simge ar_alığı (px):"
+
+msgid "C_olumns:"
+msgstr "_Sütunlar:"
+
+msgid "From theme"
+msgstr "Temadan"
+
+msgid "Rounded"
+msgstr "Yuvarlak"
+
+msgid "Square"
+msgstr "Köşeli"
+
+msgid "Co_rners:"
+msgstr "_Köşeler:"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
+
+msgid "Behavior"
+msgstr "Davranış"
+
+msgid "Move _inactive icons to the popup"
+msgstr "_Etkin olmayan simgeleri açılır pencereye taşı"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "Bazı uygulamalar bildirecek bir şey olmadığında simgelerini etkin değil olarak işaretler. Panele kendiniz yerleştirdiğiniz simgeler orada kalır."
+
+msgid "(not running)"
+msgstr "(çalışmıyor)"
+
+msgid "Choose an icon file"
+msgstr "Bir simge dosyası seçin"
+
+msgid "_Open"
+msgstr "_Aç"
+
+msgid "_Cancel"
+msgstr "İ_ptal"
+
+msgid "Images"
+msgstr "Resimler"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "%s için simge"
+
+msgid "Use the app's _own icon"
+msgstr "Uygulamanın _kendi simgesini kullan"
+
+msgid "_OK"
+msgstr "_Tamam"
+
+msgid "Suggested icons from your theme:"
+msgstr "Temanızdan önerilen simgeler:"
+
+msgid "No matching icons in your theme."
+msgstr "Temanızda benzer simge yok."
+
+msgid "Icon _name or file:"
+msgstr "Simge _adı veya dosya:"
+
+msgid "Choose _File…"
+msgstr "_Dosya seç…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "Özel bir simge ayarlıyken, uygulamanın kendi simgesindeki değişiklikler (örneğin bir uyarı) gösterilmez."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "Klasik tepsiyi (XEmbed) kullanan eski uygulamalar burada, diğerleriyle birlikte gösterilir."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "Başka bir klasik tepsi etkin (örneğin yerleşik durum tepsisi eklentisi), bu yüzden eski uygulamalar orada gösteriliyor. Onu kaldırdığınızda buraya geçecekler."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "Eski uygulama desteği başlatılamadı. Nedenini görmek için bir uçbirimde %s --verbose komutunu çalıştırın."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "Eski uygulamalar XWayland gerektirir; bu oturumda XWayland kullanılamıyor."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "Çalışan klasik tepsi yok: XEmbed kullanan eski uygulamalar simge göstermeyecek. Onları burada göstermek için yukarıdaki seçeneği etkinleştirin."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "Çalışan klasik tepsi yok: XEmbed kullanan eski uygulamalar simge göstermeyecek. Onları görmek için panele yerleşik durum tepsisi eklentisini ekleyin."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "Klasik tepsiyi (XEmbed) kullanan eski uygulamalar, yerleşik durum tepsisi eklentisi gibi başka bir tepside gösteriliyor. O tepsi modern uygulamaları da gösterir: onları iki kez görmemek için özelliklerinden gizleyin."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "_Eski uygulamaları da göster (klasik XEmbed tepsisi)"
+
+msgid "This build does not include support for older apps"
+msgstr "Bu derleme eski uygulama desteği içermiyor"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "Simgeleri panel ile açılır pencere arasında sürükleyin veya hangilerinin gizli olacağını burada seçin. Çalışmayan uygulamalar hatırlanır, böylece onları önceden gizleyebilirsiniz."
+
+msgid "Hidden"
+msgstr "Gizli"
+
+msgid "App"
+msgstr "Uygulama"
+
+msgid "Move up"
+msgstr "Yukarı taşı"
+
+msgid "Move down"
+msgstr "Aşağı taşı"
+
+msgid "_Forget"
+msgstr "_Unut"
+
+msgid "Remove an app that is not running from the list"
+msgstr "Çalışmayan bir uygulamayı listeden kaldır"
+
+msgid "Ic_on…"
+msgstr "Si_mge…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Seçili uygulama için farklı bir simge seçin"
+
+msgid "Put _new apps in the popup"
+msgstr "_Yeni uygulamaları açılır pencereye koy"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "İlk kez görünen uygulamalar gizli başlar. Listede zaten olan uygulamalar değişmez."
+
+msgid "Tray Overflow"
+msgstr "Taşma alanlı tepsi"
+
+msgid "_Close"
+msgstr "_Kapat"
+
+msgid "A_ppearance"
+msgstr "_Görünüm"
+
+msgid "_Items"
+msgstr "Ö_ğeler"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "Gizli simgeler için açılır pencereli bildirim alanı"
+
+msgid "Show hidden icons"
+msgstr "Gizli simgeleri göster"
+
+msgid "Drop icons here to hide them"
+msgstr "Gizlemek için simgeleri buraya bırakın"

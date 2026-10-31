@@ -1,0 +1,204 @@
+# Japanese translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Panel"
+msgstr "パネル"
+
+msgid "_Automatic"
+msgstr "自動(_A)"
+
+msgid "Icon _size (px):"
+msgstr "アイコンサイズ (px)(_S):"
+
+msgid "Icon s_pacing (px):"
+msgstr "アイコンの間隔 (px)(_P):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "シンボリックアイコンを使う (利用可能な場合)(_B)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "パネルの文字色の単色アイコンを、パネルとポップアップで使います。アイコンテーマからアイコンを取得するアプリのみが対象で、それ以外のアプリは独自のアイコンのままです。"
+
+msgid "Left"
+msgstr "左"
+
+msgid "Right"
+msgstr "右"
+
+msgid "Arro_w position:"
+msgstr "矢印の位置(_W):"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "表示されているアイコンに対する位置です。縦置きのパネルでは、左は上、右は下を意味します。"
+
+msgid "Popup"
+msgstr "ポップアップ"
+
+msgid "Icon si_ze (px):"
+msgstr "アイコンサイズ (px)(_Z):"
+
+msgid "Icon spa_cing (px):"
+msgstr "アイコンの間隔 (px)(_C):"
+
+msgid "C_olumns:"
+msgstr "列数(_O):"
+
+msgid "From theme"
+msgstr "テーマに従う"
+
+msgid "Rounded"
+msgstr "丸い"
+
+msgid "Square"
+msgstr "四角い"
+
+msgid "Co_rners:"
+msgstr "角(_R):"
+
+msgid "Without a compositor, corners are always square."
+msgstr "コンポジターがない場合、角は常に四角になります。"
+
+msgid "Behavior"
+msgstr "動作"
+
+msgid "Move _inactive icons to the popup"
+msgstr "非アクティブなアイコンをポップアップに移動する(_I)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。自分でパネルに置いたアイコンはそのまま残ります。"
+
+msgid "(not running)"
+msgstr "(実行されていません)"
+
+msgid "Choose an icon file"
+msgstr "アイコンファイルを選択"
+
+msgid "_Open"
+msgstr "開く(_O)"
+
+msgid "_Cancel"
+msgstr "キャンセル(_C)"
+
+msgid "Images"
+msgstr "画像"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "%s のアイコン"
+
+msgid "Use the app's _own icon"
+msgstr "アプリ独自のアイコンを使う(_O)"
+
+msgid "_OK"
+msgstr "OK(_O)"
+
+msgid "Suggested icons from your theme:"
+msgstr "テーマからのおすすめアイコン:"
+
+msgid "No matching icons in your theme."
+msgstr "テーマに一致するアイコンがありません。"
+
+msgid "Icon _name or file:"
+msgstr "アイコン名またはファイル(_N):"
+
+msgid "Choose _File…"
+msgstr "ファイルを選択(_F)…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "カスタムアイコンを設定している間は、アプリ独自のアイコンの変化 (通知など) は表示されません。"
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "クラシックトレイ (XEmbed) を使う古いアプリも、ほかのアプリと一緒にここに表示されます。"
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "別のクラシックトレイが有効になっているため (たとえば標準のステータストレイプラグイン)、古いアプリはそちらに表示されています。そのトレイを削除すると、こちらに移ります。"
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "古いアプリのサポートを開始できませんでした。原因を確認するには、端末で %s --verbose を実行してください。"
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "古いアプリには XWayland が必要ですが、このセッションでは利用できません。"
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "クラシックトレイが動作していないため、XEmbed を使う古いアプリはアイコンを表示しません。ここに表示するには、上のオプションを有効にしてください。"
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "クラシックトレイが動作していないため、XEmbed を使う古いアプリはアイコンを表示しません。表示するには、標準のステータストレイプラグインをパネルに追加してください。"
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "クラシックトレイ (XEmbed) を使う古いアプリは、標準のステータストレイプラグインなど、別のトレイに表示されています。そのトレイには最新のアプリも表示されるため、二重に表示されないよう、そのプロパティで非表示にしてください。"
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "古いアプリも表示する (クラシック XEmbed トレイ)(_O)"
+
+msgid "This build does not include support for older apps"
+msgstr "このビルドには古いアプリのサポートが含まれていません"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "アイコンをパネルとポップアップの間でドラッグするか、ここで非表示にするアイコンを選んでください。実行していないアプリも記憶されるので、前もって非表示にできます。"
+
+msgid "Hidden"
+msgstr "非表示"
+
+msgid "App"
+msgstr "アプリ"
+
+msgid "Move up"
+msgstr "上へ"
+
+msgid "Move down"
+msgstr "下へ"
+
+msgid "_Forget"
+msgstr "削除(_F)"
+
+msgid "Remove an app that is not running from the list"
+msgstr "実行していないアプリを一覧から削除します"
+
+msgid "Ic_on…"
+msgstr "アイコン(_O)…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "選択したアプリに別のアイコンを選びます"
+
+msgid "Put _new apps in the popup"
+msgstr "新しいアプリをポップアップに入れる(_N)"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "初めて表示されるアプリは非表示から始まります。一覧にあるアプリは変わりません。"
+
+msgid "Tray Overflow"
+msgstr "オーバーフロー付きトレイ"
+
+msgid "_Close"
+msgstr "閉じる(_C)"
+
+msgid "A_ppearance"
+msgstr "外観(_P)"
+
+msgid "_Items"
+msgstr "項目(_I)"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "非表示のアイコン用のポップアップ付き通知領域"
+
+msgid "Show hidden icons"
+msgstr "非表示のアイコンを表示"
+
+msgid "Drop icons here to hide them"
+msgstr "ここにアイコンをドロップすると非表示になります"

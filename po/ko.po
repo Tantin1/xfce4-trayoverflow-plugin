@@ -1,0 +1,204 @@
+# Korean translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Korean\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Panel"
+msgstr "패널"
+
+msgid "_Automatic"
+msgstr "자동(_A)"
+
+msgid "Icon _size (px):"
+msgstr "아이콘 크기(px)(_S):"
+
+msgid "Icon s_pacing (px):"
+msgstr "아이콘 간격(px)(_P):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "심볼릭 아이콘 사용(가능한 경우)(_B)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "패널 글자색의 단색 아이콘을 패널과 팝업에 사용합니다. 아이콘 테마에서 아이콘을 가져오는 앱에만 적용되며, 나머지 앱은 자체 아이콘을 유지합니다."
+
+msgid "Left"
+msgstr "왼쪽"
+
+msgid "Right"
+msgstr "오른쪽"
+
+msgid "Arro_w position:"
+msgstr "화살표 위치(_W):"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "보이는 아이콘을 기준으로 합니다. 세로 패널에서는 왼쪽이 위, 오른쪽이 아래를 뜻합니다."
+
+msgid "Popup"
+msgstr "팝업"
+
+msgid "Icon si_ze (px):"
+msgstr "아이콘 크기(px)(_Z):"
+
+msgid "Icon spa_cing (px):"
+msgstr "아이콘 간격(px)(_C):"
+
+msgid "C_olumns:"
+msgstr "열 수(_O):"
+
+msgid "From theme"
+msgstr "테마 따르기"
+
+msgid "Rounded"
+msgstr "둥글게"
+
+msgid "Square"
+msgstr "각지게"
+
+msgid "Co_rners:"
+msgstr "모서리(_R):"
+
+msgid "Without a compositor, corners are always square."
+msgstr "컴포지터가 없으면 모서리는 항상 각집니다."
+
+msgid "Behavior"
+msgstr "동작"
+
+msgid "Move _inactive icons to the popup"
+msgstr "비활성 아이콘을 팝업으로 이동(_I)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "일부 앱은 알릴 것이 없을 때 아이콘을 비활성으로 표시합니다. 직접 패널에 둔 아이콘은 그대로 남습니다."
+
+msgid "(not running)"
+msgstr "(실행 중 아님)"
+
+msgid "Choose an icon file"
+msgstr "아이콘 파일 선택"
+
+msgid "_Open"
+msgstr "열기(_O)"
+
+msgid "_Cancel"
+msgstr "취소(_C)"
+
+msgid "Images"
+msgstr "이미지"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "%s 아이콘"
+
+msgid "Use the app's _own icon"
+msgstr "앱 자체 아이콘 사용(_O)"
+
+msgid "_OK"
+msgstr "확인(_O)"
+
+msgid "Suggested icons from your theme:"
+msgstr "테마에서 추천하는 아이콘:"
+
+msgid "No matching icons in your theme."
+msgstr "테마에 비슷한 아이콘이 없습니다."
+
+msgid "Icon _name or file:"
+msgstr "아이콘 이름 또는 파일(_N):"
+
+msgid "Choose _File…"
+msgstr "파일 선택(_F)…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "사용자 지정 아이콘을 쓰는 동안에는 앱 자체 아이콘의 변화(예: 알림)가 표시되지 않습니다."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "클래식 트레이(XEmbed)를 쓰는 오래된 앱도 다른 앱과 함께 여기에 표시됩니다."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "다른 클래식 트레이가 활성화되어 있어(예: 기본 상태 트레이 플러그인) 오래된 앱이 그곳에 표시됩니다. 그 트레이를 제거하면 이곳으로 옮겨집니다."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "오래된 앱 지원을 시작할 수 없습니다. 원인을 보려면 터미널에서 %s --verbose 를 실행하세요."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "오래된 앱에는 XWayland가 필요하지만 이 세션에서는 사용할 수 없습니다."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "실행 중인 클래식 트레이가 없습니다. XEmbed를 쓰는 오래된 앱은 아이콘을 표시하지 않습니다. 여기에 표시하려면 위 옵션을 켜세요."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "실행 중인 클래식 트레이가 없습니다. XEmbed를 쓰는 오래된 앱은 아이콘을 표시하지 않습니다. 보려면 패널에 기본 상태 트레이 플러그인을 추가하세요."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "클래식 트레이(XEmbed)를 쓰는 오래된 앱은 기본 상태 트레이 플러그인 같은 다른 트레이에 표시됩니다. 그 트레이는 최신 앱도 표시하므로, 두 번 보이지 않게 해당 속성에서 숨기세요."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "오래된 앱도 표시(클래식 XEmbed 트레이)(_O)"
+
+msgid "This build does not include support for older apps"
+msgstr "이 빌드에는 오래된 앱 지원이 포함되어 있지 않습니다"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "아이콘을 패널과 팝업 사이로 끌어 옮기거나, 여기에서 숨길 아이콘을 고르세요. 실행 중이 아닌 앱도 기억되므로 미리 숨길 수 있습니다."
+
+msgid "Hidden"
+msgstr "숨김"
+
+msgid "App"
+msgstr "앱"
+
+msgid "Move up"
+msgstr "위로"
+
+msgid "Move down"
+msgstr "아래로"
+
+msgid "_Forget"
+msgstr "잊기(_F)"
+
+msgid "Remove an app that is not running from the list"
+msgstr "실행 중이 아닌 앱을 목록에서 제거"
+
+msgid "Ic_on…"
+msgstr "아이콘(_O)…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "선택한 앱에 다른 아이콘을 고릅니다"
+
+msgid "Put _new apps in the popup"
+msgstr "새 앱을 팝업에 넣기(_N)"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "처음 나타나는 앱은 숨겨진 상태로 시작합니다. 이미 목록에 있는 앱은 바뀌지 않습니다."
+
+msgid "Tray Overflow"
+msgstr "오버플로 트레이"
+
+msgid "_Close"
+msgstr "닫기(_C)"
+
+msgid "A_ppearance"
+msgstr "모양(_P)"
+
+msgid "_Items"
+msgstr "항목(_I)"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "숨겨진 아이콘용 팝업이 있는 알림 영역"
+
+msgid "Show hidden icons"
+msgstr "숨겨진 아이콘 표시"
+
+msgid "Drop icons here to hide them"
+msgstr "숨기려면 아이콘을 여기에 놓으세요"

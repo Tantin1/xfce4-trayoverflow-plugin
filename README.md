@@ -36,7 +36,7 @@ Windows 10/11.
 - **Otro ícono para cualquier app**: del tema de íconos o de un archivo.
 - **Arreglos incluidos** para apps cuyo ícono se ve mal (por ejemplo
   JDownloader o Clipman): se usa el de tu tema sin hacer nada.
-- Traducción al español incluida.
+- Traducido a alemán, chino (simplificado), coreano, español, francés, holandés, italiano, japonés, polaco, portugués (Brasil), ruso y turco; en inglés por defecto. Las traducciones (salvo el español) son automáticas: correcciones bienvenidas en `po/`.
 
 ## Requisitos
 

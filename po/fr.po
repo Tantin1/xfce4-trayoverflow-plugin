@@ -1,0 +1,204 @@
+# French translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Panel"
+msgstr "Tableau de bord"
+
+msgid "_Automatic"
+msgstr "_Automatique"
+
+msgid "Icon _size (px):"
+msgstr "_Taille des icônes (px) :"
+
+msgid "Icon s_pacing (px):"
+msgstr "_Espacement des icônes (px) :"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "Utiliser des icônes sym_boliques (si disponibles)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "Icônes monochromes de la couleur du texte du tableau de bord, dans le tableau de bord et dans la fenêtre surgissante. Uniquement pour les applications dont l'icône vient du thème d'icônes ; les autres gardent leur propre icône."
+
+msgid "Left"
+msgstr "Gauche"
+
+msgid "Right"
+msgstr "Droite"
+
+msgid "Arro_w position:"
+msgstr "Position de la _flèche :"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Par rapport aux icônes visibles. Dans les tableaux de bord verticaux, gauche signifie haut et droite signifie bas."
+
+msgid "Popup"
+msgstr "Fenêtre surgissante"
+
+msgid "Icon si_ze (px):"
+msgstr "Ta_ille des icônes (px) :"
+
+msgid "Icon spa_cing (px):"
+msgstr "Espa_cement des icônes (px) :"
+
+msgid "C_olumns:"
+msgstr "C_olonnes :"
+
+msgid "From theme"
+msgstr "Du thème"
+
+msgid "Rounded"
+msgstr "Arrondis"
+
+msgid "Square"
+msgstr "Carrés"
+
+msgid "Co_rners:"
+msgstr "Coi_ns :"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Sans compositeur, les coins sont toujours carrés."
+
+msgid "Behavior"
+msgstr "Comportement"
+
+msgid "Move _inactive icons to the popup"
+msgstr "Déplacer les icônes i_nactives dans la fenêtre surgissante"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "Certaines applications marquent leur icône comme inactive quand elles n'ont rien à signaler. Les icônes que vous placez vous-même dans le tableau de bord y restent."
+
+msgid "(not running)"
+msgstr "(non lancée)"
+
+msgid "Choose an icon file"
+msgstr "Choisir un fichier d'icône"
+
+msgid "_Open"
+msgstr "_Ouvrir"
+
+msgid "_Cancel"
+msgstr "_Annuler"
+
+msgid "Images"
+msgstr "Images"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "Icône de %s"
+
+msgid "Use the app's _own icon"
+msgstr "Utiliser l'icône _propre de l'application"
+
+msgid "_OK"
+msgstr "_Valider"
+
+msgid "Suggested icons from your theme:"
+msgstr "Icônes suggérées de votre thème :"
+
+msgid "No matching icons in your theme."
+msgstr "Aucune icône correspondante dans votre thème."
+
+msgid "Icon _name or file:"
+msgstr "_Nom de l'icône ou fichier :"
+
+msgid "Choose _File…"
+msgstr "Choisir un _fichier…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "Tant qu'une icône personnalisée est définie, les changements de l'icône propre de l'application (par exemple un avertissement) ne sont pas affichés."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "Les anciennes applications qui utilisent la zone de notification classique (XEmbed) sont affichées ici, avec les autres."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "Une autre zone de notification classique est active (par exemple le greffon natif de zone de notification), donc les anciennes applications y sont affichées. Elles passeront ici dès que vous la retirerez."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "La prise en charge des anciennes applications n'a pas pu démarrer. Pour en voir la raison, exécutez %s --verbose dans un terminal."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "Les anciennes applications ont besoin de XWayland, qui n'est pas disponible dans cette session."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "Aucune zone de notification classique n'est en cours d'exécution : les anciennes applications qui utilisent XEmbed n'afficheront pas d'icône. Activez l'option ci-dessus pour les afficher ici."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "Aucune zone de notification classique n'est en cours d'exécution : les anciennes applications qui utilisent XEmbed n'afficheront pas d'icône. Ajoutez le greffon natif de zone de notification au tableau de bord pour les voir."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "Les anciennes applications qui utilisent la zone de notification classique (XEmbed) sont affichées par une autre zone, comme le greffon natif de zone de notification. Celle-ci affiche aussi les applications modernes : pour ne pas les voir en double, masquez-les dans ses propriétés."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "Afficher aussi les a_nciennes applications (zone de notification XEmbed classique)"
+
+msgid "This build does not include support for older apps"
+msgstr "Cette version ne prend pas en charge les anciennes applications"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "Faites glisser les icônes entre le tableau de bord et la fenêtre surgissante, ou choisissez ici celles qui sont masquées. Les applications qui ne sont pas lancées sont mémorisées, vous pouvez donc les masquer à l'avance."
+
+msgid "Hidden"
+msgstr "Masquée"
+
+msgid "App"
+msgstr "Application"
+
+msgid "Move up"
+msgstr "Monter"
+
+msgid "Move down"
+msgstr "Descendre"
+
+msgid "_Forget"
+msgstr "_Oublier"
+
+msgid "Remove an app that is not running from the list"
+msgstr "Retirer de la liste une application qui n'est pas lancée"
+
+msgid "Ic_on…"
+msgstr "Ic_ône…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Choisir une autre icône pour l'application sélectionnée"
+
+msgid "Put _new apps in the popup"
+msgstr "Mettre les _nouvelles applications dans la fenêtre surgissante"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "Les applications qui apparaissent pour la première fois sont d'abord masquées. Celles déjà dans la liste ne changent pas."
+
+msgid "Tray Overflow"
+msgstr "Zone de notification avec débordement"
+
+msgid "_Close"
+msgstr "_Fermer"
+
+msgid "A_ppearance"
+msgstr "A_pparence"
+
+msgid "_Items"
+msgstr "_Éléments"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "Zone de notification avec une fenêtre surgissante pour les icônes masquées"
+
+msgid "Show hidden icons"
+msgstr "Afficher les icônes masquées"
+
+msgid "Drop icons here to hide them"
+msgstr "Déposez des icônes ici pour les masquer"

@@ -1,0 +1,204 @@
+# Polish translation for xfce4-trayoverflow-plugin.
+# Copyright (C) 2026 Juan Sebastian Perez
+# This file is distributed under the same license as the xfce4-trayoverflow-plugin package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: 2026-10-31 18:00-0300\n"
+"Last-Translator: Claude (traducción automática, revisar)\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgid "Panel"
+msgstr "Panel"
+
+msgid "_Automatic"
+msgstr "_Automatycznie"
+
+msgid "Icon _size (px):"
+msgstr "_Rozmiar ikon (px):"
+
+msgid "Icon s_pacing (px):"
+msgstr "_Odstęp między ikonami (px):"
+
+msgid "Use sym_bolic icons (if available)"
+msgstr "Używaj ikon sym_bolicznych (jeśli są dostępne)"
+
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr "Jednokolorowe ikony w kolorze tekstu panelu, w panelu i w okienku. Tylko dla programów, których ikona pochodzi z motywu ikon; pozostałe zachowują własną ikonę."
+
+msgid "Left"
+msgstr "Lewo"
+
+msgid "Right"
+msgstr "Prawo"
+
+msgid "Arro_w position:"
+msgstr "Położenie _strzałki:"
+
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr "Względem widocznych ikon. W panelach pionowych lewo oznacza górę, a prawo dół."
+
+msgid "Popup"
+msgstr "Okienko"
+
+msgid "Icon si_ze (px):"
+msgstr "Ro_zmiar ikon (px):"
+
+msgid "Icon spa_cing (px):"
+msgstr "Odstęp _między ikonami (px):"
+
+msgid "C_olumns:"
+msgstr "_Kolumny:"
+
+msgid "From theme"
+msgstr "Z motywu"
+
+msgid "Rounded"
+msgstr "Zaokrąglone"
+
+msgid "Square"
+msgstr "Proste"
+
+msgid "Co_rners:"
+msgstr "Ro_gi:"
+
+msgid "Without a compositor, corners are always square."
+msgstr "Bez menedżera kompozycji rogi są zawsze proste."
+
+msgid "Behavior"
+msgstr "Zachowanie"
+
+msgid "Move _inactive icons to the popup"
+msgstr "Przenoś _nieaktywne ikony do okienka"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr "Niektóre programy oznaczają swoją ikonę jako nieaktywną, gdy nie mają nic do zgłoszenia. Ikony, które sam umieścisz w panelu, zostają tam."
+
+msgid "(not running)"
+msgstr "(nie działa)"
+
+msgid "Choose an icon file"
+msgstr "Wybierz plik ikony"
+
+msgid "_Open"
+msgstr "_Otwórz"
+
+msgid "_Cancel"
+msgstr "_Anuluj"
+
+msgid "Images"
+msgstr "Obrazy"
+
+#, c-format
+msgid "Icon for %s"
+msgstr "Ikona dla %s"
+
+msgid "Use the app's _own icon"
+msgstr "Użyj _własnej ikony programu"
+
+msgid "_OK"
+msgstr "_OK"
+
+msgid "Suggested icons from your theme:"
+msgstr "Ikony z twojego motywu, które pasują:"
+
+msgid "No matching icons in your theme."
+msgstr "Brak pasujących ikon w twoim motywie."
+
+msgid "Icon _name or file:"
+msgstr "_Nazwa ikony lub plik:"
+
+msgid "Choose _File…"
+msgstr "Wybierz _plik…"
+
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr "Dopóki ustawiona jest własna ikona, zmiany ikony programu (na przykład powiadomienie) nie są pokazywane."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr "Starsze programy, które używają klasycznego zasobnika (XEmbed), są pokazywane tutaj, razem z pozostałymi."
+
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr "Aktywny jest inny klasyczny zasobnik (na przykład wbudowana wtyczka zasobnika systemowego), więc starsze programy są pokazywane tam. Przeniosą się tutaj, gdy go usuniesz."
+
+#, c-format
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr "Nie udało się uruchomić obsługi starszych programów. Aby zobaczyć przyczynę, uruchom %s --verbose w terminalu."
+
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr "Starsze programy wymagają XWayland, który nie jest dostępny w tej sesji."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr "Nie działa żaden klasyczny zasobnik: starsze programy, które używają XEmbed, nie pokażą ikony. Włącz opcję powyżej, aby pokazać je tutaj."
+
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr "Nie działa żaden klasyczny zasobnik: starsze programy, które używają XEmbed, nie pokażą ikony. Dodaj do panelu wbudowaną wtyczkę zasobnika systemowego, aby je zobaczyć."
+
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr "Starsze programy, które używają klasycznego zasobnika (XEmbed), są pokazywane przez inny zasobnik, na przykład wbudowaną wtyczkę zasobnika systemowego. Pokazuje on też nowoczesne programy: aby nie widzieć ich dwa razy, ukryj je w jego właściwościach."
+
+msgid "Also show _older apps (classic XEmbed tray)"
+msgstr "Pokazuj też _starsze programy (klasyczny zasobnik XEmbed)"
+
+msgid "This build does not include support for older apps"
+msgstr "Ta kompilacja nie obsługuje starszych programów"
+
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr "Przeciągaj ikony między panelem a okienkiem albo wybierz tutaj, które są ukryte. Programy, które nie działają, są zapamiętywane, więc możesz je ukryć z wyprzedzeniem."
+
+msgid "Hidden"
+msgstr "Ukryta"
+
+msgid "App"
+msgstr "Program"
+
+msgid "Move up"
+msgstr "W górę"
+
+msgid "Move down"
+msgstr "W dół"
+
+msgid "_Forget"
+msgstr "_Zapomnij"
+
+msgid "Remove an app that is not running from the list"
+msgstr "Usuń z listy program, który nie działa"
+
+msgid "Ic_on…"
+msgstr "I_kona…"
+
+msgid "Choose a different icon for the selected app"
+msgstr "Wybierz inną ikonę dla zaznaczonego programu"
+
+msgid "Put _new apps in the popup"
+msgstr "Umieszczaj _nowe programy w okienku"
+
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr "Programy, które pojawiają się po raz pierwszy, są na początku ukryte. Programy, które już są na liście, nie zmieniają się."
+
+msgid "Tray Overflow"
+msgstr "Zasobnik z przepełnieniem"
+
+msgid "_Close"
+msgstr "Za_mknij"
+
+msgid "A_ppearance"
+msgstr "_Wygląd"
+
+msgid "_Items"
+msgstr "_Elementy"
+
+msgid "Status notifier area with a popup for hidden icons"
+msgstr "Obszar powiadomień z okienkiem na ukryte ikony"
+
+msgid "Show hidden icons"
+msgstr "Pokaż ukryte ikony"
+
+msgid "Drop icons here to hide them"
+msgstr "Upuść tu ikony, aby je ukryć"
