@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "带有隐藏图标弹出窗口的通知区域"
 msgid "Show hidden icons"
 msgstr "显示隐藏的图标"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "请求关注：%s"
+
 msgid "Drop icons here to hide them"
 msgstr "将图标拖到这里即可隐藏"
+
+msgid "_Diagnostics"
+msgstr "诊断(_D)"
+
+msgid "C_opy"
+msgstr "复制(_O)"
+
+msgid "_Update"
+msgstr "刷新(_U)"
+
+msgid "Copied to the clipboard."
+msgstr "已复制到剪贴板。"
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "如果有功能不正常，请复制这些信息并附在您的报告中。除托盘中应用的名称外，其中不含个人数据。"
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "面板中只使用一行图标(_G)"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "即使面板有多行，也将所有图标放在一行（竖直面板中为一列）。大小为自动时，图标会占满面板的高度。"

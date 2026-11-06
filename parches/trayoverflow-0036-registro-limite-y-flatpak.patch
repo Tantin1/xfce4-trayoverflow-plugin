@@ -1,0 +1,273 @@
+diff --git a/README.md b/README.md
+index 8cfe4d6..adec713 100644
+--- a/README.md
++++ b/README.md
+@@ -259,8 +259,13 @@ Diferencias con X11:
+ 
+ Para reconocer una app entre reinicios se usa su ID; si es genérico (como
+ el de las apps Electron), el nombre de su ejecutable. En apps Flatpak el
+-ejecutable no es accesible y se usa el título; si una app cambia de título,
+-puede aparecer como una app nueva en la lista.
++ejecutable no es accesible y se usa el App ID de Flatpak (por ejemplo
++`com.discordapp.Discord`). Si tampoco se puede leer, se usa el título; si
++la app cambia de título, puede aparecer como una app nueva en la lista.
++
++Desde la versión 0.2.34, las apps Flatpak que antes se reconocían por el
++título pasan a reconocerse por el App ID: la primera vez aparecen como
++nuevas y hay que volver a ocultarlas si estaban ocultas.
+ 
+ ## Diagnóstico
+ 
+diff --git a/meson.build b/meson.build
+index 5c12a53..734366d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.33',
++  version: '0.2.34',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 6a32345..4156ca6 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.33\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.34\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 8c0b9b4..429bf7c 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -439,6 +439,28 @@ tray_plugin_schedule_relayout (TrayPlugin *p)
+ /* Nombre de ícono para el registro de apps conocidas. Si la app solo
+  * envía píxeles (Electron, muchas apps Qt), guardamos una copia en la
+  * caché para poder mostrarla en el diálogo aunque la app esté cerrada. */
++/* ¿Hay una app abierta con esta clave? (límite del registro) */
++static gboolean
++key_is_running (const gchar *key,
++                gpointer     user_data)
++{
++  TrayPlugin *p = user_data;
++  GPtrArray *items;
++  guint i;
++
++  if (p->model == NULL)
++    return FALSE;
++
++  items = tray_model_get_items (p->model);
++  for (i = 0; i < items->len; i++)
++    if (g_strcmp0 (tray_item_get_key (g_ptr_array_index (items, i)), key) == 0)
++      return TRUE;
++
++  return FALSE;
++}
++
++
++
+ static gchar *
+ item_icon_for_registry (TrayPlugin *p,
+                         TrayItem   *item,
+@@ -801,6 +823,7 @@ plugin_free (XfcePanelPlugin *panel_plugin,
+   g_clear_object (&p->corners_css);
+ 
+   g_object_unref (p->model);
++  tray_settings_set_running_func (p->settings, NULL, NULL);
+   g_object_unref (p->settings);
+ 
+   gtk_style_context_remove_provider_for_screen (gdk_screen_get_default (),
+@@ -832,6 +855,7 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+   p = g_new0 (TrayPlugin, 1);
+   p->panel_plugin = panel_plugin;
+   p->settings = tray_settings_new (panel_plugin);
++  tray_settings_set_running_func (p->settings, key_is_running, p);
+   p->buttons = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, button_value_free);
+   p->panel_order = g_ptr_array_new ();
+   p->popup_order = g_ptr_array_new ();
+diff --git a/src/to-settings.c b/src/to-settings.c
+index db12bba..58b9250 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -58,6 +58,9 @@ struct _TraySettings
+ 
+   gulong         property_changed_id;
+   guint          reload_id;   /* releer xfconf tras un cambio desde afuera */
++
++  TraySettingsRunningFunc running_func;  /* ¿la app está abierta ahora? */
++  gpointer       running_data;
+ };
+ 
+ G_DEFINE_TYPE (TraySettings, tray_settings, G_TYPE_OBJECT)
+@@ -944,6 +947,73 @@ tray_settings_get_index (TraySettings *s,
+ 
+ 
+ 
++/* ¿Se puede descartar esta app del registro sin perder nada que el
++ * usuario haya decidido? Nunca una app abierta ni una con ícono elegido.
++ * @policy_hidden: aceptar también las ocultas, si "apps nuevas en el
++ * popup" está activado. Eso no pierde la elección: si la app vuelve,
++ * la misma opción la oculta otra vez. Sin esto, con la opción activada
++ * todas las apps tienen preferencia y el límite nunca se aplicaba. */
++static gboolean
++known_can_evict (TraySettings *s,
++                 TrayKnown    *k,
++                 gboolean      policy_hidden)
++{
++  if (g_hash_table_contains (s->visible, k->key)
++      || g_hash_table_contains (s->icons, k->key))
++    return FALSE;
++
++  if (g_hash_table_contains (s->hidden, k->key)
++      && !(policy_hidden && s->new_in_popup))
++    return FALSE;
++
++  if (s->running_func != NULL && s->running_func (k->key, s->running_data))
++    return FALSE;
++
++  return TRUE;
++}
++
++
++
++/* Límite para que el registro no crezca sin fin: se descarta la más
++ * antigua sin preferencia guardada; si no hay ninguna, la más antigua
++ * oculta solo por la opción "apps nuevas en el popup". La recién
++ * agregada (la última) nunca se descarta. */
++static void
++known_evict_one (TraySettings *s)
++{
++  gint pass;
++  guint i;
++
++  for (pass = 0; pass < 2; pass++)
++    for (i = 0; i + 1 < s->known->len; i++)
++      {
++        TrayKnown *old = g_ptr_array_index (s->known, i);
++
++        if (known_can_evict (s, old, pass == 1))
++          {
++            g_hash_table_remove (s->hidden, old->key);
++            known_unlink_cached_icon (old);
++            g_ptr_array_remove_index (s->known, i);
++            return;
++          }
++      }
++}
++
++
++
++void
++tray_settings_set_running_func (TraySettings            *s,
++                                TraySettingsRunningFunc  func,
++                                gpointer                 data)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  s->running_func = func;
++  s->running_data = data;
++}
++
++
++
+ gboolean
+ tray_settings_remember (TraySettings *s,
+                         const gchar  *key,
+@@ -997,24 +1067,8 @@ tray_settings_remember (TraySettings *s,
+   k->icon_name = g_strdup (icon_name);
+   g_ptr_array_add (s->known, k);
+ 
+-  /* Límite para que el registro no crezca sin fin: se descarta la más
+-   * antigua que no tenga una preferencia guardada */
+   if (s->known->len > MAX_KNOWN)
+-    {
+-      guint i;
+-
+-      for (i = 0; i < s->known->len - 1; i++)
+-        {
+-          TrayKnown *old = g_ptr_array_index (s->known, i);
+-          if (!g_hash_table_contains (s->hidden, old->key)
+-              && !g_hash_table_contains (s->visible, old->key))
+-            {
+-              known_unlink_cached_icon (old);
+-              g_ptr_array_remove_index (s->known, i);
+-              break;
+-            }
+-        }
+-    }
++    known_evict_one (s);
+ 
+   notify (s, TRUE);
+   return TRUE;
+diff --git a/src/to-settings.h b/src/to-settings.h
+index cf348a0..437ff2f 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -88,6 +88,10 @@ gint     tray_settings_get_index             (TraySettings *s, const gchar *key)
+ gboolean tray_settings_remember              (TraySettings *s, const gchar *key,
+                                               const gchar *title, const gchar *icon_name);
+ void     tray_settings_forget                (TraySettings *s, const gchar *key);
++/* Para el límite del registro: nunca se descarta una app abierta */
++typedef gboolean (*TraySettingsRunningFunc) (const gchar *key, gpointer data);
++void     tray_settings_set_running_func      (TraySettings *s, TraySettingsRunningFunc func,
++                                              gpointer data);
+ /* Ruta de la copia en caché del ícono de una app (solo la crea el plugin) */
+ gchar   *tray_settings_cached_icon_path      (const gchar *key);
+ /* Mueve @key justo antes (o después) de @anchor. @anchor == NULL → al final */
+diff --git a/src/to-sni.c b/src/to-sni.c
+index 54e50d6..072c288 100644
+--- a/src/to-sni.c
++++ b/src/to-sni.c
+@@ -414,6 +414,28 @@ is_interpreter (const gchar *name)
+ 
+ 
+ 
++/* App ID de una app Flatpak ("com.discordapp.Discord") a partir del PID
++ * de su proxy de D-Bus; NULL si no se puede leer */
++static gchar *
++flatpak_app_id_from_pid (guint32 pid)
++{
++  GKeyFile *info = g_key_file_new ();
++  gchar *path, *app_id = NULL;
++
++  path = g_strdup_printf ("/proc/%u/root/.flatpak-info", pid);
++  if (g_key_file_load_from_file (info, path, G_KEY_FILE_NONE, NULL))
++    app_id = g_key_file_get_string (info, "Application", "name", NULL);
++  g_free (path);
++  g_key_file_free (info);
++
++  if (app_id != NULL && *app_id == '\0')
++    g_clear_pointer (&app_id, g_free);
++
++  return app_id;
++}
++
++
++
+ /* Nombre del ejecutable a partir del PID, saltando intérpretes
+  * ("python3 /usr/bin/blueman-applet" → "blueman-applet") */
+ static gchar *
+@@ -464,11 +486,13 @@ exe_name_from_pid (guint32 pid)
+       g_free (path);
+     }
+ 
+-  /* Apps Flatpak: el PID es el del proxy de D-Bus, no sirve */
++  /* Apps Flatpak: el PID es el del proxy de D-Bus. Flatpak le monta al
++   * proxy el archivo /.flatpak-info de la app (así la identifican los
++   * portales): de ahí sale el App ID real, estable entre reinicios */
+   if (g_strcmp0 (result, "xdg-dbus-proxy") == 0)
+     {
+       g_free (result);
+-      result = NULL;
++      result = flatpak_app_id_from_pid (pid);
+     }
+ 
+   return result;

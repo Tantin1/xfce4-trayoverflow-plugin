@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "Область уведомлений со всплывающим окн
 msgid "Show hidden icons"
 msgstr "Показать скрытые значки"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "Требуют внимания: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "Перетащите сюда значки, чтобы скрыть их"
+
+msgid "_Diagnostics"
+msgstr "_Диагностика"
+
+msgid "C_opy"
+msgstr "_Копировать"
+
+msgid "_Update"
+msgstr "_Обновить"
+
+msgid "Copied to the clipboard."
+msgstr "Скопировано в буфер обмена."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "Если что-то не работает, скопируйте эти сведения и приложите их к отчёту. Они не содержат личных данных, кроме названий приложений в лотке."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "_Использовать один ряд значков на панели"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "Все значки в один ряд (в один столбец на вертикальной панели), даже если у панели несколько рядов. При автоматическом размере значки занимают всю высоту панели."

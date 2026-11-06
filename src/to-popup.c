@@ -434,6 +434,46 @@ arrow_screen_rect (TrayPlugin   *p,
 
 
 
+/* Relleno de cada ícono del popup (CSS: padding 4px) más 1 px de borde
+ * por lado que suelen poner los temas */
+#define POPUP_CELL_EXTRA   10
+/* Marco del popup (CSS: padding 6px y borde 1px, de cada lado) */
+#define POPUP_FRAME_EXTRA  14
+/* Aire para que el popup no quede pegado al borde de la pantalla */
+#define POPUP_SCREEN_MARGIN 16
+
+gint
+tray_popup_max_rows (TrayPlugin *p,
+                     gint        icon_size,
+                     gint        spacing)
+{
+  GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (p->panel_plugin));
+  GdkMonitor *monitor;
+  GdkRectangle geometry;
+  GtkArrowType type;
+  gint available, cell;
+
+  if (window == NULL)
+    return 0;
+
+  monitor = gdk_display_get_monitor_at_window (gdk_window_get_display (window), window);
+  if (monitor == NULL)
+    return 0;
+  gdk_monitor_get_geometry (monitor, &geometry);
+
+  available = geometry.height - POPUP_FRAME_EXTRA - POPUP_SCREEN_MARGIN;
+
+  /* Popup arriba o abajo del panel: el panel ocupa parte del alto */
+  type = xfce_panel_plugin_arrow_type (p->panel_plugin);
+  if (type == GTK_ARROW_UP || type == GTK_ARROW_DOWN)
+    available -= xfce_panel_plugin_get_size (p->panel_plugin);
+
+  cell = icon_size + POPUP_CELL_EXTRA;
+  return MAX (1, (available + spacing) / (cell + spacing));
+}
+
+
+
 void
 tray_popup_reposition (TrayPlugin *p)
 {

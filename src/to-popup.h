@@ -15,6 +15,8 @@ void     tray_popup_setup_button      (TrayPlugin *p, GtkWidget *button);
 void     tray_popup_show              (TrayPlugin *p);
 void     tray_popup_hide              (TrayPlugin *p);
 void     tray_popup_reposition        (TrayPlugin *p);
+/* Cuántas filas de íconos entran en el alto de la pantalla (0 = no se sabe) */
+gint     tray_popup_max_rows          (TrayPlugin *p, gint icon_size, gint spacing);
 
 void     tray_popup_grab              (TrayPlugin *p);
 void     tray_popup_ungrab            (TrayPlugin *p);

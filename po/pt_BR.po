@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "Área de notificação com uma janela suspensa para ícones ocultos"
 msgid "Show hidden icons"
 msgstr "Mostrar ícones ocultos"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "Pedindo atenção: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "Solte ícones aqui para ocultá-los"
+
+msgid "_Diagnostics"
+msgstr "_Diagnóstico"
+
+msgid "C_opy"
+msgstr "_Copiar"
+
+msgid "_Update"
+msgstr "_Atualizar"
+
+msgid "Copied to the clipboard."
+msgstr "Copiado para a área de transferência."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "Se algo não funcionar, copie estas informações e inclua-as no seu relatório. Elas não contêm dados pessoais além dos nomes dos aplicativos na bandeja."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "Usar uma única _linha de ícones no painel"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo que o painel tenha várias linhas. Com o tamanho automático, os ícones usam toda a altura do painel."

@@ -26,6 +26,8 @@ typedef enum
 
 /* @owner identifica a quien lo pide (una instancia del plugin) */
 void            tray_legacy_set_wanted (gpointer owner, gboolean wanted);
+void            tray_legacy_set_size_hints (gint panel_pixels, gint popup_pixels,
+                                            const gchar *popup_ids);
 gboolean        tray_legacy_available  (void);
 TrayLegacyState tray_legacy_get_state  (GtkWidget *reference);
 

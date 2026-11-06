@@ -20,6 +20,7 @@
 #define DEFAULT_PASSIVE_IN_POPUP TRUE
 #define DEFAULT_NEW_IN_POPUP     FALSE
 #define DEFAULT_SYMBOLIC_ICONS   FALSE
+#define DEFAULT_SINGLE_ROW       FALSE
 #define DEFAULT_LEGACY_TRAY      FALSE
 #define MAX_KNOWN                200
 #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
@@ -42,6 +43,7 @@ struct _TraySettings
   gboolean       passive_in_popup;
   gboolean       new_in_popup;      /* apps nuevas: directo al popup */
   gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
+  gboolean       single_row;        /* una sola fila en el panel, aunque tenga varias */
   gboolean       legacy_tray;
 
   GHashTable    *hidden;   /* claves ocultas explícitamente */
@@ -58,6 +60,9 @@ struct _TraySettings
 
   gulong         property_changed_id;
   guint          reload_id;   /* releer xfconf tras un cambio desde afuera */
+
+  TraySettingsRunningFunc running_func;  /* ¿la app está abierta ahora? */
+  gpointer       running_data;
 };
 
 G_DEFINE_TYPE (TraySettings, tray_settings, G_TYPE_OBJECT)
@@ -86,14 +91,41 @@ known_free (gpointer data)
 
 
 
-/* Borra la copia del ícono en la caché, si era nuestra. No va en
- * known_free: al releer la configuración se vacía la lista entera. */
+/* Ruta de la copia del ícono de una app en nuestra caché
+ * (~/.cache/xfce4/trayoverflow/<sha1 de la clave>.png) */
+gchar *
+tray_settings_cached_icon_path (const gchar *key)
+{
+  gchar *checksum, *name, *path;
+
+  g_return_val_if_fail (key != NULL, NULL);
+
+  checksum = g_compute_checksum_for_string (G_CHECKSUM_SHA1, key, -1);
+  name = g_strconcat (checksum, ".png", NULL);
+  path = g_build_filename (g_get_user_cache_dir (), "xfce4", TO_CSS_PREFIX, name, NULL);
+  g_free (name);
+  g_free (checksum);
+  return path;
+}
+
+
+
+/* Borra la copia del ícono en la caché. La ruta se calcula a partir de la
+ * clave, no del nombre de ícono guardado: ese nombre puede venir de la app
+ * (una ruta suya, incluso dentro de ~/.cache) y nunca hay que borrar un
+ * archivo que no creamos. No va en known_free: al releer la configuración
+ * se vacía la lista entera. */
 static void
 known_unlink_cached_icon (TrayKnown *known)
 {
-  if (known->icon_name != NULL && g_path_is_absolute (known->icon_name)
-      && g_str_has_prefix (known->icon_name, g_get_user_cache_dir ()))
-    g_unlink (known->icon_name);
+  gchar *path;
+
+  if (known->key == NULL)
+    return;
+
+  path = tray_settings_cached_icon_path (known->key);
+  g_unlink (path);
+  g_free (path);
 }
 
 
@@ -253,6 +285,9 @@ save_all (TraySettings *s)
     p = prop (s, "symbolic-icons");
     xfconf_channel_set_bool (s->channel, p, s->symbolic_icons);
     g_free (p);
+    p = prop (s, "single-row");
+    xfconf_channel_set_bool (s->channel, p, s->single_row);
+    g_free (p);
     p = prop (s, "legacy-tray");
     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
     g_free (p);
@@ -318,6 +353,10 @@ load_all (TraySettings *s)
   /* Mismo nombre que la opción de la bandeja de XFCE */
   p = prop (s, "symbolic-icons");
   s->symbolic_icons = xfconf_channel_get_bool (s->channel, p, DEFAULT_SYMBOLIC_ICONS);
+  g_free (p);
+
+  p = prop (s, "single-row");
+  s->single_row = xfconf_channel_get_bool (s->channel, p, DEFAULT_SINGLE_ROW);
   g_free (p);
 
   p = prop (s, "legacy-tray");
@@ -519,10 +558,10 @@ snapshot (TraySettings *s)
   GString *out = g_string_new (NULL);
   guint i;
 
-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d\n",
+  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d\n",
                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
                           s->popup_spacing, s->popup_columns, s->popup_corners,
-                          s->arrow_position, s->symbolic_icons,
+                          s->arrow_position, s->symbolic_icons, s->single_row,
                           s->passive_in_popup, s->new_in_popup, s->legacy_tray);
   snapshot_set (out, "hidden", s->hidden, FALSE);
   snapshot_set (out, "visible", s->visible, FALSE);
@@ -789,6 +828,29 @@ tray_settings_set_symbolic_icons (TraySettings *s, gboolean value)
 
 
 gboolean
+tray_settings_get_single_row (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  return s->single_row;
+}
+
+
+
+void
+tray_settings_set_single_row (TraySettings *s, gboolean value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  if (s->single_row != !!value)
+    {
+      s->single_row = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
+gboolean
 tray_settings_get_new_in_popup (TraySettings *s)
 {
   g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
@@ -812,6 +874,28 @@ tray_settings_set_new_in_popup (TraySettings *s, gboolean value)
 
 
 /* ── Visibilidad ─────────────────────────────────────────────────────── */
+
+/* Claves ocultas a mano, separadas por comas (para el proxy) */
+gchar *
+tray_settings_get_hidden_csv (TraySettings *s)
+{
+  GString *out = g_string_new (NULL);
+  GHashTableIter iter;
+  gpointer key;
+
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), g_string_free (out, FALSE));
+
+  g_hash_table_iter_init (&iter, s->hidden);
+  while (g_hash_table_iter_next (&iter, &key, NULL))
+    {
+      if (out->len > 0)
+        g_string_append_c (out, ',');
+      g_string_append (out, key);
+    }
+  return g_string_free (out, FALSE);
+}
+
+
 
 gboolean
 tray_settings_is_hidden (TraySettings *s,
@@ -895,6 +979,73 @@ tray_settings_get_index (TraySettings *s,
 
 
 
+/* ¿Se puede descartar esta app del registro sin perder nada que el
+ * usuario haya decidido? Nunca una app abierta ni una con ícono elegido.
+ * @policy_hidden: aceptar también las ocultas, si "apps nuevas en el
+ * popup" está activado. Eso no pierde la elección: si la app vuelve,
+ * la misma opción la oculta otra vez. Sin esto, con la opción activada
+ * todas las apps tienen preferencia y el límite nunca se aplicaba. */
+static gboolean
+known_can_evict (TraySettings *s,
+                 TrayKnown    *k,
+                 gboolean      policy_hidden)
+{
+  if (g_hash_table_contains (s->visible, k->key)
+      || g_hash_table_contains (s->icons, k->key))
+    return FALSE;
+
+  if (g_hash_table_contains (s->hidden, k->key)
+      && !(policy_hidden && s->new_in_popup))
+    return FALSE;
+
+  if (s->running_func != NULL && s->running_func (k->key, s->running_data))
+    return FALSE;
+
+  return TRUE;
+}
+
+
+
+/* Límite para que el registro no crezca sin fin: se descarta la más
+ * antigua sin preferencia guardada; si no hay ninguna, la más antigua
+ * oculta solo por la opción "apps nuevas en el popup". La recién
+ * agregada (la última) nunca se descarta. */
+static void
+known_evict_one (TraySettings *s)
+{
+  gint pass;
+  guint i;
+
+  for (pass = 0; pass < 2; pass++)
+    for (i = 0; i + 1 < s->known->len; i++)
+      {
+        TrayKnown *old = g_ptr_array_index (s->known, i);
+
+        if (known_can_evict (s, old, pass == 1))
+          {
+            g_hash_table_remove (s->hidden, old->key);
+            known_unlink_cached_icon (old);
+            g_ptr_array_remove_index (s->known, i);
+            return;
+          }
+      }
+}
+
+
+
+void
+tray_settings_set_running_func (TraySettings            *s,
+                                TraySettingsRunningFunc  func,
+                                gpointer                 data)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  s->running_func = func;
+  s->running_data = data;
+}
+
+
+
 gboolean
 tray_settings_remember (TraySettings *s,
                         const gchar  *key,
@@ -948,24 +1099,8 @@ tray_settings_remember (TraySettings *s,
   k->icon_name = g_strdup (icon_name);
   g_ptr_array_add (s->known, k);
 
-  /* Límite para que el registro no crezca sin fin: se descarta la más
-   * antigua que no tenga una preferencia guardada */
   if (s->known->len > MAX_KNOWN)
-    {
-      guint i;
-
-      for (i = 0; i < s->known->len - 1; i++)
-        {
-          TrayKnown *old = g_ptr_array_index (s->known, i);
-          if (!g_hash_table_contains (s->hidden, old->key)
-              && !g_hash_table_contains (s->visible, old->key))
-            {
-              known_unlink_cached_icon (old);
-              g_ptr_array_remove_index (s->known, i);
-              break;
-            }
-        }
-    }
+    known_evict_one (s);
 
   notify (s, TRUE);
   return TRUE;

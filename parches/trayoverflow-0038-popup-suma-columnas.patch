@@ -1,0 +1,130 @@
+diff --git a/README.md b/README.md
+index adec713..f8532b9 100644
+--- a/README.md
++++ b/README.md
+@@ -26,7 +26,8 @@ Windows 10/11.
+ - **Punto de aviso** en la flecha cuando una app oculta pide atención.
+ - Íconos **inactivos** (estado *Passive*) a la ventana emergente, opcional.
+ - Tamaño de ícono y separación **independientes** para el panel y la
+-  ventana emergente; columnas de la ventana emergente configurables.
++  ventana emergente; columnas de la ventana emergente configurables (si
++  los íconos no entran en el alto de la pantalla, se agregan columnas).
+ - Paneles horizontales, verticales y de varias filas; HiDPI.
+ - X11 y **Wayland** (sesión Wayland de XFCE 4.20).
+ - Varias instancias (p. ej. una por panel), cada una con su configuración.
+diff --git a/meson.build b/meson.build
+index 5e835cb..3fbb032 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.35',
++  version: '0.2.36',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 295f3e5..998bcb3 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.35\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.36\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 7453feb..9c061e4 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -321,6 +321,21 @@ tray_plugin_relayout (TrayPlugin *p)
+ 
+   params.drag_empty = p->dragging && new_panel->len == 0;
+ 
++  /* Si con las columnas elegidas el popup no entra en el alto de la
++   * pantalla, se agregan columnas (como Windows 11). Mientras entre, se
++   * respeta lo elegido. */
++  if (new_popup->len > 0)
++    {
++      gint max_rows = tray_popup_max_rows (p, params.popup_size, params.popup_spacing);
++      gint needed;
++
++      if (max_rows > 0)
++        {
++          needed = ((gint) new_popup->len + max_rows - 1) / max_rows;
++          params.columns = MAX (params.columns, needed);
++        }
++    }
++
+   /* Si nada cambió (caso típico: una app actualizó su ícono o su
+    * título), no se reconstruyen las cuadrículas: el botón ya se
+    * redibujó solo. Se actualiza solo la flecha. */
+diff --git a/src/to-popup.c b/src/to-popup.c
+index 205dd3f..32161cd 100644
+--- a/src/to-popup.c
++++ b/src/to-popup.c
+@@ -434,6 +434,46 @@ arrow_screen_rect (TrayPlugin   *p,
+ 
+ 
+ 
++/* Relleno de cada ícono del popup (CSS: padding 4px) más 1 px de borde
++ * por lado que suelen poner los temas */
++#define POPUP_CELL_EXTRA   10
++/* Marco del popup (CSS: padding 6px y borde 1px, de cada lado) */
++#define POPUP_FRAME_EXTRA  14
++/* Aire para que el popup no quede pegado al borde de la pantalla */
++#define POPUP_SCREEN_MARGIN 16
++
++gint
++tray_popup_max_rows (TrayPlugin *p,
++                     gint        icon_size,
++                     gint        spacing)
++{
++  GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (p->panel_plugin));
++  GdkMonitor *monitor;
++  GdkRectangle geometry;
++  GtkArrowType type;
++  gint available, cell;
++
++  if (window == NULL)
++    return 0;
++
++  monitor = gdk_display_get_monitor_at_window (gdk_window_get_display (window), window);
++  if (monitor == NULL)
++    return 0;
++  gdk_monitor_get_geometry (monitor, &geometry);
++
++  available = geometry.height - POPUP_FRAME_EXTRA - POPUP_SCREEN_MARGIN;
++
++  /* Popup arriba o abajo del panel: el panel ocupa parte del alto */
++  type = xfce_panel_plugin_arrow_type (p->panel_plugin);
++  if (type == GTK_ARROW_UP || type == GTK_ARROW_DOWN)
++    available -= xfce_panel_plugin_get_size (p->panel_plugin);
++
++  cell = icon_size + POPUP_CELL_EXTRA;
++  return MAX (1, (available + spacing) / (cell + spacing));
++}
++
++
++
+ void
+ tray_popup_reposition (TrayPlugin *p)
+ {
+diff --git a/src/to-popup.h b/src/to-popup.h
+index f482621..2dd67b4 100644
+--- a/src/to-popup.h
++++ b/src/to-popup.h
+@@ -15,6 +15,8 @@ void     tray_popup_setup_button      (TrayPlugin *p, GtkWidget *button);
+ void     tray_popup_show              (TrayPlugin *p);
+ void     tray_popup_hide              (TrayPlugin *p);
+ void     tray_popup_reposition        (TrayPlugin *p);
++/* Cuántas filas de íconos entran en el alto de la pantalla (0 = no se sabe) */
++gint     tray_popup_max_rows          (TrayPlugin *p, gint icon_size, gint spacing);
+ 
+ void     tray_popup_grab              (TrayPlugin *p);
+ void     tray_popup_ungrab            (TrayPlugin *p);

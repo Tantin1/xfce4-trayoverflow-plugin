@@ -57,6 +57,7 @@ gint     tray_settings_get_popup_columns     (TraySettings *s);
 gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
 gboolean tray_settings_get_new_in_popup      (TraySettings *s);
 gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
+gboolean tray_settings_get_single_row        (TraySettings *s);
 gint     tray_settings_get_popup_corners     (TraySettings *s);
 gint     tray_settings_get_arrow_position    (TraySettings *s);
 
@@ -68,6 +69,7 @@ void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
 void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
 void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
 void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
+void     tray_settings_set_single_row        (TraySettings *s, gboolean value);
 void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
 void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
 
@@ -77,6 +79,7 @@ void     tray_settings_set_legacy_tray       (TraySettings *s, gboolean value);
 
 /* Visibilidad. @passive indica si la app está en estado Passive */
 gboolean tray_settings_is_hidden             (TraySettings *s, const gchar *key, gboolean passive);
+gchar   *tray_settings_get_hidden_csv        (TraySettings *s);
 /* Ocultar/mostrar explícitamente (anula la regla de los pasivos) */
 void     tray_settings_set_hidden            (TraySettings *s, const gchar *key, gboolean hidden);
 
@@ -87,6 +90,12 @@ gint     tray_settings_get_index             (TraySettings *s, const gchar *key)
 gboolean tray_settings_remember              (TraySettings *s, const gchar *key,
                                               const gchar *title, const gchar *icon_name);
 void     tray_settings_forget                (TraySettings *s, const gchar *key);
+/* Para el límite del registro: nunca se descarta una app abierta */
+typedef gboolean (*TraySettingsRunningFunc) (const gchar *key, gpointer data);
+void     tray_settings_set_running_func      (TraySettings *s, TraySettingsRunningFunc func,
+                                              gpointer data);
+/* Ruta de la copia en caché del ícono de una app (solo la crea el plugin) */
+gchar   *tray_settings_cached_icon_path      (const gchar *key);
 /* Mueve @key justo antes (o después) de @anchor. @anchor == NULL → al final */
 void     tray_settings_move                  (TraySettings *s, const gchar *key,
                                               const gchar *anchor, gboolean after);

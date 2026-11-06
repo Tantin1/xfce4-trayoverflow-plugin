@@ -17,17 +17,23 @@ Windows 10/11.
 
 - **Ocultar y mostrar** íconos arrastrándolos entre el panel y la ventana
   emergente, o desde la lista de la configuración.
-- **Reordenar** arrastrando, en el panel o en la ventana emergente.
+- **Reordenar** arrastrando, en el panel o en la ventana emergente. Una
+  línea marca dónde va a quedar el ícono antes de soltarlo.
 - Quedarse con un ícono sobre la flecha mientras se arrastra **abre la
   ventana emergente**, como en Windows.
 - **Apps cerradas recordadas**: se pueden ocultar de antemano; al abrirse
   van directo a la ventana emergente.
 - **Menú contextual** de cada app, también desde la ventana emergente.
-- **Punto de aviso** en la flecha cuando una app oculta pide atención.
+- **Punto de aviso** en la flecha cuando una app oculta pide atención; su
+  tooltip dice cuáles son.
 - Íconos **inactivos** (estado *Passive*) a la ventana emergente, opcional.
 - Tamaño de ícono y separación **independientes** para el panel y la
-  ventana emergente; columnas de la ventana emergente configurables.
-- Paneles horizontales, verticales y de varias filas; HiDPI.
+  ventana emergente; columnas de la ventana emergente configurables (si
+  los íconos no entran en el alto de la pantalla, se agregan columnas).
+- Paneles horizontales, verticales y de varias filas; HiDPI. Si el tamaño
+  de ícono elegido a mano no entra en las filas del panel, se usa el más
+  grande que entra (lo elegido se conserva). Opción **una sola fila**: los
+  íconos van en una fila aunque el panel tenga varias.
 - X11 y **Wayland** (sesión Wayland de XFCE 4.20).
 - Varias instancias (p. ej. una por panel), cada una con su configuración.
 - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
@@ -86,16 +92,34 @@ sudo apt install ./xfce4-trayoverflow-plugin_*.deb
 xfce4-panel -r
 ```
 
+### Paquete para Arch (Arch, Manjaro, CachyOS, EndeavourOS)
+
+En **Releases** también hay un paquete `.pkg.tar.zst`. Para armarlo vos
+(como usuario normal, no root):
+
+```bash
+bash packaging/build-arch.sh
+sudo pacman -U ./xfce4-trayoverflow-plugin-*.pkg.tar.zst
+xfce4-panel -r
+```
+
+Así pacman sabe que está instalado y lo puede desinstalar con
+`sudo pacman -R xfce4-trayoverflow-plugin`.
+
 Cada cambio que se sube a GitHub se compila y se prueba automáticamente en
-Debian 12, Debian 13, Ubuntu 24.04 y Arch (ver
-`.github/workflows/build.yml`).
+Debian 12, Debian 13 y Ubuntu 24.04. En Arch se compila y se arma el
+paquete, sin pruebas automáticas (ver `.github/workflows/build.yml`).
 
 ### Desinstalar
 
 ```bash
 bash uninstall.sh          # si se instaló con install.sh
 sudo apt remove xfce4-trayoverflow-plugin   # si se instaló el .deb
+sudo pacman -R xfce4-trayoverflow-plugin    # si se instaló el paquete de Arch
 ```
+
+No mezcle formas de instalar: antes de instalar el paquete de Arch o el
+.deb, quite lo instalado con `install.sh` (`bash uninstall.sh`), y al revés.
 
 ## Uso
 
@@ -138,7 +162,7 @@ ocultos.
 ## Configuración
 
 **Apariencia**: tamaño de ícono del panel (automático o fijo), separación
-entre íconos, **íconos simbólicos** (monocromos, del color del texto del
+entre íconos, una sola fila de íconos en el panel, **íconos simbólicos** (monocromos, del color del texto del
 panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
 columnas, y si los íconos inactivos van a la ventana emergente.
 
@@ -259,10 +283,22 @@ Diferencias con X11:
 
 Para reconocer una app entre reinicios se usa su ID; si es genérico (como
 el de las apps Electron), el nombre de su ejecutable. En apps Flatpak el
-ejecutable no es accesible y se usa el título; si una app cambia de título,
-puede aparecer como una app nueva en la lista.
+ejecutable no es accesible y se usa el App ID de Flatpak (por ejemplo
+`com.discordapp.Discord`). Si tampoco se puede leer, se usa el título; si
+la app cambia de título, puede aparecer como una app nueva en la lista.
+
+Desde la versión 0.2.34, las apps Flatpak que antes se reconocían por el
+título pasan a reconocerse por el App ID: la primera vez aparecen como
+nuevas y hay que volver a ocultarlas si estaban ocultas.
 
 ## Diagnóstico
+
+Si algo no funciona, abra **Propiedades → Diagnóstico** y toque **Copiar**:
+copia un resumen (versiones, sesión, estado de las bandejas y de cada app,
+y de dónde sale cada ícono) para pegarlo en el reporte. No incluye datos
+personales, salvo los nombres de las apps de la bandeja.
+
+Si el plugin ni siquiera aparece:
 
 ```bash
 # ¿El panel ve el plugin?

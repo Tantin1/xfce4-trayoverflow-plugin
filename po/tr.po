@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "Gizli simgeler için açılır pencereli bildirim alanı"
 msgid "Show hidden icons"
 msgstr "Gizli simgeleri göster"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "Dikkat istiyor: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "Gizlemek için simgeleri buraya bırakın"
+
+msgid "_Diagnostics"
+msgstr "_Tanılama"
+
+msgid "C_opy"
+msgstr "_Kopyala"
+
+msgid "_Update"
+msgstr "Gü_ncelle"
+
+msgid "Copied to the clipboard."
+msgstr "Panoya kopyalandı."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "Bir şey çalışmıyorsa bu bilgileri kopyalayıp raporunuza ekleyin. Tepsideki uygulamaların adları dışında kişisel veri içermez."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "Simgeleri panelde tek satı_rda göster"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "Panelde birden fazla satır olsa bile tüm simgeler tek satırda (dikey panelde tek sütunda) gösterilir. Otomatik boyutta simgeler panelin tüm yüksekliğini kullanır."

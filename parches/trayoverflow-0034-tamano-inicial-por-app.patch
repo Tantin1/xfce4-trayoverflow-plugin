@@ -1,0 +1,361 @@
+diff --git a/meson.build b/meson.build
+index cd374c2..9f5b7fa 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.31',
++  version: '0.2.32',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index c702af9..03f1308 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.31\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.32\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index a6f9dc6..084d73b 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -181,7 +181,11 @@ static struct
+   GMainLoop      *loop;
+   gboolean        verbose;
+   gboolean        wayland;       /* sesión Wayland: X es XWayland */
+-  gint            initial_size;  /* tamaño con que nace cada ícono (ver dock) */
++  /* Tamaño con que nace cada ícono (ver initial_size_for) */
++  gint            panel_size;    /* --icon-size */
++  gint            popup_size;    /* --popup-icon-size */
++  GHashTable     *popup_ids;     /* --popup-ids: apps ocultas en el popup */
++  GHashTable     *sizes;         /* id → último tamaño pedido por el host */
+   gint            x_error;
+ } P;
+ 
+@@ -1094,6 +1098,22 @@ click_try (gpointer user_data)
+ /* El host pide otro tamaño (p. ej. el del panel o el del popup, por la
+  * escala HiDPI): redimensionar la ventana para que la app se redibuje
+  * nítida a ese tamaño, como haría con una bandeja normal */
++/* Tamaño con que nace el ícono de la app @id: el último que tuvo; si no,
++ * el del popup si está oculta, o el del panel */
++static gint
++initial_size_for (const gchar *id)
++{
++  gpointer size;
++
++  if (id != NULL && g_hash_table_lookup_extended (P.sizes, id, NULL, &size))
++    return GPOINTER_TO_INT (size);
++  if (id != NULL && g_hash_table_contains (P.popup_ids, id))
++    return P.popup_size;
++  return P.panel_size;
++}
++
++
++
+ static void
+ icon_set_size (Icon *icon, gint size)
+ {
+@@ -1103,8 +1123,11 @@ icon_set_size (Icon *icon, gint size)
+ 
+   LOG ("tamaño de 0x%lx: %d → %d px\n", icon->win, icon->size, size);
+   icon->size = size;
+-  /* Las apps que aparezcan después nacen con el último tamaño pedido */
+-  P.initial_size = size;
++  /* Si la app vuelve a anclarse (se reinicia o recrea su ventana), nace
++   * con este tamaño: el de ESTA app, no el de otra (panel y popup pueden
++   * tener tamaños distintos) */
++  if (icon->id != NULL)
++    g_hash_table_replace (P.sizes, g_strdup (icon->id), GINT_TO_POINTER (size));
+ 
+   /* Con ForgetGravity y fondo transparente (ver dock), X descarta el
+    * contenido viejo y limpia la ventana: no queda basura ni el ícono
+@@ -1479,8 +1502,10 @@ dock (Window win)
+   /* Directo al tamaño que va a pedir el host: un cambio de tamaño justo
+    * después de anclar hace que la app se dibuje dos veces (se veía un
+    * instante borrosa) y algunas apps conectan su menú otra vez en cada
+-   * cambio (ibus 1.5: cada clic abría dos menús) */
+-  icon->size = P.initial_size;
++   * cambio (ibus 1.5: cada clic abría dos menús). Hace falta saber qué
++   * app es antes de elegirlo. */
++  icon_read_identity (icon);
++  icon->size = initial_size_for (icon->id);
+   icon->xembed_mapped = read_xembed_mapped (win);
+   icon->ignore_unmaps = wa.map_state != IsUnmapped ? 1 : 0;
+ 
+@@ -1539,12 +1564,13 @@ dock (Window win)
+       trap_push ();
+       XDestroyWindow (P.dpy, icon->container);
+       trap_pop ();
++      g_free (icon->id);
++      g_free (icon->title);
+       g_free (icon);
+       return;
+     }
+ 
+   icon->direct_events = wants_core_button_events (win, 0);
+-  icon_read_identity (icon);
+   g_hash_table_insert (P.icons, GSIZE_TO_POINTER (win), icon);
+ 
+   /* Esperar a que la app se dibuje por primera vez (llega un Damage); si
+@@ -1980,11 +2006,16 @@ int
+ main (int argc, char **argv)
+ {
+   gboolean verbose = FALSE, version = FALSE;
++  gchar *popup_ids = NULL;
+   GOptionEntry entries[] = {
+     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Mostrar mensajes de diagnóstico", NULL },
+     { "version", 0, 0, G_OPTION_ARG_NONE, &version, "Mostrar la versión", NULL },
+-    { "icon-size", 0, 0, G_OPTION_ARG_INT, &P.initial_size,
++    { "icon-size", 0, 0, G_OPTION_ARG_INT, &P.panel_size,
+       "Tamaño inicial de los íconos, en píxeles (el host lo cambia si hace falta)", "N" },
++    { "popup-icon-size", 0, 0, G_OPTION_ARG_INT, &P.popup_size,
++      "Tamaño inicial de los íconos de las apps de --popup-ids", "N" },
++    { "popup-ids", 0, 0, G_OPTION_ARG_STRING, &popup_ids,
++      "Apps (WM_CLASS en minúsculas, separadas por comas) que se muestran en el popup", "IDS" },
+     { "wayland", 0, 0, G_OPTION_ARG_NONE, &P.wayland,
+       "Sesión Wayland: usar la posición que manda el host en los clics", NULL },
+     { NULL }
+@@ -2010,8 +2041,21 @@ main (int argc, char **argv)
+     }
+ 
+   P.verbose = verbose || g_getenv ("TRAYOVERFLOW_PROXY_DEBUG") != NULL;
+-  P.initial_size = P.initial_size > 0 ? CLAMP (P.initial_size, MIN_SIZE, MAX_SIZE)
+-                                      : DEFAULT_SIZE;
++  P.panel_size = P.panel_size > 0 ? CLAMP (P.panel_size, MIN_SIZE, MAX_SIZE) : DEFAULT_SIZE;
++  P.popup_size = P.popup_size > 0 ? CLAMP (P.popup_size, MIN_SIZE, MAX_SIZE) : P.panel_size;
++  P.sizes = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  P.popup_ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  if (popup_ids != NULL)
++    {
++      gchar **ids = g_strsplit (popup_ids, ",", -1);
++      gchar **id;
++
++      for (id = ids; *id != NULL; id++)
++        if (**id != '\0')
++          g_hash_table_add (P.popup_ids, g_ascii_strdown (*id, -1));
++      g_strfreev (ids);
++      g_free (popup_ids);
++    }
+ 
+   if (!init_x11 ())
+     return 1;
+diff --git a/src/to-legacy.c b/src/to-legacy.c
+index bc6e968..e6ef3f4 100644
+--- a/src/to-legacy.c
++++ b/src/to-legacy.c
+@@ -29,7 +29,9 @@ static gint64       started_at = 0;
+ static guint        respawn_id = 0;
+ static gint         quick_failures = 0;
+ static gboolean     failed = FALSE;
+-static gint         icon_size_hint = 0;  /* --icon-size para el proxy */
++static gint         panel_size_hint = 0;   /* --icon-size para el proxy */
++static gint         popup_size_hint = 0;   /* --popup-icon-size */
++static gchar       *popup_ids_hint = NULL; /* --popup-ids */
+ 
+ static void proxy_start (void);
+ 
+@@ -154,13 +156,18 @@ proxy_start (void)
+   /* En Wayland el proxy no ve el puntero real: usa la posición del
+    * ícono que le mandamos en cada clic */
+   {
+-    /* Tamaño inicial de los íconos: el del panel, así nacen al tamaño
+-     * justo (ver tray_legacy_set_icon_size_hint) */
+-    gchar *size_arg = g_strdup_printf ("--icon-size=%d", icon_size_hint);
+-
+-    proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH, size_arg,
++    /* Tamaños iniciales de los íconos, así nacen al tamaño justo (ver
++     * tray_legacy_set_size_hints) */
++    gchar *panel_arg = g_strdup_printf ("--icon-size=%d", panel_size_hint);
++    gchar *popup_arg = g_strdup_printf ("--popup-icon-size=%d", popup_size_hint);
++    gchar *ids_arg = g_strdup_printf ("--popup-ids=%s", popup_ids_hint != NULL ? popup_ids_hint : "");
++
++    proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
++                                         panel_arg, popup_arg, ids_arg,
+                                          wayland ? "--wayland" : NULL, NULL);
+-    g_free (size_arg);
++    g_free (panel_arg);
++    g_free (popup_arg);
++    g_free (ids_arg);
+   }
+   g_object_unref (launcher);
+ 
+@@ -201,13 +208,20 @@ proxy_stop (void)
+ 
+ 
+ 
+-/* Tamaño en píxeles (ya multiplicado por la escala) con que conviene que
+- * nazcan los íconos antiguos. Vale para el próximo arranque del proxy;
+- * mientras corre, el proxy usa el último tamaño que se le pidió. */
++/* Con qué tamaño conviene que nazcan los íconos antiguos (en píxeles, ya
++ * multiplicados por la escala): el del panel, salvo las apps de
++ * @popup_ids (claves separadas por comas), que van en el popup. Vale
++ * para el próximo arranque del proxy; mientras corre, el proxy recuerda
++ * el último tamaño de cada app. */
+ void
+-tray_legacy_set_icon_size_hint (gint pixels)
++tray_legacy_set_size_hints (gint         panel_pixels,
++                            gint         popup_pixels,
++                            const gchar *popup_ids)
+ {
+-  icon_size_hint = MAX (pixels, 0);
++  panel_size_hint = MAX (panel_pixels, 0);
++  popup_size_hint = MAX (popup_pixels, 0);
++  g_free (popup_ids_hint);
++  popup_ids_hint = g_strdup (popup_ids);
+ }
+ 
+ 
+diff --git a/src/to-legacy.h b/src/to-legacy.h
+index 51326ee..ee35615 100644
+--- a/src/to-legacy.h
++++ b/src/to-legacy.h
+@@ -26,7 +26,8 @@ typedef enum
+ 
+ /* @owner identifica a quien lo pide (una instancia del plugin) */
+ void            tray_legacy_set_wanted (gpointer owner, gboolean wanted);
+-void            tray_legacy_set_icon_size_hint (gint pixels);
++void            tray_legacy_set_size_hints (gint panel_pixels, gint popup_pixels,
++                                            const gchar *popup_ids);
+ gboolean        tray_legacy_available  (void);
+ TrayLegacyState tray_legacy_get_state  (GtkWidget *reference);
+ 
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 3a34bb7..c468578 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -737,9 +737,15 @@ apply_legacy_idle (gpointer user_data)
+ static void
+ apply_legacy (TrayPlugin *p)
+ {
+-  /* Antes de arrancar el proxy: el tamaño de los íconos del panel */
+-  tray_legacy_set_icon_size_hint (tray_plugin_get_panel_icon_size (p)
+-                                  * gtk_widget_get_scale_factor (GTK_WIDGET (p->panel_plugin)));
++  /* Antes de arrancar el proxy: los tamaños del panel y del popup y qué
++   * apps están ocultas, para que cada ícono nazca a su tamaño */
++  gint scale = gtk_widget_get_scale_factor (GTK_WIDGET (p->panel_plugin));
++  gchar *hidden = tray_settings_get_hidden_csv (p->settings);
++
++  tray_legacy_set_size_hints (tray_plugin_get_panel_icon_size (p) * scale,
++                              tray_settings_get_popup_icon_size (p->settings) * scale,
++                              hidden);
++  g_free (hidden);
+   tray_legacy_set_wanted (p, tray_settings_get_legacy_tray (p->settings));
+ }
+ 
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 956ae37..0389e1c 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -813,6 +813,28 @@ tray_settings_set_new_in_popup (TraySettings *s, gboolean value)
+ 
+ /* ── Visibilidad ─────────────────────────────────────────────────────── */
+ 
++/* Claves ocultas a mano, separadas por comas (para el proxy) */
++gchar *
++tray_settings_get_hidden_csv (TraySettings *s)
++{
++  GString *out = g_string_new (NULL);
++  GHashTableIter iter;
++  gpointer key;
++
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), g_string_free (out, FALSE));
++
++  g_hash_table_iter_init (&iter, s->hidden);
++  while (g_hash_table_iter_next (&iter, &key, NULL))
++    {
++      if (out->len > 0)
++        g_string_append_c (out, ',');
++      g_string_append (out, key);
++    }
++  return g_string_free (out, FALSE);
++}
++
++
++
+ gboolean
+ tray_settings_is_hidden (TraySettings *s,
+                          const gchar  *key,
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 5605e72..49ef432 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -77,6 +77,7 @@ void     tray_settings_set_legacy_tray       (TraySettings *s, gboolean value);
+ 
+ /* Visibilidad. @passive indica si la app está en estado Passive */
+ gboolean tray_settings_is_hidden             (TraySettings *s, const gchar *key, gboolean passive);
++gchar   *tray_settings_get_hidden_csv        (TraySettings *s);
+ /* Ocultar/mostrar explícitamente (anula la regla de los pasivos) */
+ void     tray_settings_set_hidden            (TraySettings *s, const gchar *key, gboolean hidden);
+ 
+diff --git a/tests/run.sh b/tests/run.sh
+index eb3edc3..c8fc957 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -28,7 +28,8 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
+ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
+        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
+        arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas
+-       iconos_simbolicos un_menu_por_clic un_menu_tras_reiniciar)
++       iconos_simbolicos un_menu_por_clic un_menu_tras_reiniciar
++       un_menu_en_popup un_menu_al_reiniciar_app)
+ 
+ 
+ # ════════════════════════════════════════════════════════════════════════
+@@ -522,6 +523,48 @@ t_un_menu_tras_reiniciar() {
+     || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
+ }
+ 
++# App tipo ibus oculta en el popup (24 px) con el panel en 22: nace
++# directamente en 24 (el plugin le dice al proxy qué apps están ocultas) y
++# un clic en el popup abre un solo menú, también tras reiniciar el panel
++t_un_menu_en_popup() {
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/popup-icon-size -n -t int -s 24
++  start_panel ibus-like-app
++  start_app ibus_like_app.py "$WORK/app.log"
++  sleep 3
++  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "en el popup nace con su tamaño" \
++    || fail "tamaños vistos al aparecer: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
++  restart_panel
++  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "y lo mantiene tras reiniciar el panel" \
++    || fail "tamaños vistos tras reiniciar: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
++  open_popup || { fail "el popup no se abrió"; return; }
++  click "$POPUP_CX" "$POPUP_CY" 1; sleep 1.5
++  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic en el popup abre un solo menú" \
++    || fail "un clic en el popup abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
++}
++
++# Panel en 22 y popup en 24, una app antigua oculta (24) y la tipo ibus en
++# el panel (22). Al reiniciar la tipo ibus, nace en 22: el proxy recuerda
++# el tamaño de cada app, sin mezclarlo con el de las demás
++t_un_menu_al_reiniciar_app() {
++  local pid
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/popup-icon-size -n -t int -s 24
++  start_panel legacy-app
++  start_app legacy_app.py "$WORK/legacy.log"
++  start_app ibus_like_app.py "$WORK/app1.log"; pid=$LAST_PID
++  sleep 4
++  kill "$pid"; sleep 1
++  start_app ibus_like_app.py "$WORK/app.log"
++  sleep 4
++  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "al reiniciarla nace con su tamaño" \
++    || fail "tamaños vistos al reiniciarla: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
++  # Panel: [flecha][app tipo ibus]
++  click 33 "$PANEL_Y" 1; sleep 1.5
++  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic abre un solo menú" \
++    || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
++}
++
+ # ════════════════════════════════════════════════════════════════════════
+ # Principal
+ # ════════════════════════════════════════════════════════════════════════

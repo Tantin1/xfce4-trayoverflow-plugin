@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "to-legacy.h"
+#include "to-diag.h"
 
 #define LIST_ICON_SIZE    24
 #define CHOOSER_ICON_SIZE 32
@@ -49,6 +50,7 @@ typedef struct
   GtkWidget    *passive;
   GtkWidget    *new_in_popup;
   GtkWidget    *symbolic;
+  GtkWidget    *single_row;
 
   GtkListStore *store;
   GtkWidget    *tree;
@@ -61,6 +63,10 @@ typedef struct
   GtkWidget    *legacy_image;
   GtkWidget    *legacy_label;
   guint         legacy_refresh_id;
+
+  GtkWidget    *diag_view;
+  GtkWidget    *diag_status;
+  GtkWidget    *diag_page;
 
   gboolean      rebuilding;
   gboolean      syncing;    /* actualizando los controles desde la configuración */
@@ -164,6 +170,21 @@ symbolic_toggled (GtkToggleButton *toggle,
 
 
 static void
+single_row_toggled (GtkToggleButton *toggle,
+                    DialogData      *d)
+{
+  if (!d->syncing)
+    tray_settings_set_single_row (d->p->settings, gtk_toggle_button_get_active (toggle));
+
+  /* En automático, el tamaño que se muestra puede cambiar */
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (d->panel_auto)))
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_size),
+                               tray_plugin_get_panel_icon_size (d->p));
+}
+
+
+
+static void
 new_in_popup_toggled (GtkToggleButton *toggle,
                       DialogData      *d)
 {
@@ -235,7 +256,8 @@ appearance_page (DialogData *d)
   add_section (grid, &row, _("Panel"));
 
   d->panel_size = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX,
-                             tray_plugin_get_panel_icon_size (d->p));
+                             automatic ? tray_plugin_get_panel_icon_size (d->p)
+                                       : tray_settings_get_panel_icon_size (s));
   gtk_widget_set_sensitive (d->panel_size, !automatic);
   d->panel_auto = gtk_check_button_new_with_mnemonic (_("_Automatic"));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->panel_auto), automatic);
@@ -256,6 +278,17 @@ appearance_page (DialogData *d)
   g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
   gtk_widget_set_margin_start (d->symbolic, 12);
   gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
+
+  d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
+  gtk_widget_set_tooltip_text (d->single_row,
+                               _("All the icons in one row (one column in a vertical panel), "
+                                 "even if the panel has several rows. With the automatic "
+                                 "size, the icons use the whole height of the panel."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
+                                tray_settings_get_single_row (s));
+  g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
+  gtk_widget_set_margin_start (d->single_row, 12);
+  gtk_grid_attach (GTK_GRID (grid), d->single_row, 0, row++, 3, 1);
 
   /* Mismo orden que TrayArrowPosition */
   d->arrow_position = gtk_combo_box_text_new ();
@@ -1018,6 +1051,100 @@ legacy_section (DialogData *d)
 
 
 
+/* ── Pestaña Diagnóstico ─────────────────────────────────────────────── */
+
+static void
+diag_refresh (DialogData *d)
+{
+  gchar *report = tray_diag_report (d->p);
+
+  gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (d->diag_view)),
+                            report, -1);
+  gtk_label_set_text (GTK_LABEL (d->diag_status), "");
+  g_free (report);
+}
+
+
+
+static void
+diag_copy (GtkButton  *button,
+           DialogData *d)
+{
+  gchar *report;
+
+  /* Siempre el estado de este momento */
+  diag_refresh (d);
+  report = tray_diag_report (d->p);
+  gtk_clipboard_set_text (gtk_widget_get_clipboard (d->diag_view, GDK_SELECTION_CLIPBOARD),
+                          report, -1);
+  g_free (report);
+  gtk_label_set_text (GTK_LABEL (d->diag_status), _("Copied to the clipboard."));
+}
+
+
+
+static void
+diag_page_switched (GtkNotebook *notebook,
+                    GtkWidget   *page,
+                    guint        page_num,
+                    DialogData  *d)
+{
+  if (page == d->diag_page)
+    diag_refresh (d);
+}
+
+
+
+static GtkWidget *
+diag_page (DialogData *d)
+{
+  GtkWidget *vbox, *label, *scrolled, *buttons, *button;
+
+  vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox), 12);
+
+  label = gtk_label_new (_("If something does not work, copy this information and "
+                           "include it in your report. It contains no personal data "
+                           "besides the names of the apps in the tray."));
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
+  gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
+
+  d->diag_view = gtk_text_view_new ();
+  gtk_text_view_set_editable (GTK_TEXT_VIEW (d->diag_view), FALSE);
+  gtk_text_view_set_monospace (GTK_TEXT_VIEW (d->diag_view), TRUE);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (d->diag_view), GTK_WRAP_WORD_CHAR);
+  gtk_text_view_set_left_margin (GTK_TEXT_VIEW (d->diag_view), 6);
+  gtk_text_view_set_right_margin (GTK_TEXT_VIEW (d->diag_view), 6);
+
+  scrolled = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
+  gtk_container_add (GTK_CONTAINER (scrolled), d->diag_view);
+  gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
+
+  buttons = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+  d->diag_status = gtk_label_new (NULL);
+  gtk_label_set_xalign (GTK_LABEL (d->diag_status), 0.0);
+  gtk_box_pack_start (GTK_BOX (buttons), d->diag_status, TRUE, TRUE, 0);
+
+  button = gtk_button_new_with_mnemonic (_("_Update"));
+  g_signal_connect_swapped (button, "clicked", G_CALLBACK (diag_refresh), d);
+  gtk_box_pack_end (GTK_BOX (buttons), button, FALSE, FALSE, 0);
+
+  button = gtk_button_new_with_mnemonic (_("C_opy"));
+  gtk_button_set_image (GTK_BUTTON (button),
+                        gtk_image_new_from_icon_name ("edit-copy-symbolic", GTK_ICON_SIZE_BUTTON));
+  g_signal_connect (button, "clicked", G_CALLBACK (diag_copy), d);
+  gtk_box_pack_end (GTK_BOX (buttons), button, FALSE, FALSE, 0);
+
+  gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
+
+  d->diag_page = vbox;
+  return vbox;
+}
+
+
+
 static GtkWidget *
 items_page (DialogData *d)
 {
@@ -1130,8 +1257,10 @@ sync_from_settings (DialogData *d)
   d->syncing = TRUE;
 
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->panel_auto), panel_size == 0);
+  /* Manual: lo elegido (aunque se esté achicando para entrar en las filas) */
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_size),
-                             tray_plugin_get_panel_icon_size (d->p));
+                             panel_size > 0 ? panel_size
+                                            : tray_plugin_get_panel_icon_size (d->p));
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_spacing),
                              tray_settings_get_panel_spacing (s));
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->popup_size),
@@ -1150,6 +1279,8 @@ sync_from_settings (DialogData *d)
                                 tray_settings_get_new_in_popup (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
                                 tray_settings_get_symbolic_icons (s));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
+                                tray_settings_get_single_row (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
                                 tray_settings_get_legacy_tray (s));
 
@@ -1220,6 +1351,9 @@ tray_dialog_show (TrayPlugin *p)
                             gtk_label_new_with_mnemonic (_("A_ppearance")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
                             gtk_label_new_with_mnemonic (_("_Items")));
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), diag_page (d),
+                            gtk_label_new_with_mnemonic (_("_Diagnostics")));
+  g_signal_connect (notebook, "switch-page", G_CALLBACK (diag_page_switched), d);
 
   content = gtk_dialog_get_content_area (GTK_DIALOG (d->dialog));
   gtk_box_pack_start (GTK_BOX (content), notebook, TRUE, TRUE, 0);

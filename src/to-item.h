@@ -106,8 +106,18 @@ void tray_item_set_icon_theme_path (TrayItem *item, const gchar *path);
 void tray_item_set_tooltip         (TrayItem    *item,
                                     const gchar *title,
                                     const gchar *text);
-/* Emite "changed" una vez tras una tanda de setters */
+/* Qué cambió desde el último "changed" (para hacer solo el trabajo justo) */
+typedef enum
+{
+  TRAY_ITEM_CHANGE_ICON   = 1 << 0,  /* ícono, píxeles, carpeta de íconos */
+  TRAY_ITEM_CHANGE_TEXT   = 1 << 1,  /* título o tooltip */
+  TRAY_ITEM_CHANGE_STATUS = 1 << 2,  /* activo / pasivo / pide atención */
+} TrayItemChanges;
+
+/* Emite "changed" una vez tras una tanda de setters, solo si algo cambió */
 void tray_item_emit_changed        (TrayItem *item);
+/* Durante "changed": qué cambió (combinación de TrayItemChanges) */
+guint tray_item_get_changes        (TrayItem *item);
 /* La app rechazó Activate: la vista debe mostrar el menú en su lugar.
  * Emite "activate-fallback". */
 void tray_item_emit_activate_fallback (TrayItem *item);

@@ -181,6 +181,11 @@ static struct
   GMainLoop      *loop;
   gboolean        verbose;
   gboolean        wayland;       /* sesión Wayland: X es XWayland */
+  /* Tamaño con que nace cada ícono (ver initial_size_for) */
+  gint            panel_size;    /* --icon-size */
+  gint            popup_size;    /* --popup-icon-size */
+  GHashTable     *popup_ids;     /* --popup-ids: apps ocultas en el popup */
+  GHashTable     *sizes;         /* id → último tamaño pedido por el host */
   gint            x_error;
 } P;
 
@@ -1093,6 +1098,22 @@ click_try (gpointer user_data)
 /* El host pide otro tamaño (p. ej. el del panel o el del popup, por la
  * escala HiDPI): redimensionar la ventana para que la app se redibuje
  * nítida a ese tamaño, como haría con una bandeja normal */
+/* Tamaño con que nace el ícono de la app @id: el último que tuvo; si no,
+ * el del popup si está oculta, o el del panel */
+static gint
+initial_size_for (const gchar *id)
+{
+  gpointer size;
+
+  if (id != NULL && g_hash_table_lookup_extended (P.sizes, id, NULL, &size))
+    return GPOINTER_TO_INT (size);
+  if (id != NULL && g_hash_table_contains (P.popup_ids, id))
+    return P.popup_size;
+  return P.panel_size;
+}
+
+
+
 static void
 icon_set_size (Icon *icon, gint size)
 {
@@ -1102,6 +1123,11 @@ icon_set_size (Icon *icon, gint size)
 
   LOG ("tamaño de 0x%lx: %d → %d px\n", icon->win, icon->size, size);
   icon->size = size;
+  /* Si la app vuelve a anclarse (se reinicia o recrea su ventana), nace
+   * con este tamaño: el de ESTA app, no el de otra (panel y popup pueden
+   * tener tamaños distintos) */
+  if (icon->id != NULL)
+    g_hash_table_replace (P.sizes, g_strdup (icon->id), GINT_TO_POINTER (size));
 
   /* Con ForgetGravity y fondo transparente (ver dock), X descarta el
    * contenido viejo y limpia la ventana: no queda basura ni el ícono
@@ -1365,6 +1391,36 @@ watcher_appeared (GDBusConnection *conn,
  * Anclar y desanclar íconos
  * ════════════════════════════════════════════════════════════════════════ */
 
+/* ConfigureNotify sintético con la geometría actual de @win, en
+ * coordenadas de la pantalla (ICCCM 4.1.5) */
+static void
+send_configure_notify (Window win)
+{
+  XWindowAttributes wa;
+  XEvent ev = { 0 };
+  Window child;
+  gint rx = 0, ry = 0;
+
+  if (!XGetWindowAttributes (P.dpy, win, &wa))
+    return;
+  XTranslateCoordinates (P.dpy, win, P.root, 0, 0, &rx, &ry, &child);
+
+  ev.xconfigure.type = ConfigureNotify;
+  ev.xconfigure.display = P.dpy;
+  ev.xconfigure.event = win;
+  ev.xconfigure.window = win;
+  ev.xconfigure.x = rx;
+  ev.xconfigure.y = ry;
+  ev.xconfigure.width = wa.width;
+  ev.xconfigure.height = wa.height;
+  ev.xconfigure.border_width = 0;
+  ev.xconfigure.above = None;
+  ev.xconfigure.override_redirect = False;
+  XSendEvent (P.dpy, win, False, StructureNotifyMask, &ev);
+}
+
+
+
 static void
 send_xembed_message (Window win, glong message, glong detail, glong data1, glong data2)
 {
@@ -1443,7 +1499,13 @@ dock (Window win)
 
   icon = g_new0 (Icon, 1);
   icon->win = win;
-  icon->size = DEFAULT_SIZE;
+  /* Directo al tamaño que va a pedir el host: un cambio de tamaño justo
+   * después de anclar hace que la app se dibuje dos veces (se veía un
+   * instante borrosa) y algunas apps conectan su menú otra vez en cada
+   * cambio (ibus 1.5: cada clic abría dos menús). Hace falta saber qué
+   * app es antes de elegirlo. */
+  icon_read_identity (icon);
+  icon->size = initial_size_for (icon->id);
   icon->xembed_mapped = read_xembed_mapped (win);
   icon->ignore_unmaps = wa.map_state != IsUnmapped ? 1 : 0;
 
@@ -1502,12 +1564,13 @@ dock (Window win)
       trap_push ();
       XDestroyWindow (P.dpy, icon->container);
       trap_pop ();
+      g_free (icon->id);
+      g_free (icon->title);
       g_free (icon);
       return;
     }
 
   icon->direct_events = wants_core_button_events (win, 0);
-  icon_read_identity (icon);
   g_hash_table_insert (P.icons, GSIZE_TO_POINTER (win), icon);
 
   /* Esperar a que la app se dibuje por primera vez (llega un Damage); si
@@ -1686,13 +1749,22 @@ handle_event (XEvent *ev)
       icon = icon_for (ev->xconfigurerequest.window);
       if (icon != NULL && (ev->xconfigurerequest.value_mask & (CWWidth | CWHeight)))
         {
-          /* Se aceptan cambios de tamaño (sin pasar del de destino), no de posición */
-          gint w = CLAMP (ev->xconfigurerequest.width, 1, icon->size);
-          gint h = CLAMP (ev->xconfigurerequest.height, 1, icon->size);
+          /* Como una bandeja real: el ícono mide siempre lo que le da la
+           * bandeja; lo que pide la app es solo una sugerencia. Antes se
+           * aceptaba que se achicara, y el tamaño que veía la app dependía
+           * del momento (16 al arrancar, 22 tras reiniciar el panel): ibus
+           * conecta su menú en cada cambio y los menús se acumulaban. */
+          gint w = icon->size, h = icon->size;
 
           trap_push ();
           icon_begin_settle (icon, SETTLE_FALLBACK_MS);
           XResizeWindow (P.dpy, icon->win, w, h);
+          /* Pedido negado o sin cambios: X no avisa nada, y GTK se queda
+           * esperando la respuesta con el dibujo congelado (la app "dibujaba"
+           * en vacío). Como manda ICCCM a quien niega un pedido: avisarle el
+           * tamaño con que quedó. */
+          if (w != ev->xconfigurerequest.width || h != ev->xconfigurerequest.height)
+            send_configure_notify (icon->win);
           trap_pop ();
         }
       break;
@@ -1934,9 +2006,16 @@ int
 main (int argc, char **argv)
 {
   gboolean verbose = FALSE, version = FALSE;
+  gchar *popup_ids = NULL;
   GOptionEntry entries[] = {
     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Mostrar mensajes de diagnóstico", NULL },
     { "version", 0, 0, G_OPTION_ARG_NONE, &version, "Mostrar la versión", NULL },
+    { "icon-size", 0, 0, G_OPTION_ARG_INT, &P.panel_size,
+      "Tamaño inicial de los íconos, en píxeles (el host lo cambia si hace falta)", "N" },
+    { "popup-icon-size", 0, 0, G_OPTION_ARG_INT, &P.popup_size,
+      "Tamaño inicial de los íconos de las apps de --popup-ids", "N" },
+    { "popup-ids", 0, 0, G_OPTION_ARG_STRING, &popup_ids,
+      "Apps (WM_CLASS en minúsculas, separadas por comas) que se muestran en el popup", "IDS" },
     { "wayland", 0, 0, G_OPTION_ARG_NONE, &P.wayland,
       "Sesión Wayland: usar la posición que manda el host en los clics", NULL },
     { NULL }
@@ -1962,6 +2041,21 @@ main (int argc, char **argv)
     }
 
   P.verbose = verbose || g_getenv ("TRAYOVERFLOW_PROXY_DEBUG") != NULL;
+  P.panel_size = P.panel_size > 0 ? CLAMP (P.panel_size, MIN_SIZE, MAX_SIZE) : DEFAULT_SIZE;
+  P.popup_size = P.popup_size > 0 ? CLAMP (P.popup_size, MIN_SIZE, MAX_SIZE) : P.panel_size;
+  P.sizes = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  P.popup_ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  if (popup_ids != NULL)
+    {
+      gchar **ids = g_strsplit (popup_ids, ",", -1);
+      gchar **id;
+
+      for (id = ids; *id != NULL; id++)
+        if (**id != '\0')
+          g_hash_table_add (P.popup_ids, g_ascii_strdown (*id, -1));
+      g_strfreev (ids);
+      g_free (popup_ids);
+    }
 
   if (!init_x11 ())
     return 1;

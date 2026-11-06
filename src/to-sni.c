@@ -113,6 +113,8 @@ struct _SniItem
   guint         sub_signals;
   guint         sub_owner;
   guint         refresh_id;
+  gboolean      refresh_busy;   /* hay un GetAll en curso */
+  gboolean      refresh_again;  /* llegaron avisos durante ese GetAll */
 
   gboolean      have_props;
   gboolean      have_pid;
@@ -414,6 +416,28 @@ is_interpreter (const gchar *name)
 
 
 
+/* App ID de una app Flatpak ("com.discordapp.Discord") a partir del PID
+ * de su proxy de D-Bus; NULL si no se puede leer */
+static gchar *
+flatpak_app_id_from_pid (guint32 pid)
+{
+  GKeyFile *info = g_key_file_new ();
+  gchar *path, *app_id = NULL;
+
+  path = g_strdup_printf ("/proc/%u/root/.flatpak-info", pid);
+  if (g_key_file_load_from_file (info, path, G_KEY_FILE_NONE, NULL))
+    app_id = g_key_file_get_string (info, "Application", "name", NULL);
+  g_free (path);
+  g_key_file_free (info);
+
+  if (app_id != NULL && *app_id == '\0')
+    g_clear_pointer (&app_id, g_free);
+
+  return app_id;
+}
+
+
+
 /* Nombre del ejecutable a partir del PID, saltando intérpretes
  * ("python3 /usr/bin/blueman-applet" → "blueman-applet") */
 static gchar *
@@ -464,11 +488,13 @@ exe_name_from_pid (guint32 pid)
       g_free (path);
     }
 
-  /* Apps Flatpak: el PID es el del proxy de D-Bus, no sirve */
+  /* Apps Flatpak: el PID es el del proxy de D-Bus. Flatpak le monta al
+   * proxy el archivo /.flatpak-info de la app (así la identifican los
+   * portales): de ahí sale el App ID real, estable entre reinicios */
   if (g_strcmp0 (result, "xdg-dbus-proxy") == 0)
     {
       g_free (result);
-      result = NULL;
+      result = flatpak_app_id_from_pid (pid);
     }
 
   return result;
@@ -674,6 +700,8 @@ sni_item_apply_properties (SniItem  *item,
 
 
 
+static void sni_item_schedule_refresh (SniItem *item);
+
 static void
 sni_item_get_all_done (GObject      *source,
                        GAsyncResult *res,
@@ -684,6 +712,16 @@ sni_item_get_all_done (GObject      *source,
   GVariant *reply;
 
   reply = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source), res, &error);
+
+  /* Si la app avisó cambios mientras respondía, se vuelve a leer
+   * (una sola vez, por más avisos que hayan llegado) */
+  item->refresh_busy = FALSE;
+  if (item->refresh_again)
+    {
+      item->refresh_again = FALSE;
+      if (reply != NULL)
+        sni_item_schedule_refresh (item);
+    }
 
   if (reply != NULL)
     {
@@ -724,6 +762,15 @@ sni_item_refresh (gpointer user_data)
 
   if (item->removed || item->owner == NULL || backend == NULL)
     return G_SOURCE_REMOVE;
+
+  /* Una lectura a la vez: con una app lenta, los avisos no acumulan
+   * pedidos; al terminar la actual se lee una vez más */
+  if (item->refresh_busy)
+    {
+      item->refresh_again = TRUE;
+      return G_SOURCE_REMOVE;
+    }
+  item->refresh_busy = TRUE;
 
   g_dbus_connection_call (backend->conn, item->owner, item->object_path,
                           PROPS_IFACE, "GetAll", g_variant_new ("(s)", ITEM_IFACE),

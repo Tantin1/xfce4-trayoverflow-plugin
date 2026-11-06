@@ -1,7 +1,7 @@
 project(
   'xfce4-trayoverflow-plugin',
   'c',
-  version: '0.2.29',
+  version: '0.2.42',
   license: 'GPL-2.0-or-later',
   meson_version: '>= 0.56.0',
   default_options: [
@@ -91,6 +91,7 @@ sources = files(
   'src/to-plugin.c',
   'src/to-popup.c',
   'src/to-dnd.c',
+  'src/to-diag.c',
 )
 
 shared_module(

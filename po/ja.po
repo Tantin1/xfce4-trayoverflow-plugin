@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "非表示のアイコン用のポップアップ付き通知領域"
 msgid "Show hidden icons"
 msgstr "非表示のアイコンを表示"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "注意を求めています: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "ここにアイコンをドロップすると非表示になります"
+
+msgid "_Diagnostics"
+msgstr "診断(_D)"
+
+msgid "C_opy"
+msgstr "コピー(_O)"
+
+msgid "_Update"
+msgstr "更新(_U)"
+
+msgid "Copied to the clipboard."
+msgstr "クリップボードにコピーしました。"
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "うまく動作しない場合は、この情報をコピーして報告に含めてください。トレイ内のアプリ名以外の個人情報は含まれていません。"
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "パネルのアイコンを1行にする(_G)"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "パネルが複数行でも、すべてのアイコンを1行(縦のパネルでは1列)に並べます。サイズが自動の場合、アイコンはパネルの高さいっぱいに表示されます。"

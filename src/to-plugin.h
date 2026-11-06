@@ -45,6 +45,7 @@ struct _TrayPlugin
   GtkWidget       *arrow;
   GtkWidget       *arrow_image;
   GtkWidget       *arrow_dot;
+  gchar           *arrow_tooltip;    /* el último asignado (para no repetirlo) */
   GtkWidget       *panel_grid;
   gboolean         updating_arrow;
   gboolean         suppress_toggle;
@@ -97,6 +98,8 @@ struct _TrayPlugin
   gboolean         dropped_on_panel;
   TrayItem        *drag_item;
   guint            drag_open_id;
+  GtkWidget       *drop_mark_widget; /* dónde se dibuja la marca de inserción */
+  GdkRectangle     drop_mark;        /* en coordenadas de ese widget */
 
   guint            relayout_id;
   TrayLayoutParams layout_params;   /* con qué se armaron las cuadrículas */
@@ -108,6 +111,8 @@ struct _TrayPlugin
 
 /* Para el diálogo de configuración */
 gint tray_plugin_get_panel_icon_size (TrayPlugin *plugin);
+/* Filas de íconos en el panel: las del panel, o 1 con "una sola fila" */
+gint tray_plugin_get_panel_rows (TrayPlugin *plugin);
 
 /* Compartido entre to-plugin.c, to-popup.c y to-dnd.c */
 gboolean tray_plugin_is_horizontal       (TrayPlugin *p);

@@ -1,0 +1,494 @@
+diff --git a/README.md b/README.md
+index 58bf6b7..2d97cee 100644
+--- a/README.md
++++ b/README.md
+@@ -32,7 +32,8 @@ Windows 10/11.
+   los íconos no entran en el alto de la pantalla, se agregan columnas).
+ - Paneles horizontales, verticales y de varias filas; HiDPI. Si el tamaño
+   de ícono elegido a mano no entra en las filas del panel, se usa el más
+-  grande que entra (lo elegido se conserva).
++  grande que entra (lo elegido se conserva). Opción **una sola fila**: los
++  íconos van en una fila aunque el panel tenga varias.
+ - X11 y **Wayland** (sesión Wayland de XFCE 4.20).
+ - Varias instancias (p. ej. una por panel), cada una con su configuración.
+ - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
+@@ -161,7 +162,7 @@ ocultos.
+ ## Configuración
+ 
+ **Apariencia**: tamaño de ícono del panel (automático o fijo), separación
+-entre íconos, **íconos simbólicos** (monocromos, del color del texto del
++entre íconos, una sola fila de íconos en el panel, **íconos simbólicos** (monocromos, del color del texto del
+ panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
+ columnas, y si los íconos inactivos van a la ventana emergente.
+ 
+diff --git a/meson.build b/meson.build
+index e923311..7b2c336 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.41',
++  version: '0.2.42',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/de.po b/po/de.po
+index 9127b2b..7389158 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -221,3 +221,9 @@ msgstr "In die Zwischenablage kopiert."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Wenn etwas nicht funktioniert, kopieren Sie diese Informationen und fügen Sie sie Ihrem Fehlerbericht bei. Sie enthalten außer den Namen der Anwendungen im Infobereich keine persönlichen Daten."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "_Nur eine Symbolzeile im Panel verwenden"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Alle Symbole in einer Zeile (einer Spalte in einem senkrechten Panel), auch wenn das Panel mehrere Zeilen hat. Bei automatischer Größe nutzen die Symbole die ganze Höhe des Panels."
+diff --git a/po/es.po b/po/es.po
+index b6cee3c..24bae3c 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.41\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.42\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -275,3 +275,9 @@ msgstr "Copiado al portapapeles."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Si algo no funciona, copie esta información e inclúyala en su reporte. No contiene datos personales, salvo los nombres de las aplicaciones de la bandeja."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Usar una sola _fila de íconos en el panel"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Todos los íconos en una fila (una columna en un panel vertical), aunque el panel tenga varias filas. Con el tamaño automático, los íconos usan todo el alto del panel."
+diff --git a/po/fr.po b/po/fr.po
+index 3402bfb..b143981 100644
+--- a/po/fr.po
++++ b/po/fr.po
+@@ -221,3 +221,9 @@ msgstr "Copié dans le presse-papiers."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Si quelque chose ne fonctionne pas, copiez ces informations et joignez-les à votre rapport. Elles ne contiennent aucune donnée personnelle, hormis le nom des applications de la zone de notification."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Utiliser une seu_le rangée d'icônes dans le panneau"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Toutes les icônes sur une rangée (une colonne dans un panneau vertical), même si le panneau a plusieurs rangées. Avec la taille automatique, les icônes occupent toute la hauteur du panneau."
+diff --git a/po/it.po b/po/it.po
+index a7dc320..620909c 100644
+--- a/po/it.po
++++ b/po/it.po
+@@ -221,3 +221,9 @@ msgstr "Copiato negli appunti."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Se qualcosa non funziona, copia queste informazioni e includile nella tua segnalazione. Non contengono dati personali, a parte i nomi delle applicazioni nell'area di notifica."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Usa una sola _riga di icone nel pannello"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Tutte le icone su una riga (una colonna in un pannello verticale), anche se il pannello ha più righe. Con la dimensione automatica, le icone usano tutta l'altezza del pannello."
+diff --git a/po/ja.po b/po/ja.po
+index efa004d..95d6fe7 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -221,3 +221,9 @@ msgstr "クリップボードにコピーしました。"
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "うまく動作しない場合は、この情報をコピーして報告に含めてください。トレイ内のアプリ名以外の個人情報は含まれていません。"
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "パネルのアイコンを1行にする(_G)"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "パネルが複数行でも、すべてのアイコンを1行(縦のパネルでは1列)に並べます。サイズが自動の場合、アイコンはパネルの高さいっぱいに表示されます。"
+diff --git a/po/ko.po b/po/ko.po
+index d9341f5..de9ffdd 100644
+--- a/po/ko.po
++++ b/po/ko.po
+@@ -221,3 +221,9 @@ msgstr "클립보드에 복사했습니다."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "문제가 있으면 이 정보를 복사하여 보고서에 포함하십시오. 트레이에 있는 앱 이름 외에는 개인 정보가 포함되어 있지 않습니다."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "패널에서 아이콘을 한 줄로 표시(_G)"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "패널이 여러 줄이어도 모든 아이콘을 한 줄(세로 패널에서는 한 열)에 표시합니다. 크기가 자동이면 아이콘이 패널 높이 전체를 사용합니다."
+diff --git a/po/nl.po b/po/nl.po
+index 76f688c..26d7310 100644
+--- a/po/nl.po
++++ b/po/nl.po
+@@ -221,3 +221,9 @@ msgstr "Naar het klembord gekopieerd."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Als iets niet werkt, kopieer deze informatie dan en voeg haar toe aan uw melding. Ze bevat geen persoonlijke gegevens, behalve de namen van de toepassingen in het systeemvak."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Eén _rij pictogrammen in het paneel gebruiken"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Alle pictogrammen in één rij (één kolom in een verticaal paneel), ook als het paneel meerdere rijen heeft. Met de automatische grootte gebruiken de pictogrammen de hele hoogte van het paneel."
+diff --git a/po/pl.po b/po/pl.po
+index 4571c02..9da07d2 100644
+--- a/po/pl.po
++++ b/po/pl.po
+@@ -221,3 +221,9 @@ msgstr "Skopiowano do schowka."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Jeśli coś nie działa, skopiuj te informacje i dołącz je do zgłoszenia. Nie zawierają one danych osobowych poza nazwami aplikacji w zasobniku."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "_Jeden wiersz ikon na panelu"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Wszystkie ikony w jednym wierszu (w jednej kolumnie na panelu pionowym), nawet jeśli panel ma kilka wierszy. Przy automatycznym rozmiarze ikony zajmują całą wysokość panelu."
+diff --git a/po/pt_BR.po b/po/pt_BR.po
+index 30749a8..8076e41 100644
+--- a/po/pt_BR.po
++++ b/po/pt_BR.po
+@@ -221,3 +221,9 @@ msgstr "Copiado para a área de transferência."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Se algo não funcionar, copie estas informações e inclua-as no seu relatório. Elas não contêm dados pessoais além dos nomes dos aplicativos na bandeja."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Usar uma única _linha de ícones no painel"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo que o painel tenha várias linhas. Com o tamanho automático, os ícones usam toda a altura do painel."
+diff --git a/po/ru.po b/po/ru.po
+index f4a8c47..b1ce101 100644
+--- a/po/ru.po
++++ b/po/ru.po
+@@ -221,3 +221,9 @@ msgstr "Скопировано в буфер обмена."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Если что-то не работает, скопируйте эти сведения и приложите их к отчёту. Они не содержат личных данных, кроме названий приложений в лотке."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "_Использовать один ряд значков на панели"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Все значки в один ряд (в один столбец на вертикальной панели), даже если у панели несколько рядов. При автоматическом размере значки занимают всю высоту панели."
+diff --git a/po/tr.po b/po/tr.po
+index e6dbf91..fd14e29 100644
+--- a/po/tr.po
++++ b/po/tr.po
+@@ -221,3 +221,9 @@ msgstr "Panoya kopyalandı."
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "Bir şey çalışmıyorsa bu bilgileri kopyalayıp raporunuza ekleyin. Tepsideki uygulamaların adları dışında kişisel veri içermez."
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "Simgeleri panelde tek satı_rda göster"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "Panelde birden fazla satır olsa bile tüm simgeler tek satırda (dikey panelde tek sütunda) gösterilir. Otomatik boyutta simgeler panelin tüm yüksekliğini kullanır."
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index 4a1dc2c..f6513f3 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -221,3 +221,9 @@ msgstr "已复制到剪贴板。"
+ 
+ msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+ msgstr "如果有功能不正常，请复制这些信息并附在您的报告中。除托盘中应用的名称外，其中不含个人数据。"
++
++msgid "Use a sin_gle row of icons in the panel"
++msgstr "面板中只使用一行图标(_G)"
++
++msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
++msgstr "即使面板有多行，也将所有图标放在一行（竖直面板中为一列）。大小为自动时，图标会占满面板的高度。"
+diff --git a/src/to-diag.c b/src/to-diag.c
+index 0c63738..f3181ba 100644
+--- a/src/to-diag.c
++++ b/src/to-diag.c
+@@ -180,10 +180,11 @@ tray_diag_report (TrayPlugin *p)
+   g_free (gtk_theme);
+ 
+   /* ── Panel y backends ── */
+-  g_string_append_printf (out, "\nPanel: %s, size %d, rows %u\n",
++  g_string_append_printf (out, "\nPanel: %s, size %d, rows %u (icons in %d)\n",
+                           mode_name (xfce_panel_plugin_get_mode (p->panel_plugin)),
+                           xfce_panel_plugin_get_size (p->panel_plugin),
+-                          xfce_panel_plugin_get_nrows (p->panel_plugin));
++                          xfce_panel_plugin_get_nrows (p->panel_plugin),
++                          tray_plugin_get_panel_rows (p));
+   g_string_append_printf (out, "Modern apps (SNI) watcher: %s\n",
+                           to_sni_backend_owns_watcher () ? "this plugin" : "another program");
+   g_string_append_printf (out, "Older apps (XEmbed) proxy: %s\n",
+@@ -214,10 +215,11 @@ tray_diag_report (TrayPlugin *p)
+                           tray_settings_get_arrow_position (p->settings));
+   g_string_append_printf (out,
+                           "Options: passive in popup %s, new in popup %s, "
+-                          "symbolic %s, older apps %s\n",
++                          "symbolic %s, single row %s, older apps %s\n",
+                           yes_no (tray_settings_get_passive_in_popup (p->settings)),
+                           yes_no (tray_settings_get_new_in_popup (p->settings)),
+                           yes_no (tray_settings_get_symbolic_icons (p->settings)),
++                          yes_no (tray_settings_get_single_row (p->settings)),
+                           yes_no (tray_settings_get_legacy_tray (p->settings)));
+ 
+   /* ── Apps abiertas ── */
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index d4a511e..61db9ed 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -50,6 +50,7 @@ typedef struct
+   GtkWidget    *passive;
+   GtkWidget    *new_in_popup;
+   GtkWidget    *symbolic;
++  GtkWidget    *single_row;
+ 
+   GtkListStore *store;
+   GtkWidget    *tree;
+@@ -168,6 +169,21 @@ symbolic_toggled (GtkToggleButton *toggle,
+ 
+ 
+ 
++static void
++single_row_toggled (GtkToggleButton *toggle,
++                    DialogData      *d)
++{
++  if (!d->syncing)
++    tray_settings_set_single_row (d->p->settings, gtk_toggle_button_get_active (toggle));
++
++  /* En automático, el tamaño que se muestra puede cambiar */
++  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (d->panel_auto)))
++    gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_size),
++                               tray_plugin_get_panel_icon_size (d->p));
++}
++
++
++
+ static void
+ new_in_popup_toggled (GtkToggleButton *toggle,
+                       DialogData      *d)
+@@ -263,6 +279,17 @@ appearance_page (DialogData *d)
+   gtk_widget_set_margin_start (d->symbolic, 12);
+   gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
+ 
++  d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
++  gtk_widget_set_tooltip_text (d->single_row,
++                               _("All the icons in one row (one column in a vertical panel), "
++                                 "even if the panel has several rows. With the automatic "
++                                 "size, the icons use the whole height of the panel."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
++                                tray_settings_get_single_row (s));
++  g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
++  gtk_widget_set_margin_start (d->single_row, 12);
++  gtk_grid_attach (GTK_GRID (grid), d->single_row, 0, row++, 3, 1);
++
+   /* Mismo orden que TrayArrowPosition */
+   d->arrow_position = gtk_combo_box_text_new ();
+   gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Left"));
+@@ -1252,6 +1279,8 @@ sync_from_settings (DialogData *d)
+                                 tray_settings_get_new_in_popup (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
+                                 tray_settings_get_symbolic_icons (s));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
++                                tray_settings_get_single_row (s));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
+                                 tray_settings_get_legacy_tray (s));
+ 
+diff --git a/src/to-dnd.c b/src/to-dnd.c
+index 2e3e5bb..2c0398a 100644
+--- a/src/to-dnd.c
++++ b/src/to-dnd.c
+@@ -208,10 +208,10 @@ drop_row_major (TrayPlugin *p,
+ 
+   if (tray_plugin_is_horizontal (p))
+     /* Horizontal de varias filas: se llena por columnas */
+-    return xfce_panel_plugin_get_nrows (p->panel_plugin) <= 1;
++    return tray_plugin_get_panel_rows (p) <= 1;
+ 
+   /* Vertical: por filas de @nrows columnas; con una sola, de arriba abajo */
+-  return xfce_panel_plugin_get_nrows (p->panel_plugin) > 1;
++  return tray_plugin_get_panel_rows (p) > 1;
+ }
+ 
+ 
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 99f64b2..716772e 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -84,11 +84,22 @@ tray_plugin_in_popup (TrayPlugin *p, GtkWidget *widget)
+ 
+ /* Tamaño de ícono más grande con el que entran todas las filas del panel
+  * (0 = no se sabe todavía) */
++gint
++tray_plugin_get_panel_rows (TrayPlugin *p)
++{
++  if (tray_settings_get_single_row (p->settings))
++    return 1;
++
++  return MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
++}
++
++
++
+ static gint
+ panel_icon_size_that_fits (TrayPlugin *p)
+ {
+   gint thickness = xfce_panel_plugin_get_size (p->panel_plugin);
+-  gint rows = MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
++  gint rows = tray_plugin_get_panel_rows (p);
+   gint spacing = tray_settings_get_panel_spacing (p->settings);
+ 
+   if (thickness <= 0)
+@@ -115,6 +126,17 @@ tray_plugin_get_panel_icon_size (TrayPlugin *p)
+       return size;
+     }
+ 
++  /* Automático con "una sola fila" en un panel de varias: el panel calcula
++   * su tamaño para una fila de las suyas; aquí se usa todo el alto */
++  if (tray_settings_get_single_row (p->settings)
++      && xfce_panel_plugin_get_nrows (p->panel_plugin) > 1)
++    {
++      gint fits = panel_icon_size_that_fits (p);
++
++      if (fits > 0)
++        return CLAMP (fits, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX);
++    }
++
+   /* Automático: el mismo criterio que el resto de plugins del panel
+    * (respeta el "tamaño de ícono" del panel y el número de filas) */
+   return MAX (TRAY_ICON_SIZE_MIN, xfce_panel_plugin_get_icon_size (p->panel_plugin));
+@@ -350,7 +372,7 @@ tray_plugin_relayout (TrayPlugin *p)
+ 
+   memset (&params, 0, sizeof (params));
+   params.horizontal = tray_plugin_is_horizontal (p);
+-  params.nrows = MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
++  params.nrows = tray_plugin_get_panel_rows (p);
+   params.panel_size = tray_plugin_get_panel_icon_size (p);
+   params.popup_size = tray_settings_get_popup_icon_size (p->settings);
+   params.columns = tray_settings_get_popup_columns (p->settings);
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index 1cdf1b6..d98d61b 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -111,6 +111,8 @@ struct _TrayPlugin
+ 
+ /* Para el diálogo de configuración */
+ gint tray_plugin_get_panel_icon_size (TrayPlugin *plugin);
++/* Filas de íconos en el panel: las del panel, o 1 con "una sola fila" */
++gint tray_plugin_get_panel_rows (TrayPlugin *plugin);
+ 
+ /* Compartido entre to-plugin.c, to-popup.c y to-dnd.c */
+ gboolean tray_plugin_is_horizontal       (TrayPlugin *p);
+diff --git a/src/to-settings.c b/src/to-settings.c
+index 58b9250..8128329 100644
+--- a/src/to-settings.c
++++ b/src/to-settings.c
+@@ -20,6 +20,7 @@
+ #define DEFAULT_PASSIVE_IN_POPUP TRUE
+ #define DEFAULT_NEW_IN_POPUP     FALSE
+ #define DEFAULT_SYMBOLIC_ICONS   FALSE
++#define DEFAULT_SINGLE_ROW       FALSE
+ #define DEFAULT_LEGACY_TRAY      FALSE
+ #define MAX_KNOWN                200
+ #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
+@@ -42,6 +43,7 @@ struct _TraySettings
+   gboolean       passive_in_popup;
+   gboolean       new_in_popup;      /* apps nuevas: directo al popup */
+   gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
++  gboolean       single_row;        /* una sola fila en el panel, aunque tenga varias */
+   gboolean       legacy_tray;
+ 
+   GHashTable    *hidden;   /* claves ocultas explícitamente */
+@@ -283,6 +285,9 @@ save_all (TraySettings *s)
+     p = prop (s, "symbolic-icons");
+     xfconf_channel_set_bool (s->channel, p, s->symbolic_icons);
+     g_free (p);
++    p = prop (s, "single-row");
++    xfconf_channel_set_bool (s->channel, p, s->single_row);
++    g_free (p);
+     p = prop (s, "legacy-tray");
+     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
+     g_free (p);
+@@ -350,6 +355,10 @@ load_all (TraySettings *s)
+   s->symbolic_icons = xfconf_channel_get_bool (s->channel, p, DEFAULT_SYMBOLIC_ICONS);
+   g_free (p);
+ 
++  p = prop (s, "single-row");
++  s->single_row = xfconf_channel_get_bool (s->channel, p, DEFAULT_SINGLE_ROW);
++  g_free (p);
++
+   p = prop (s, "legacy-tray");
+   s->legacy_tray = xfconf_channel_get_bool (s->channel, p, DEFAULT_LEGACY_TRAY);
+   g_free (p);
+@@ -549,10 +558,10 @@ snapshot (TraySettings *s)
+   GString *out = g_string_new (NULL);
+   guint i;
+ 
+-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d\n",
++  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d\n",
+                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
+                           s->popup_spacing, s->popup_columns, s->popup_corners,
+-                          s->arrow_position, s->symbolic_icons,
++                          s->arrow_position, s->symbolic_icons, s->single_row,
+                           s->passive_in_popup, s->new_in_popup, s->legacy_tray);
+   snapshot_set (out, "hidden", s->hidden, FALSE);
+   snapshot_set (out, "visible", s->visible, FALSE);
+@@ -818,6 +827,29 @@ tray_settings_set_symbolic_icons (TraySettings *s, gboolean value)
+ 
+ 
+ 
++gboolean
++tray_settings_get_single_row (TraySettings *s)
++{
++  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
++  return s->single_row;
++}
++
++
++
++void
++tray_settings_set_single_row (TraySettings *s, gboolean value)
++{
++  g_return_if_fail (TRAY_IS_SETTINGS (s));
++
++  if (s->single_row != !!value)
++    {
++      s->single_row = !!value;
++      notify (s, TRUE);
++    }
++}
++
++
++
+ gboolean
+ tray_settings_get_new_in_popup (TraySettings *s)
+ {
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 437ff2f..aa58796 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -57,6 +57,7 @@ gint     tray_settings_get_popup_columns     (TraySettings *s);
+ gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
+ gboolean tray_settings_get_new_in_popup      (TraySettings *s);
+ gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
++gboolean tray_settings_get_single_row        (TraySettings *s);
+ gint     tray_settings_get_popup_corners     (TraySettings *s);
+ gint     tray_settings_get_arrow_position    (TraySettings *s);
+ 
+@@ -68,6 +69,7 @@ void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
+ void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
+ void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
+ void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
++void     tray_settings_set_single_row        (TraySettings *s, gboolean value);
+ void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
+ void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
+ 

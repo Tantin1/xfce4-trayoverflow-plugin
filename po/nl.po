@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "Systeemvak met een pop-upvenster voor verborgen pictogrammen"
 msgid "Show hidden icons"
 msgstr "Verborgen pictogrammen tonen"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "Vragen om aandacht: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "Sleep pictogrammen hierheen om ze te verbergen"
+
+msgid "_Diagnostics"
+msgstr "_Diagnose"
+
+msgid "C_opy"
+msgstr "_Kopiëren"
+
+msgid "_Update"
+msgstr "Bij_werken"
+
+msgid "Copied to the clipboard."
+msgstr "Naar het klembord gekopieerd."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "Als iets niet werkt, kopieer deze informatie dan en voeg haar toe aan uw melding. Ze bevat geen persoonlijke gegevens, behalve de namen van de toepassingen in het systeemvak."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "Eén _rij pictogrammen in het paneel gebruiken"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "Alle pictogrammen in één rij (één kolom in een verticaal paneel), ook als het paneel meerdere rijen heeft. Met de automatische grootte gebruiken de pictogrammen de hele hoogte van het paneel."

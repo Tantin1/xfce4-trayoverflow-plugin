@@ -78,13 +78,64 @@ tray_plugin_in_popup (TrayPlugin *p, GtkWidget *widget)
 
 
 
+/* Lo que suma cada ícono del panel alrededor de la imagen: relleno del
+ * CSS (1 px por lado) y el borde que suelen poner los temas (1 px) */
+#define PANEL_CELL_EXTRA 4
+
+/* Tamaño de ícono más grande con el que entran todas las filas del panel
+ * (0 = no se sabe todavía) */
+gint
+tray_plugin_get_panel_rows (TrayPlugin *p)
+{
+  if (tray_settings_get_single_row (p->settings))
+    return 1;
+
+  return MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
+}
+
+
+
+static gint
+panel_icon_size_that_fits (TrayPlugin *p)
+{
+  gint thickness = xfce_panel_plugin_get_size (p->panel_plugin);
+  gint rows = tray_plugin_get_panel_rows (p);
+  gint spacing = tray_settings_get_panel_spacing (p->settings);
+
+  if (thickness <= 0)
+    return 0;
+
+  return (thickness - (rows - 1) * spacing) / rows - PANEL_CELL_EXTRA;
+}
+
+
+
 gint
 tray_plugin_get_panel_icon_size (TrayPlugin *p)
 {
   gint size = tray_settings_get_panel_icon_size (p->settings);
 
   if (size > 0)
-    return size;
+    {
+      /* Elegido a mano: si con las filas del panel no entra, se achica
+       * (sin tocar lo guardado: con menos filas vuelve a lo elegido) */
+      gint fits = panel_icon_size_that_fits (p);
+
+      if (fits > 0 && size > fits)
+        size = MAX (TRAY_ICON_SIZE_MIN, fits);
+      return size;
+    }
+
+  /* Automático con "una sola fila" en un panel de varias: el panel calcula
+   * su tamaño para una fila de las suyas; aquí se usa todo el alto */
+  if (tray_settings_get_single_row (p->settings)
+      && xfce_panel_plugin_get_nrows (p->panel_plugin) > 1)
+    {
+      gint fits = panel_icon_size_that_fits (p);
+
+      if (fits > 0)
+        return CLAMP (fits, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX);
+    }
 
   /* Automático: el mismo criterio que el resto de plugins del panel
    * (respeta el "tamaño de ícono" del panel y el número de filas) */
@@ -122,6 +173,54 @@ arrow_update_icon (TrayPlugin *p)
 
   gtk_image_set_from_icon_name (GTK_IMAGE (p->arrow_image), icon, GTK_ICON_SIZE_MENU);
   gtk_image_set_pixel_size (GTK_IMAGE (p->arrow_image), 16);
+}
+
+
+
+/* Tooltip de la flecha: si alguna app oculta pide atención, sus nombres
+ * ("Piden atención: Telegram, Heroic"). Solo se reasigna si cambió:
+ * hacerlo reabre el tooltip si está a la vista. */
+static void
+arrow_update_tooltip (TrayPlugin *p)
+{
+  GString *names = g_string_new (NULL);
+  gchar *tooltip;
+  guint i;
+
+  for (i = 0; p->popup_order != NULL && i < p->popup_order->len; i++)
+    {
+      TrayItem *item = tray_button_get_item (g_ptr_array_index (p->popup_order, i));
+
+      if (item != NULL && tray_item_get_status (item) == TRAY_ITEM_STATUS_ATTENTION)
+        {
+          if (names->len > 0)
+            g_string_append (names, ", ");
+          g_string_append (names, tray_item_get_display_name (item));
+        }
+    }
+
+  if (names->len > 0)
+    {
+      gchar *line = g_strdup_printf (_("Asking for attention: %s"), names->str);
+      tooltip = g_strconcat (_("Show hidden icons"), "\n", line, NULL);
+      g_free (line);
+    }
+  else
+    {
+      tooltip = g_strdup (_("Show hidden icons"));
+    }
+  g_string_free (names, TRUE);
+
+  if (g_strcmp0 (tooltip, p->arrow_tooltip) != 0)
+    {
+      gtk_widget_set_tooltip_text (p->arrow, tooltip);
+      g_free (p->arrow_tooltip);
+      p->arrow_tooltip = tooltip;
+    }
+  else
+    {
+      g_free (tooltip);
+    }
 }
 
 
@@ -273,7 +372,7 @@ tray_plugin_relayout (TrayPlugin *p)
 
   memset (&params, 0, sizeof (params));
   params.horizontal = tray_plugin_is_horizontal (p);
-  params.nrows = MAX (1, (gint) xfce_panel_plugin_get_nrows (p->panel_plugin));
+  params.nrows = tray_plugin_get_panel_rows (p);
   params.panel_size = tray_plugin_get_panel_icon_size (p);
   params.popup_size = tray_settings_get_popup_icon_size (p->settings);
   params.columns = tray_settings_get_popup_columns (p->settings);
@@ -320,6 +419,21 @@ tray_plugin_relayout (TrayPlugin *p)
   g_array_unref (entries);
 
   params.drag_empty = p->dragging && new_panel->len == 0;
+
+  /* Si con las columnas elegidas el popup no entra en el alto de la
+   * pantalla, se agregan columnas (como Windows 11). Mientras entre, se
+   * respeta lo elegido. */
+  if (new_popup->len > 0)
+    {
+      gint max_rows = tray_popup_max_rows (p, params.popup_size, params.popup_spacing);
+      gint needed;
+
+      if (max_rows > 0)
+        {
+          needed = ((gint) new_popup->len + max_rows - 1) / max_rows;
+          params.columns = MAX (params.columns, needed);
+        }
+    }
 
   /* Si nada cambió (caso típico: una app actualizó su ícono o su
    * título), no se reconstruyen las cuadrículas: el botón ya se
@@ -399,6 +513,7 @@ tray_plugin_relayout (TrayPlugin *p)
   /* Flecha: solo si hay ocultos, o durante un arrastre (como destino) */
   gtk_widget_set_visible (p->arrow, p->popup_order->len > 0 || p->dragging);
   gtk_widget_set_visible (p->arrow_dot, attention);
+  arrow_update_tooltip (p);
 
   if (p->popup != NULL && gtk_widget_get_visible (p->popup))
     {
@@ -439,22 +554,42 @@ tray_plugin_schedule_relayout (TrayPlugin *p)
 /* Nombre de ícono para el registro de apps conocidas. Si la app solo
  * envía píxeles (Electron, muchas apps Qt), guardamos una copia en la
  * caché para poder mostrarla en el diálogo aunque la app esté cerrada. */
+/* ¿Hay una app abierta con esta clave? (límite del registro) */
+static gboolean
+key_is_running (const gchar *key,
+                gpointer     user_data)
+{
+  TrayPlugin *p = user_data;
+  GPtrArray *items;
+  guint i;
+
+  if (p->model == NULL)
+    return FALSE;
+
+  items = tray_model_get_items (p->model);
+  for (i = 0; i < items->len; i++)
+    if (g_strcmp0 (tray_item_get_key (g_ptr_array_index (items, i)), key) == 0)
+      return TRUE;
+
+  return FALSE;
+}
+
+
+
 static gchar *
 item_icon_for_registry (TrayPlugin *p,
                         TrayItem   *item,
                         gboolean    refresh_cache)
 {
   const gchar *name = tray_item_get_icon_name (item);
-  gchar *checksum, *dir, *path;
+  gchar *dir, *path;
   GdkPixbuf *pixbuf;
 
   if (name != NULL && *name != '\0')
     return g_strdup (name);
 
-  checksum = g_compute_checksum_for_string (G_CHECKSUM_SHA1, tray_item_get_key (item), -1);
-  dir = g_build_filename (g_get_user_cache_dir (), "xfce4", TO_CSS_PREFIX, NULL);
-  path = g_strdup_printf ("%s/%s.png", dir, checksum);
-  g_free (checksum);
+  path = tray_settings_cached_icon_path (tray_item_get_key (item));
+  dir = g_path_get_dirname (path);
 
   if (refresh_cache || !g_file_test (path, G_FILE_TEST_EXISTS))
     {
@@ -496,13 +631,23 @@ static void
 item_changed (TrayItem   *item,
               TrayPlugin *p)
 {
+  guint changes = tray_item_get_changes (item);
+
   /* Mantener al día título e ícono del registro (para el diálogo).
    * La caché de íconos solo se renueva al aparecer la app, no en cada
    * cambio (algunas apps cambian el ícono a menudo). */
-  remember_item (p, item, FALSE);
+  if (changes & (TRAY_ITEM_CHANGE_TEXT | TRAY_ITEM_CHANGE_ICON))
+    remember_item (p, item, FALSE);
 
-  /* Un cambio de estado puede moverlo entre panel y popup */
-  tray_plugin_schedule_relayout (p);
+  /* Una app que pide atención cambió de nombre: el tooltip de la flecha */
+  if ((changes & TRAY_ITEM_CHANGE_TEXT)
+      && tray_item_get_status (item) == TRAY_ITEM_STATUS_ATTENTION)
+    arrow_update_tooltip (p);
+
+  /* Un cambio de estado puede moverlo entre panel y popup (o encender
+   * el punto de aviso de la flecha) */
+  if (changes & TRAY_ITEM_CHANGE_STATUS)
+    tray_plugin_schedule_relayout (p);
 }
 
 
@@ -723,9 +868,29 @@ plugin_remote_event (XfcePanelPlugin *panel_plugin,
 
 
 
+static void apply_legacy (TrayPlugin *p);
+
+static gboolean
+apply_legacy_idle (gpointer user_data)
+{
+  apply_legacy (user_data);
+  return G_SOURCE_REMOVE;
+}
+
+
+
 static void
 apply_legacy (TrayPlugin *p)
 {
+  /* Antes de arrancar el proxy: los tamaños del panel y del popup y qué
+   * apps están ocultas, para que cada ícono nazca a su tamaño */
+  gint scale = gtk_widget_get_scale_factor (GTK_WIDGET (p->panel_plugin));
+  gchar *hidden = tray_settings_get_hidden_csv (p->settings);
+
+  tray_legacy_set_size_hints (tray_plugin_get_panel_icon_size (p) * scale,
+                              tray_settings_get_popup_icon_size (p->settings) * scale,
+                              hidden);
+  g_free (hidden);
   tray_legacy_set_wanted (p, tray_settings_get_legacy_tray (p->settings));
 }
 
@@ -783,12 +948,14 @@ plugin_free (XfcePanelPlugin *panel_plugin,
   g_clear_object (&p->corners_css);
 
   g_object_unref (p->model);
+  tray_settings_set_running_func (p->settings, NULL, NULL);
   g_object_unref (p->settings);
 
   gtk_style_context_remove_provider_for_screen (gdk_screen_get_default (),
                                                 GTK_STYLE_PROVIDER (p->css));
   g_object_unref (p->css);
 
+  g_free (p->arrow_tooltip);
   g_free (p);
 }
 
@@ -814,6 +981,7 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
   p = g_new0 (TrayPlugin, 1);
   p->panel_plugin = panel_plugin;
   p->settings = tray_settings_new (panel_plugin);
+  tray_settings_set_running_func (p->settings, key_is_running, p);
   p->buttons = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, button_value_free);
   p->panel_order = g_ptr_array_new ();
   p->popup_order = g_ptr_array_new ();
@@ -835,7 +1003,8 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
   p->arrow = gtk_toggle_button_new ();
   gtk_button_set_relief (GTK_BUTTON (p->arrow), GTK_RELIEF_NONE);
   gtk_widget_set_can_focus (p->arrow, FALSE);
-  gtk_widget_set_tooltip_text (p->arrow, _("Show hidden icons"));
+  p->arrow_tooltip = g_strdup (_("Show hidden icons"));
+  gtk_widget_set_tooltip_text (p->arrow, p->arrow_tooltip);
   gtk_style_context_add_class (gtk_widget_get_style_context (p->arrow),
                                TO_CSS_PREFIX "-arrow");
   gtk_box_pack_start (GTK_BOX (p->box), p->arrow, FALSE, FALSE, 0);
@@ -903,7 +1072,9 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
 
   /* Apps antiguas (XEmbed): arrancar o detener el proxy según la opción */
   g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (apply_legacy), p);
-  apply_legacy (p);
+  /* En un idle: al construirse, el plugin todavía no sabe el tamaño del
+   * panel, y el proxy lo necesita para que los íconos nazcan a su tamaño */
+  g_idle_add (apply_legacy_idle, p);
 
   p->theme_changed_id = g_signal_connect_swapped (gtk_icon_theme_get_default (), "changed",
                                                   G_CALLBACK (refresh_all_icons), p);

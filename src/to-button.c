@@ -485,6 +485,23 @@ tray_button_init (TrayButton *button)
 
 
 
+static void update_tooltip (TrayButton *button);
+
+/* La app cambió algo: si fue solo el texto (p. ej. "Descargando: 42 %"),
+ * no hace falta volver a dibujar el ícono */
+static void
+item_changed (TrayButton *button)
+{
+  guint changes = tray_item_get_changes (button->item);
+
+  if (changes & (TRAY_ITEM_CHANGE_ICON | TRAY_ITEM_CHANGE_STATUS))
+    tray_button_update (button);
+  else if ((changes & TRAY_ITEM_CHANGE_TEXT) && button->sized)
+    update_tooltip (button);
+}
+
+
+
 GtkWidget *
 tray_button_new (TrayItem *item)
 {
@@ -496,7 +513,7 @@ tray_button_new (TrayItem *item)
   button->item = g_object_ref (item);
 
   button->changed_id = g_signal_connect_swapped (item, "changed",
-                                                 G_CALLBACK (tray_button_update), button);
+                                                 G_CALLBACK (item_changed), button);
   button->fallback_id = g_signal_connect_swapped (item, "activate-fallback",
                                                   G_CALLBACK (tray_button_activate_fallback),
                                                   button);
@@ -567,12 +584,32 @@ tray_button_set_symbolic (TrayButton *button,
 
 
 
+/* Reasignar el tooltip solo si cambió: hacerlo reactiva el tooltip
+ * aunque esté suprimido (p. ej. con un menú abierto) */
+static void
+update_tooltip (TrayButton *button)
+{
+  gchar *tooltip = tray_item_get_tooltip_markup (button->item);
+
+  if (g_strcmp0 (tooltip, button->tooltip) != 0)
+    {
+      gtk_widget_set_tooltip_markup (GTK_WIDGET (button), tooltip);
+      g_free (button->tooltip);
+      button->tooltip = tooltip;
+    }
+  else
+    {
+      g_free (tooltip);
+    }
+}
+
+
+
 void
 tray_button_update (TrayButton *button)
 {
   GtkWidget *widget;
   GdkPixbuf *pixbuf;
-  gchar *tooltip;
   gint scale;
 
   g_return_if_fail (TRAY_IS_BUTTON (button));
@@ -612,19 +649,7 @@ tray_button_update (TrayButton *button)
   /* Reservar siempre el cuadrado completo para que la grilla no salte */
   gtk_widget_set_size_request (button->image, button->icon_size, button->icon_size);
 
-  /* Reasignar el tooltip solo si cambió: hacerlo reactiva el tooltip
-   * aunque esté suprimido (p. ej. con un menú abierto) */
-  tooltip = tray_item_get_tooltip_markup (button->item);
-  if (g_strcmp0 (tooltip, button->tooltip) != 0)
-    {
-      gtk_widget_set_tooltip_markup (widget, tooltip);
-      g_free (button->tooltip);
-      button->tooltip = tooltip;
-    }
-  else
-    {
-      g_free (tooltip);
-    }
+  update_tooltip (button);
 }
 
 

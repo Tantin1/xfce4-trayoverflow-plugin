@@ -28,7 +28,8 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
 TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
        arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas
-       iconos_simbolicos)
+       iconos_simbolicos un_menu_por_clic un_menu_tras_reiniciar
+       un_menu_en_popup un_menu_al_reiniciar_app)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -197,6 +198,21 @@ start_panel() {
   PIDS+=($PANEL_PID)
   sleep 4
   ARROW_X=10
+}
+
+# Tamaño (AxB) de la ventana de una app antigua, por su título
+app_window_size() {
+  xwininfo -name "$1" 2>/dev/null | awk '/Width:/{w=$2} /Height:/{h=$2} END{if (w) print w "x" h}'
+}
+
+# Reiniciar el panel (las apps siguen corriendo y se vuelven a anclar)
+restart_panel() {
+  kill "$PANEL_PID" 2>/dev/null
+  sleep 2
+  TRAYOVERFLOW_PROXY_DEBUG=1 xfce4-panel >>"$WORK/panel.log" 2>&1 &
+  PANEL_PID=$!
+  PIDS+=($PANEL_PID)
+  sleep 5
 }
 
 cleanup() {
@@ -465,6 +481,88 @@ t_iconos_simbolicos() {
   shot; after=$(saturation 15 "$PANEL_Y")
   awk -v a="$after" 'BEGIN { exit !(a > 0.3) }' && ok "al desactivarla vuelve el color" \
     || fail "al desactivarla no volvió el color (saturación $after)"
+}
+
+# App antigua que imita a ibus (ver apps/ibus_like_app.py). Con el panel en
+# 22 px: el ícono aparece (el proxy le avisa el tamaño final cuando recorta
+# su pedido; sin eso GTK no dibujaba), nace al tamaño justo y un clic abre
+# un solo menú (ibus conecta su menú en cada cambio de tamaño)
+t_un_menu_por_clic() {
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
+  start_panel
+  start_app ibus_like_app.py "$WORK/app.log"
+  sleep 3
+  click 15 "$PANEL_Y" 1; sleep 1.5
+  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "un solo tamaño al aparecer" \
+    || fail "$(count INIT "$WORK/app.log") tamaños al aparecer: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
+  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic abre un solo menú" \
+    || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
+}
+
+# Con la app tipo ibus ya corriendo, reiniciar el panel: el ícono se
+# vuelve a anclar al mismo tamaño (el proxy no deja que la app lo cambie)
+# y sigue abriendo un solo menú por clic
+t_un_menu_tras_reiniciar() {
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
+  start_panel
+  start_app ibus_like_app.py "$WORK/app.log"
+  sleep 3
+  local size
+  size=$(app_window_size ibus-like-app)
+  [ "$size" = 22x22 ] && ok "la ventana de la app mide lo que el ícono (22x22)" \
+    || fail "la ventana de la app mide $size (esperado 22x22)"
+  restart_panel
+  restart_panel
+  size=$(app_window_size ibus-like-app)
+  [ "$size" = 22x22 ] && ok "y sigue igual tras dos reinicios" \
+    || fail "tras reiniciar, la ventana de la app mide $size (esperado 22x22)"
+  click 15 "$PANEL_Y" 1; sleep 1.5
+  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "mismo tamaño tras dos reinicios" \
+    || fail "tamaños vistos: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
+  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic sigue abriendo un solo menú" \
+    || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
+}
+
+# App tipo ibus oculta en el popup (24 px) con el panel en 22: nace
+# directamente en 24 (el plugin le dice al proxy qué apps están ocultas) y
+# un clic en el popup abre un solo menú, también tras reiniciar el panel
+t_un_menu_en_popup() {
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/popup-icon-size -n -t int -s 24
+  start_panel ibus-like-app
+  start_app ibus_like_app.py "$WORK/app.log"
+  sleep 3
+  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "en el popup nace con su tamaño" \
+    || fail "tamaños vistos al aparecer: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
+  restart_panel
+  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "y lo mantiene tras reiniciar el panel" \
+    || fail "tamaños vistos tras reiniciar: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
+  open_popup || { fail "el popup no se abrió"; return; }
+  click "$POPUP_CX" "$POPUP_CY" 1; sleep 1.5
+  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic en el popup abre un solo menú" \
+    || fail "un clic en el popup abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
+}
+
+# Panel en 22 y popup en 24, una app antigua oculta (24) y la tipo ibus en
+# el panel (22). Al reiniciar la tipo ibus, nace en 22: el proxy recuerda
+# el tamaño de cada app, sin mezclarlo con el de las demás
+t_un_menu_al_reiniciar_app() {
+  local pid
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/popup-icon-size -n -t int -s 24
+  start_panel legacy-app
+  start_app legacy_app.py "$WORK/legacy.log"
+  start_app ibus_like_app.py "$WORK/app1.log"; pid=$LAST_PID
+  sleep 4
+  kill "$pid"; sleep 1
+  start_app ibus_like_app.py "$WORK/app.log"
+  sleep 4
+  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "al reiniciarla nace con su tamaño" \
+    || fail "tamaños vistos al reiniciarla: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
+  # Panel: [flecha][app tipo ibus]
+  click 33 "$PANEL_Y" 1; sleep 1.5
+  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic abre un solo menú" \
+    || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
 }
 
 # ════════════════════════════════════════════════════════════════════════

@@ -1,9 +1,10 @@
-# Compila Tray Overflow en varias distros, arma los .deb, corre las pruebas
-# automáticas y, al subir una etiqueta v*, publica una Release con los .deb.
+# Compila Tray Overflow en varias distros, arma los .deb y el paquete de
+# Arch, corre las pruebas automáticas y, al subir una etiqueta v*, publica
+# una Release con los paquetes.
 #
-#   Cada push / pull request → compilar, empaquetar y probar (los .deb
+#   Cada push / pull request → compilar, empaquetar y probar (los paquetes
 #                              quedan como "artifacts" en la pestaña Actions)
-#   git tag v0.2.27 && git push --tags → además, Release con los .deb
+#   git tag v0.2.27 && git push --tags → además, Release con los paquetes
 name: Compilar y empaquetar
 
 on:
@@ -89,7 +90,7 @@ jobs:
           if-no-files-found: error
 
   arch:
-    name: Arch Linux (solo compilar)
+    name: Arch Linux (compilar y empaquetar)
     runs-on: ubuntu-latest
     container: archlinux:latest
     timeout-minutes: 30
@@ -107,6 +108,20 @@ jobs:
           meson setup build-ci --prefix=/usr -Dwarning_level=2 -Dwerror=true
           ninja -C build-ci
 
+      # makepkg no se puede usar como root: se arma con un usuario común
+      - name: Armar el paquete de Arch
+        run: |
+          rm -rf build-ci
+          useradd -m builder
+          chown -R builder .
+          su builder -c "bash packaging/build-arch.sh"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-arch
+          path: xfce4-trayoverflow-plugin-*.pkg.tar.zst
+          if-no-files-found: error
+
   release:
     name: Publicar la Release
     if: startsWith(github.ref, 'refs/tags/v')
@@ -120,11 +135,17 @@ jobs:
           pattern: deb-*
           merge-multiple: true
 
-      - name: Crear la Release con los .deb
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pkg-*
+          merge-multiple: true
+
+      - name: Crear la Release con los paquetes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" xfce4-trayoverflow-plugin_*.deb \
+            xfce4-trayoverflow-plugin-*.pkg.tar.zst \
             --repo "$GITHUB_REPOSITORY" \
             --title "Tray Overflow ${GITHUB_REF_NAME#v}" \
             --generate-notes

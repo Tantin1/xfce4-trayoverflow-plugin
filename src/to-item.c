@@ -27,6 +27,8 @@ typedef struct
 
   GHashTable     *size_requests;   /* requester → píxeles */
   gint            size_sent;       /* último tamaño pasado al backend */
+
+  guint           changes;         /* TrayItemChanges pendientes de avisar */
 } TrayItemPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (TrayItem, tray_item, G_TYPE_OBJECT)
@@ -630,14 +632,74 @@ tray_item_release_size (TrayItem *item, gpointer requester)
 
 /* ── Setters para backends ───────────────────────────────────────────── */
 
-static void
+/* Devuelve TRUE si cambió */
+static gboolean
 replace_string (gchar **dest, const gchar *value)
 {
   if (g_strcmp0 (*dest, value) != 0)
     {
       g_free (*dest);
       *dest = g_strdup (value);
+      return TRUE;
     }
+  return FALSE;
+}
+
+
+
+static gboolean
+pixbuf_equal (GdkPixbuf *a, GdkPixbuf *b)
+{
+  gint width, height, n_channels, rowstride_a, rowstride_b, y;
+  const guchar *pa, *pb;
+  gsize row_len;
+
+  if (a == b)
+    return TRUE;
+
+  width = gdk_pixbuf_get_width (a);
+  height = gdk_pixbuf_get_height (a);
+  n_channels = gdk_pixbuf_get_n_channels (a);
+
+  if (width != gdk_pixbuf_get_width (b) || height != gdk_pixbuf_get_height (b)
+      || n_channels != gdk_pixbuf_get_n_channels (b)
+      || gdk_pixbuf_get_has_alpha (a) != gdk_pixbuf_get_has_alpha (b)
+      || gdk_pixbuf_get_bits_per_sample (a) != 8 || gdk_pixbuf_get_bits_per_sample (b) != 8)
+    return FALSE;
+
+  rowstride_a = gdk_pixbuf_get_rowstride (a);
+  rowstride_b = gdk_pixbuf_get_rowstride (b);
+  pa = gdk_pixbuf_read_pixels (a);
+  pb = gdk_pixbuf_read_pixels (b);
+  row_len = (gsize) width * (gsize) n_channels;
+
+  for (y = 0; y < height; y++)
+    if (memcmp (pa + (gsize) y * rowstride_a, pb + (gsize) y * rowstride_b, row_len) != 0)
+      return FALSE;
+
+  return TRUE;
+}
+
+
+
+/* Las apps reenvían todas sus imágenes en cada cambio (aunque solo haya
+ * cambiado el tooltip): compararlas evita volver a dibujar el ícono */
+static gboolean
+pixmaps_equal (GPtrArray *a, GPtrArray *b)
+{
+  guint i;
+
+  if (a == NULL || b == NULL)
+    return (a == NULL || a->len == 0) && (b == NULL || b->len == 0);
+
+  if (a->len != b->len)
+    return FALSE;
+
+  for (i = 0; i < a->len; i++)
+    if (!pixbuf_equal (g_ptr_array_index (a, i), g_ptr_array_index (b, i)))
+      return FALSE;
+
+  return TRUE;
 }
 
 
@@ -655,7 +717,8 @@ void
 tray_item_set_title (TrayItem *item, const gchar *title)
 {
   g_return_if_fail (TRAY_IS_ITEM (item));
-  replace_string (&PRIV (item)->title, title);
+  if (replace_string (&PRIV (item)->title, title))
+    PRIV (item)->changes |= TRAY_ITEM_CHANGE_TEXT;
 }
 
 
@@ -664,7 +727,11 @@ void
 tray_item_set_status (TrayItem *item, TrayItemStatus status)
 {
   g_return_if_fail (TRAY_IS_ITEM (item));
-  PRIV (item)->status = status;
+  if (PRIV (item)->status != status)
+    {
+      PRIV (item)->status = status;
+      PRIV (item)->changes |= TRAY_ITEM_CHANGE_STATUS;
+    }
 }
 
 
@@ -699,11 +766,21 @@ tray_item_set_icon (TrayItem         *item,
   g_return_if_fail (role < TRAY_ITEM_N_ICONS);
   priv = PRIV (item);
 
-  replace_string (&priv->icon_name[role], icon_name);
+  if (replace_string (&priv->icon_name[role], icon_name))
+    priv->changes |= TRAY_ITEM_CHANGE_ICON;
+
+  /* Mismas imágenes que antes: se descartan las nuevas */
+  if (pixmaps_equal (priv->pixmaps[role], pixmaps))
+    {
+      if (pixmaps != NULL)
+        g_ptr_array_unref (pixmaps);
+      return;
+    }
 
   if (priv->pixmaps[role] != NULL)
     g_ptr_array_unref (priv->pixmaps[role]);
   priv->pixmaps[role] = pixmaps;
+  priv->changes |= TRAY_ITEM_CHANGE_ICON;
 }
 
 
@@ -720,6 +797,7 @@ tray_item_set_icon_theme_path (TrayItem *item, const gchar *path)
     {
       replace_string (&priv->theme_path, path);
       g_clear_object (&priv->path_theme);
+      priv->changes |= TRAY_ITEM_CHANGE_ICON;
     }
 }
 
@@ -735,8 +813,10 @@ tray_item_set_tooltip (TrayItem    *item,
   g_return_if_fail (TRAY_IS_ITEM (item));
   priv = PRIV (item);
 
-  replace_string (&priv->tooltip_title, title);
-  replace_string (&priv->tooltip_text, text);
+  if (replace_string (&priv->tooltip_title, title))
+    priv->changes |= TRAY_ITEM_CHANGE_TEXT;
+  if (replace_string (&priv->tooltip_text, text))
+    priv->changes |= TRAY_ITEM_CHANGE_TEXT;
 }
 
 
@@ -744,8 +824,26 @@ tray_item_set_tooltip (TrayItem    *item,
 void
 tray_item_emit_changed (TrayItem *item)
 {
+  TrayItemPrivate *priv;
+
   g_return_if_fail (TRAY_IS_ITEM (item));
+  priv = PRIV (item);
+
+  /* La app avisó, pero no cambió nada que se vea */
+  if (priv->changes == 0)
+    return;
+
   g_signal_emit (item, signals[SIGNAL_CHANGED], 0);
+  priv->changes = 0;
+}
+
+
+
+guint
+tray_item_get_changes (TrayItem *item)
+{
+  g_return_val_if_fail (TRAY_IS_ITEM (item), 0);
+  return PRIV (item)->changes;
 }
 
 

@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "숨겨진 아이콘용 팝업이 있는 알림 영역"
 msgid "Show hidden icons"
 msgstr "숨겨진 아이콘 표시"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "주의 요청: %s"
+
 msgid "Drop icons here to hide them"
 msgstr "숨기려면 아이콘을 여기에 놓으세요"
+
+msgid "_Diagnostics"
+msgstr "진단(_D)"
+
+msgid "C_opy"
+msgstr "복사(_O)"
+
+msgid "_Update"
+msgstr "새로 고침(_U)"
+
+msgid "Copied to the clipboard."
+msgstr "클립보드에 복사했습니다."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "문제가 있으면 이 정보를 복사하여 보고서에 포함하십시오. 트레이에 있는 앱 이름 외에는 개인 정보가 포함되어 있지 않습니다."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "패널에서 아이콘을 한 줄로 표시(_G)"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "패널이 여러 줄이어도 모든 아이콘을 한 줄(세로 패널에서는 한 열)에 표시합니다. 크기가 자동이면 아이콘이 패널 높이 전체를 사용합니다."

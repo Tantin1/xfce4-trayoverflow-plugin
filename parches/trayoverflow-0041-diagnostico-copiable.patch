@@ -1,0 +1,751 @@
+diff --git a/README.md b/README.md
+index 46ec25e..784be7b 100644
+--- a/README.md
++++ b/README.md
+@@ -272,6 +272,13 @@ nuevas y hay que volver a ocultarlas si estaban ocultas.
+ 
+ ## Diagnóstico
+ 
++Si algo no funciona, abra **Propiedades → Diagnóstico** y toque **Copiar**:
++copia un resumen (versiones, sesión, estado de las bandejas y de cada app,
++y de dónde sale cada ícono) para pegarlo en el reporte. No incluye datos
++personales, salvo los nombres de las apps de la bandeja.
++
++Si el plugin ni siquiera aparece:
++
+ ```bash
+ # ¿El panel ve el plugin?
+ ls /usr/share/xfce4/panel/plugins/trayoverflow.desktop
+diff --git a/meson.build b/meson.build
+index 2cfa18d..849060a 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.38',
++  version: '0.2.39',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+@@ -91,6 +91,7 @@ sources = files(
+   'src/to-plugin.c',
+   'src/to-popup.c',
+   'src/to-dnd.c',
++  'src/to-diag.c',
+ )
+ 
+ shared_module(
+diff --git a/po/de.po b/po/de.po
+index fd5c1e8..9127b2b 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -206,3 +206,18 @@ msgstr "Bitten um Aufmerksamkeit: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Symbole hierher ziehen, um sie auszublenden"
++
++msgid "_Diagnostics"
++msgstr "D_iagnose"
++
++msgid "C_opy"
++msgstr "_Kopieren"
++
++msgid "_Update"
++msgstr "_Aktualisieren"
++
++msgid "Copied to the clipboard."
++msgstr "In die Zwischenablage kopiert."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Wenn etwas nicht funktioniert, kopieren Sie diese Informationen und fügen Sie sie Ihrem Fehlerbericht bei. Sie enthalten außer den Namen der Anwendungen im Infobereich keine persönlichen Daten."
+diff --git a/po/es.po b/po/es.po
+index 6965de8..ce7fb6f 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.38\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.39\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -260,3 +260,18 @@ msgid ""
+ msgstr ""
+ "Mientras tenga un ícono elegido, no se verán los cambios del ícono propio "
+ "de la aplicación (por ejemplo, un aviso)."
++
++msgid "_Diagnostics"
++msgstr "_Diagnóstico"
++
++msgid "C_opy"
++msgstr "_Copiar"
++
++msgid "_Update"
++msgstr "_Actualizar"
++
++msgid "Copied to the clipboard."
++msgstr "Copiado al portapapeles."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Si algo no funciona, copie esta información e inclúyala en su reporte. No contiene datos personales, salvo los nombres de las aplicaciones de la bandeja."
+diff --git a/po/fr.po b/po/fr.po
+index a75f9b1..3402bfb 100644
+--- a/po/fr.po
++++ b/po/fr.po
+@@ -206,3 +206,18 @@ msgstr "Demandent votre attention : %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Déposez des icônes ici pour les masquer"
++
++msgid "_Diagnostics"
++msgstr "_Diagnostic"
++
++msgid "C_opy"
++msgstr "_Copier"
++
++msgid "_Update"
++msgstr "_Actualiser"
++
++msgid "Copied to the clipboard."
++msgstr "Copié dans le presse-papiers."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Si quelque chose ne fonctionne pas, copiez ces informations et joignez-les à votre rapport. Elles ne contiennent aucune donnée personnelle, hormis le nom des applications de la zone de notification."
+diff --git a/po/it.po b/po/it.po
+index 288fb57..a7dc320 100644
+--- a/po/it.po
++++ b/po/it.po
+@@ -206,3 +206,18 @@ msgstr "Richiedono attenzione: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Trascina qui le icone per nasconderle"
++
++msgid "_Diagnostics"
++msgstr "_Diagnostica"
++
++msgid "C_opy"
++msgstr "_Copia"
++
++msgid "_Update"
++msgstr "A_ggiorna"
++
++msgid "Copied to the clipboard."
++msgstr "Copiato negli appunti."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Se qualcosa non funziona, copia queste informazioni e includile nella tua segnalazione. Non contengono dati personali, a parte i nomi delle applicazioni nell'area di notifica."
+diff --git a/po/ja.po b/po/ja.po
+index 32dcca1..efa004d 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -206,3 +206,18 @@ msgstr "注意を求めています: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "ここにアイコンをドロップすると非表示になります"
++
++msgid "_Diagnostics"
++msgstr "診断(_D)"
++
++msgid "C_opy"
++msgstr "コピー(_O)"
++
++msgid "_Update"
++msgstr "更新(_U)"
++
++msgid "Copied to the clipboard."
++msgstr "クリップボードにコピーしました。"
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "うまく動作しない場合は、この情報をコピーして報告に含めてください。トレイ内のアプリ名以外の個人情報は含まれていません。"
+diff --git a/po/ko.po b/po/ko.po
+index c049581..d9341f5 100644
+--- a/po/ko.po
++++ b/po/ko.po
+@@ -206,3 +206,18 @@ msgstr "주의 요청: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "숨기려면 아이콘을 여기에 놓으세요"
++
++msgid "_Diagnostics"
++msgstr "진단(_D)"
++
++msgid "C_opy"
++msgstr "복사(_O)"
++
++msgid "_Update"
++msgstr "새로 고침(_U)"
++
++msgid "Copied to the clipboard."
++msgstr "클립보드에 복사했습니다."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "문제가 있으면 이 정보를 복사하여 보고서에 포함하십시오. 트레이에 있는 앱 이름 외에는 개인 정보가 포함되어 있지 않습니다."
+diff --git a/po/nl.po b/po/nl.po
+index d8b33d4..76f688c 100644
+--- a/po/nl.po
++++ b/po/nl.po
+@@ -206,3 +206,18 @@ msgstr "Vragen om aandacht: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Sleep pictogrammen hierheen om ze te verbergen"
++
++msgid "_Diagnostics"
++msgstr "_Diagnose"
++
++msgid "C_opy"
++msgstr "_Kopiëren"
++
++msgid "_Update"
++msgstr "Bij_werken"
++
++msgid "Copied to the clipboard."
++msgstr "Naar het klembord gekopieerd."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Als iets niet werkt, kopieer deze informatie dan en voeg haar toe aan uw melding. Ze bevat geen persoonlijke gegevens, behalve de namen van de toepassingen in het systeemvak."
+diff --git a/po/pl.po b/po/pl.po
+index d4286fa..4571c02 100644
+--- a/po/pl.po
++++ b/po/pl.po
+@@ -206,3 +206,18 @@ msgstr "Wymagają uwagi: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Upuść tu ikony, aby je ukryć"
++
++msgid "_Diagnostics"
++msgstr "_Diagnostyka"
++
++msgid "C_opy"
++msgstr "_Kopiuj"
++
++msgid "_Update"
++msgstr "_Odśwież"
++
++msgid "Copied to the clipboard."
++msgstr "Skopiowano do schowka."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Jeśli coś nie działa, skopiuj te informacje i dołącz je do zgłoszenia. Nie zawierają one danych osobowych poza nazwami aplikacji w zasobniku."
+diff --git a/po/pt_BR.po b/po/pt_BR.po
+index 00365dd..30749a8 100644
+--- a/po/pt_BR.po
++++ b/po/pt_BR.po
+@@ -206,3 +206,18 @@ msgstr "Pedindo atenção: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Solte ícones aqui para ocultá-los"
++
++msgid "_Diagnostics"
++msgstr "_Diagnóstico"
++
++msgid "C_opy"
++msgstr "_Copiar"
++
++msgid "_Update"
++msgstr "_Atualizar"
++
++msgid "Copied to the clipboard."
++msgstr "Copiado para a área de transferência."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Se algo não funcionar, copie estas informações e inclua-as no seu relatório. Elas não contêm dados pessoais além dos nomes dos aplicativos na bandeja."
+diff --git a/po/ru.po b/po/ru.po
+index c1fe573..f4a8c47 100644
+--- a/po/ru.po
++++ b/po/ru.po
+@@ -206,3 +206,18 @@ msgstr "Требуют внимания: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Перетащите сюда значки, чтобы скрыть их"
++
++msgid "_Diagnostics"
++msgstr "_Диагностика"
++
++msgid "C_opy"
++msgstr "_Копировать"
++
++msgid "_Update"
++msgstr "_Обновить"
++
++msgid "Copied to the clipboard."
++msgstr "Скопировано в буфер обмена."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Если что-то не работает, скопируйте эти сведения и приложите их к отчёту. Они не содержат личных данных, кроме названий приложений в лотке."
+diff --git a/po/tr.po b/po/tr.po
+index 6759f7d..e6dbf91 100644
+--- a/po/tr.po
++++ b/po/tr.po
+@@ -206,3 +206,18 @@ msgstr "Dikkat istiyor: %s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "Gizlemek için simgeleri buraya bırakın"
++
++msgid "_Diagnostics"
++msgstr "_Tanılama"
++
++msgid "C_opy"
++msgstr "_Kopyala"
++
++msgid "_Update"
++msgstr "Gü_ncelle"
++
++msgid "Copied to the clipboard."
++msgstr "Panoya kopyalandı."
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "Bir şey çalışmıyorsa bu bilgileri kopyalayıp raporunuza ekleyin. Tepsideki uygulamaların adları dışında kişisel veri içermez."
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index 6eac9bc..4a1dc2c 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -206,3 +206,18 @@ msgstr "请求关注：%s"
+ 
+ msgid "Drop icons here to hide them"
+ msgstr "将图标拖到这里即可隐藏"
++
++msgid "_Diagnostics"
++msgstr "诊断(_D)"
++
++msgid "C_opy"
++msgstr "复制(_O)"
++
++msgid "_Update"
++msgstr "刷新(_U)"
++
++msgid "Copied to the clipboard."
++msgstr "已复制到剪贴板。"
++
++msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
++msgstr "如果有功能不正常，请复制这些信息并附在您的报告中。除托盘中应用的名称外，其中不含个人数据。"
+diff --git a/src/to-diag.c b/src/to-diag.c
+new file mode 100644
+index 0000000..0c63738
+--- /dev/null
++++ b/src/to-diag.c
+@@ -0,0 +1,262 @@
++/*
++ * Tray Overflow — plugin de bandeja para xfce4-panel
++ * Copyright (C) 2026 Juan Pérez
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ *
++ * Informe de diagnóstico (ver to-diag.h).
++ */
++#include "to-common.h"
++#include "to-diag.h"
++#include "to-button.h"
++#include "to-legacy.h"
++#include "to-sni.h"
++
++#include <gdk/gdkx.h>
++#include <string.h>
++
++/* No mostrar la carpeta personal (en rutas de íconos): "~/…" */
++static gchar *
++hide_home (const gchar *text)
++{
++  const gchar *home = g_get_home_dir ();
++  gsize len;
++
++  if (text == NULL)
++    return g_strdup ("");
++
++  len = home != NULL ? strlen (home) : 0;
++  if (len > 1 && g_str_has_prefix (text, home) && (text[len] == '/' || text[len] == '\0'))
++    return g_strconcat ("~", text + len, NULL);
++
++  return g_strdup (text);
++}
++
++
++
++static const gchar *
++yes_no (gboolean value)
++{
++  return value ? "yes" : "no";
++}
++
++
++
++static const gchar *
++legacy_state_name (TrayLegacyState state)
++{
++  switch (state)
++    {
++    case TRAY_LEGACY_UNAVAILABLE: return "not installed";
++    case TRAY_LEGACY_OFF:         return "off";
++    case TRAY_LEGACY_ACTIVE:      return "active";
++    case TRAY_LEGACY_WAITING:     return "waiting (another classic tray is active)";
++    case TRAY_LEGACY_FAILED:      return "FAILED to start";
++    case TRAY_LEGACY_NO_XWAYLAND: return "unavailable (no XWayland)";
++    default:                      return "unknown";
++    }
++}
++
++
++
++static const gchar *
++status_name (TrayItemStatus status)
++{
++  switch (status)
++    {
++    case TRAY_ITEM_STATUS_PASSIVE:   return "passive";
++    case TRAY_ITEM_STATUS_ATTENTION: return "NEEDS ATTENTION";
++    case TRAY_ITEM_STATUS_ACTIVE:
++    default:                         return "active";
++    }
++}
++
++
++
++static const gchar *
++mode_name (XfcePanelPluginMode mode)
++{
++  switch (mode)
++    {
++    case XFCE_PANEL_PLUGIN_MODE_VERTICAL: return "vertical";
++    case XFCE_PANEL_PLUGIN_MODE_DESKBAR:  return "deskbar";
++    case XFCE_PANEL_PLUGIN_MODE_HORIZONTAL:
++    default:                              return "horizontal";
++    }
++}
++
++
++
++/* De dónde sale el ícono que se ve */
++static gchar *
++icon_source (TrayPlugin *p,
++             TrayItem   *item)
++{
++  const gchar *key = tray_item_get_key (item);
++  const gchar *choice = tray_settings_get_icon_choice (p->settings, key);
++  const gchar *override = tray_settings_get_icon_override (p->settings, key);
++  const gchar *name = tray_item_get_icon_name (item);
++  gchar *shown, *result;
++
++  if (choice != NULL && g_strcmp0 (choice, TRAY_ICON_OWN) != 0)
++    {
++      shown = hide_home (choice);
++      result = g_strdup_printf ("chosen by user: %s", shown);
++    }
++  else if (override != NULL)
++    {
++      shown = hide_home (override);
++      result = g_strdup_printf ("default list: %s", shown);
++    }
++  else
++    {
++      shown = hide_home (name);
++      result = (name != NULL && *name != '\0')
++               ? g_strdup_printf ("app, name: %s%s", shown,
++                                  choice != NULL ? " (own icon forced)" : "")
++               : g_strdup_printf ("app, pixels%s",
++                                  choice != NULL ? " (own icon forced)" : "");
++    }
++
++  g_free (shown);
++  return result;
++}
++
++
++
++static gboolean
++in_order (GPtrArray *order,
++          GtkWidget *button)
++{
++  guint i;
++
++  for (i = 0; order != NULL && i < order->len; i++)
++    if (g_ptr_array_index (order, i) == button)
++      return TRUE;
++
++  return FALSE;
++}
++
++
++
++gchar *
++tray_diag_report (TrayPlugin *p)
++{
++  GString *out = g_string_new (NULL);
++  GtkWidget *widget = GTK_WIDGET (p->panel_plugin);
++  GdkDisplay *display = gtk_widget_get_display (widget);
++  gboolean x11 = GDK_IS_X11_DISPLAY (display);
++  gchar *theme = NULL, *gtk_theme = NULL;
++  GPtrArray *items, *known;
++  gboolean is_proxy = FALSE;
++  guint i, running = 0;
++
++  /* ── Versiones y sesión ── */
++  g_string_append_printf (out, "Tray Overflow %s\n", PACKAGE_VERSION);
++  g_string_append_printf (out, "libxfce4panel %u.%u.%u, GTK %u.%u.%u\n",
++                          libxfce4panel_major_version, libxfce4panel_minor_version,
++                          libxfce4panel_micro_version,
++                          gtk_get_major_version (), gtk_get_minor_version (),
++                          gtk_get_micro_version ());
++  g_string_append_printf (out, "Session: %s, desktop: %s\n",
++                          x11 ? "X11" : "Wayland",
++                          g_getenv ("XDG_CURRENT_DESKTOP") != NULL
++                          ? g_getenv ("XDG_CURRENT_DESKTOP") : "?");
++  if (x11)
++    g_string_append_printf (out, "Window manager: %s\n",
++                            gdk_x11_screen_get_window_manager_name (
++                              gtk_widget_get_screen (widget)));
++  else
++    g_string_append_printf (out, "Popup as layer-shell surface: %s\n",
++                            yes_no (p->popup_layer));
++  g_string_append_printf (out, "Compositing: %s, scale: %d\n",
++                          yes_no (gdk_screen_is_composited (gtk_widget_get_screen (widget))),
++                          gtk_widget_get_scale_factor (widget));
++
++  g_object_get (gtk_widget_get_settings (widget),
++                "gtk-icon-theme-name", &theme, "gtk-theme-name", &gtk_theme, NULL);
++  g_string_append_printf (out, "Theme: %s, icons: %s\n",
++                          gtk_theme != NULL ? gtk_theme : "?", theme != NULL ? theme : "?");
++  g_free (theme);
++  g_free (gtk_theme);
++
++  /* ── Panel y backends ── */
++  g_string_append_printf (out, "\nPanel: %s, size %d, rows %u\n",
++                          mode_name (xfce_panel_plugin_get_mode (p->panel_plugin)),
++                          xfce_panel_plugin_get_size (p->panel_plugin),
++                          xfce_panel_plugin_get_nrows (p->panel_plugin));
++  g_string_append_printf (out, "Modern apps (SNI) watcher: %s\n",
++                          to_sni_backend_owns_watcher () ? "this plugin" : "another program");
++  g_string_append_printf (out, "Older apps (XEmbed) proxy: %s\n",
++                          legacy_state_name (tray_legacy_get_state (widget)));
++  /* En Wayland solo se mira si el proxy está pedido (si no, mirar
++   * despertaría XWayland en vano) */
++  if (x11 || tray_settings_get_legacy_tray (p->settings))
++    {
++      gint owner = tray_legacy_tray_owner (widget, &is_proxy);
++
++      g_string_append_printf (out, "Classic tray owner: %s\n",
++                              owner == 1 ? (is_proxy ? "our proxy" : "another tray")
++                              : owner == 0 ? "none" : "unknown");
++    }
++
++  /* ── Opciones ── */
++  g_string_append_printf (out,
++                          "\nSettings: panel icon %d (0 = auto, now %d), popup icon %d, "
++                          "columns %d (shown %d), spacing %d/%d, corners %d, arrow %d\n",
++                          tray_settings_get_panel_icon_size (p->settings),
++                          tray_plugin_get_panel_icon_size (p),
++                          tray_settings_get_popup_icon_size (p->settings),
++                          tray_settings_get_popup_columns (p->settings),
++                          p->layout_params.columns,
++                          tray_settings_get_panel_spacing (p->settings),
++                          tray_settings_get_popup_spacing (p->settings),
++                          tray_settings_get_popup_corners (p->settings),
++                          tray_settings_get_arrow_position (p->settings));
++  g_string_append_printf (out,
++                          "Options: passive in popup %s, new in popup %s, "
++                          "symbolic %s, older apps %s\n",
++                          yes_no (tray_settings_get_passive_in_popup (p->settings)),
++                          yes_no (tray_settings_get_new_in_popup (p->settings)),
++                          yes_no (tray_settings_get_symbolic_icons (p->settings)),
++                          yes_no (tray_settings_get_legacy_tray (p->settings)));
++
++  /* ── Apps abiertas ── */
++  items = tray_model_get_items (p->model);
++  for (i = 0; i < items->len; i++)
++    if (tray_item_get_key (g_ptr_array_index (items, i)) != NULL)
++      running++;
++
++  g_string_append_printf (out, "\nRunning apps (%u):\n", running);
++  for (i = 0; i < items->len; i++)
++    {
++      TrayItem *item = g_ptr_array_index (items, i);
++      GtkWidget *button = g_hash_table_lookup (p->buttons, item);
++      const gchar *where;
++      gchar *source;
++
++      if (tray_item_get_key (item) == NULL)
++        continue;
++
++      if (button != NULL && in_order (p->popup_order, button))
++        where = "popup";
++      else if (button != NULL && in_order (p->panel_order, button))
++        where = "panel";
++      else
++        where = "not placed";
++
++      source = icon_source (p, item);
++      g_string_append_printf (out, "- %s \"%s\": %s, %s, %s, icon: %s\n",
++                              tray_item_get_key (item),
++                              tray_item_get_display_name (item),
++                              tray_item_get_is_legacy (item) ? "older app (XEmbed)" : "modern (SNI)",
++                              status_name (tray_item_get_status (item)),
++                              where, source);
++      g_free (source);
++    }
++
++  /* ── Apps recordadas ── */
++  known = tray_settings_get_known (p->settings);
++  g_string_append_printf (out, "\nRemembered apps: %u\n", known->len);
++
++  return g_string_free (out, FALSE);
++}
+diff --git a/src/to-diag.h b/src/to-diag.h
+new file mode 100644
+index 0000000..81647f9
+--- /dev/null
++++ b/src/to-diag.h
+@@ -0,0 +1,19 @@
++/*
++ * Tray Overflow — plugin de bandeja para xfce4-panel
++ * Copyright (C) 2026 Juan Pérez
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ *
++ * Informe de diagnóstico: sesión, versiones, estado de los backends y de
++ * cada app, en texto plano para copiar y pegar en un reporte de errores.
++ */
++#pragma once
++
++#include "to-plugin.h"
++
++G_BEGIN_DECLS
++
++/* Texto nuevo (liberar con g_free). En inglés a propósito: es para
++ * reportes, que los lea quien los lea */
++gchar *tray_diag_report (TrayPlugin *p);
++
++G_END_DECLS
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 8ddc388..3092354 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -16,6 +16,7 @@
+ #include <string.h>
+ 
+ #include "to-legacy.h"
++#include "to-diag.h"
+ 
+ #define LIST_ICON_SIZE    24
+ #define CHOOSER_ICON_SIZE 32
+@@ -62,6 +63,10 @@ typedef struct
+   GtkWidget    *legacy_label;
+   guint         legacy_refresh_id;
+ 
++  GtkWidget    *diag_view;
++  GtkWidget    *diag_status;
++  GtkWidget    *diag_page;
++
+   gboolean      rebuilding;
+   gboolean      syncing;    /* actualizando los controles desde la configuración */
+ } DialogData;
+@@ -1018,6 +1023,100 @@ legacy_section (DialogData *d)
+ 
+ 
+ 
++/* ── Pestaña Diagnóstico ─────────────────────────────────────────────── */
++
++static void
++diag_refresh (DialogData *d)
++{
++  gchar *report = tray_diag_report (d->p);
++
++  gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (d->diag_view)),
++                            report, -1);
++  gtk_label_set_text (GTK_LABEL (d->diag_status), "");
++  g_free (report);
++}
++
++
++
++static void
++diag_copy (GtkButton  *button,
++           DialogData *d)
++{
++  gchar *report;
++
++  /* Siempre el estado de este momento */
++  diag_refresh (d);
++  report = tray_diag_report (d->p);
++  gtk_clipboard_set_text (gtk_widget_get_clipboard (d->diag_view, GDK_SELECTION_CLIPBOARD),
++                          report, -1);
++  g_free (report);
++  gtk_label_set_text (GTK_LABEL (d->diag_status), _("Copied to the clipboard."));
++}
++
++
++
++static void
++diag_page_switched (GtkNotebook *notebook,
++                    GtkWidget   *page,
++                    guint        page_num,
++                    DialogData  *d)
++{
++  if (page == d->diag_page)
++    diag_refresh (d);
++}
++
++
++
++static GtkWidget *
++diag_page (DialogData *d)
++{
++  GtkWidget *vbox, *label, *scrolled, *buttons, *button;
++
++  vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
++  gtk_container_set_border_width (GTK_CONTAINER (vbox), 12);
++
++  label = gtk_label_new (_("If something does not work, copy this information and "
++                           "include it in your report. It contains no personal data "
++                           "besides the names of the apps in the tray."));
++  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
++  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
++  gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
++
++  d->diag_view = gtk_text_view_new ();
++  gtk_text_view_set_editable (GTK_TEXT_VIEW (d->diag_view), FALSE);
++  gtk_text_view_set_monospace (GTK_TEXT_VIEW (d->diag_view), TRUE);
++  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (d->diag_view), GTK_WRAP_WORD_CHAR);
++  gtk_text_view_set_left_margin (GTK_TEXT_VIEW (d->diag_view), 6);
++  gtk_text_view_set_right_margin (GTK_TEXT_VIEW (d->diag_view), 6);
++
++  scrolled = gtk_scrolled_window_new (NULL, NULL);
++  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
++  gtk_container_add (GTK_CONTAINER (scrolled), d->diag_view);
++  gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
++
++  buttons = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
++  d->diag_status = gtk_label_new (NULL);
++  gtk_label_set_xalign (GTK_LABEL (d->diag_status), 0.0);
++  gtk_box_pack_start (GTK_BOX (buttons), d->diag_status, TRUE, TRUE, 0);
++
++  button = gtk_button_new_with_mnemonic (_("_Update"));
++  g_signal_connect_swapped (button, "clicked", G_CALLBACK (diag_refresh), d);
++  gtk_box_pack_end (GTK_BOX (buttons), button, FALSE, FALSE, 0);
++
++  button = gtk_button_new_with_mnemonic (_("C_opy"));
++  gtk_button_set_image (GTK_BUTTON (button),
++                        gtk_image_new_from_icon_name ("edit-copy-symbolic", GTK_ICON_SIZE_BUTTON));
++  g_signal_connect (button, "clicked", G_CALLBACK (diag_copy), d);
++  gtk_box_pack_end (GTK_BOX (buttons), button, FALSE, FALSE, 0);
++
++  gtk_box_pack_start (GTK_BOX (vbox), buttons, FALSE, FALSE, 0);
++
++  d->diag_page = vbox;
++  return vbox;
++}
++
++
++
+ static GtkWidget *
+ items_page (DialogData *d)
+ {
+@@ -1220,6 +1319,9 @@ tray_dialog_show (TrayPlugin *p)
+                             gtk_label_new_with_mnemonic (_("A_ppearance")));
+   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
+                             gtk_label_new_with_mnemonic (_("_Items")));
++  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), diag_page (d),
++                            gtk_label_new_with_mnemonic (_("_Diagnostics")));
++  g_signal_connect (notebook, "switch-page", G_CALLBACK (diag_page_switched), d);
+ 
+   content = gtk_dialog_get_content_area (GTK_DIALOG (d->dialog));
+   gtk_box_pack_start (GTK_BOX (content), notebook, TRUE, TRUE, 0);

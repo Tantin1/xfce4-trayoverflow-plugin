@@ -29,6 +29,9 @@ static gint64       started_at = 0;
 static guint        respawn_id = 0;
 static gint         quick_failures = 0;
 static gboolean     failed = FALSE;
+static gint         panel_size_hint = 0;   /* --icon-size para el proxy */
+static gint         popup_size_hint = 0;   /* --popup-icon-size */
+static gchar       *popup_ids_hint = NULL; /* --popup-ids */
 
 static void proxy_start (void);
 
@@ -152,8 +155,20 @@ proxy_start (void)
   g_subprocess_launcher_set_child_setup (launcher, child_setup, NULL, NULL);
   /* En Wayland el proxy no ve el puntero real: usa la posición del
    * ícono que le mandamos en cada clic */
-  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
-                                       wayland ? "--wayland" : NULL, NULL);
+  {
+    /* Tamaños iniciales de los íconos, así nacen al tamaño justo (ver
+     * tray_legacy_set_size_hints) */
+    gchar *panel_arg = g_strdup_printf ("--icon-size=%d", panel_size_hint);
+    gchar *popup_arg = g_strdup_printf ("--popup-icon-size=%d", popup_size_hint);
+    gchar *ids_arg = g_strdup_printf ("--popup-ids=%s", popup_ids_hint != NULL ? popup_ids_hint : "");
+
+    proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
+                                         panel_arg, popup_arg, ids_arg,
+                                         wayland ? "--wayland" : NULL, NULL);
+    g_free (panel_arg);
+    g_free (popup_arg);
+    g_free (ids_arg);
+  }
   g_object_unref (launcher);
 
   if (proxy == NULL)
@@ -189,6 +204,24 @@ proxy_stop (void)
     }
 
   quick_failures = 0;
+}
+
+
+
+/* Con qué tamaño conviene que nazcan los íconos antiguos (en píxeles, ya
+ * multiplicados por la escala): el del panel, salvo las apps de
+ * @popup_ids (claves separadas por comas), que van en el popup. Vale
+ * para el próximo arranque del proxy; mientras corre, el proxy recuerda
+ * el último tamaño de cada app. */
+void
+tray_legacy_set_size_hints (gint         panel_pixels,
+                            gint         popup_pixels,
+                            const gchar *popup_ids)
+{
+  panel_size_hint = MAX (panel_pixels, 0);
+  popup_size_hint = MAX (popup_pixels, 0);
+  g_free (popup_ids_hint);
+  popup_ids_hint = g_strdup (popup_ids);
 }
 
 

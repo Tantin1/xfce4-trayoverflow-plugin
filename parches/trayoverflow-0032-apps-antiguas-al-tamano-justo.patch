@@ -1,0 +1,446 @@
+diff --git a/meson.build b/meson.build
+index 08c1f2e..c42a9c8 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.29',
++  version: '0.2.30',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/de.po b/po/de.po
+index ab11576..436b97b 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/es.po b/po/es.po
+index 184f0b9..d1fd5ac 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/po/fr.po b/po/fr.po
+index f5e5fb8..6c9b5d4 100644
+--- a/po/fr.po
++++ b/po/fr.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/it.po b/po/it.po
+index 40f3bd3..76df712 100644
+--- a/po/it.po
++++ b/po/it.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/ja.po b/po/ja.po
+index 11baf4b..cbbb42f 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/ko.po b/po/ko.po
+index 6c4ee15..f7146ec 100644
+--- a/po/ko.po
++++ b/po/ko.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/nl.po b/po/nl.po
+index ca85078..c3fdfb6 100644
+--- a/po/nl.po
++++ b/po/nl.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/pl.po b/po/pl.po
+index 52fe09d..64acd26 100644
+--- a/po/pl.po
++++ b/po/pl.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/pt_BR.po b/po/pt_BR.po
+index 600a8da..bb0cdd6 100644
+--- a/po/pt_BR.po
++++ b/po/pt_BR.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/ru.po b/po/ru.po
+index abb0a89..6e53b49 100644
+--- a/po/ru.po
++++ b/po/ru.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/tr.po b/po/tr.po
+index dd38c2d..043abd4 100644
+--- a/po/tr.po
++++ b/po/tr.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index f9495d0..0c490b5 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-31 18:00-0300\n"
+ "Last-Translator: Claude (traducción automática, revisar)\n"
+diff --git a/proxy/xembed-proxy.c b/proxy/xembed-proxy.c
+index b2de810..564efc6 100644
+--- a/proxy/xembed-proxy.c
++++ b/proxy/xembed-proxy.c
+@@ -181,6 +181,7 @@ static struct
+   GMainLoop      *loop;
+   gboolean        verbose;
+   gboolean        wayland;       /* sesión Wayland: X es XWayland */
++  gint            initial_size;  /* tamaño con que nace cada ícono (ver dock) */
+   gint            x_error;
+ } P;
+ 
+@@ -1102,6 +1103,8 @@ icon_set_size (Icon *icon, gint size)
+ 
+   LOG ("tamaño de 0x%lx: %d → %d px\n", icon->win, icon->size, size);
+   icon->size = size;
++  /* Las apps que aparezcan después nacen con el último tamaño pedido */
++  P.initial_size = size;
+ 
+   /* Con ForgetGravity y fondo transparente (ver dock), X descarta el
+    * contenido viejo y limpia la ventana: no queda basura ni el ícono
+@@ -1365,6 +1368,36 @@ watcher_appeared (GDBusConnection *conn,
+  * Anclar y desanclar íconos
+  * ════════════════════════════════════════════════════════════════════════ */
+ 
++/* ConfigureNotify sintético con la geometría actual de @win, en
++ * coordenadas de la pantalla (ICCCM 4.1.5) */
++static void
++send_configure_notify (Window win)
++{
++  XWindowAttributes wa;
++  XEvent ev = { 0 };
++  Window child;
++  gint rx = 0, ry = 0;
++
++  if (!XGetWindowAttributes (P.dpy, win, &wa))
++    return;
++  XTranslateCoordinates (P.dpy, win, P.root, 0, 0, &rx, &ry, &child);
++
++  ev.xconfigure.type = ConfigureNotify;
++  ev.xconfigure.display = P.dpy;
++  ev.xconfigure.event = win;
++  ev.xconfigure.window = win;
++  ev.xconfigure.x = rx;
++  ev.xconfigure.y = ry;
++  ev.xconfigure.width = wa.width;
++  ev.xconfigure.height = wa.height;
++  ev.xconfigure.border_width = 0;
++  ev.xconfigure.above = None;
++  ev.xconfigure.override_redirect = False;
++  XSendEvent (P.dpy, win, False, StructureNotifyMask, &ev);
++}
++
++
++
+ static void
+ send_xembed_message (Window win, glong message, glong detail, glong data1, glong data2)
+ {
+@@ -1443,7 +1476,11 @@ dock (Window win)
+ 
+   icon = g_new0 (Icon, 1);
+   icon->win = win;
+-  icon->size = DEFAULT_SIZE;
++  /* Directo al tamaño que va a pedir el host: un cambio de tamaño justo
++   * después de anclar hace que la app se dibuje dos veces (se veía un
++   * instante borrosa) y algunas apps conectan su menú otra vez en cada
++   * cambio (ibus 1.5: cada clic abría dos menús) */
++  icon->size = P.initial_size;
+   icon->xembed_mapped = read_xembed_mapped (win);
+   icon->ignore_unmaps = wa.map_state != IsUnmapped ? 1 : 0;
+ 
+@@ -1693,6 +1730,12 @@ handle_event (XEvent *ev)
+           trap_push ();
+           icon_begin_settle (icon, SETTLE_FALLBACK_MS);
+           XResizeWindow (P.dpy, icon->win, w, h);
++          /* Pedido recortado o sin cambios: X no avisa nada, y GTK se queda
++           * esperando la respuesta con el dibujo congelado (la app "dibujaba"
++           * en vacío). Como manda ICCCM a quien niega un pedido: avisarle el
++           * tamaño con que quedó. */
++          if (w != ev->xconfigurerequest.width || h != ev->xconfigurerequest.height)
++            send_configure_notify (icon->win);
+           trap_pop ();
+         }
+       break;
+@@ -1937,6 +1980,8 @@ main (int argc, char **argv)
+   GOptionEntry entries[] = {
+     { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Mostrar mensajes de diagnóstico", NULL },
+     { "version", 0, 0, G_OPTION_ARG_NONE, &version, "Mostrar la versión", NULL },
++    { "icon-size", 0, 0, G_OPTION_ARG_INT, &P.initial_size,
++      "Tamaño inicial de los íconos, en píxeles (el host lo cambia si hace falta)", "N" },
+     { "wayland", 0, 0, G_OPTION_ARG_NONE, &P.wayland,
+       "Sesión Wayland: usar la posición que manda el host en los clics", NULL },
+     { NULL }
+@@ -1962,6 +2007,8 @@ main (int argc, char **argv)
+     }
+ 
+   P.verbose = verbose || g_getenv ("TRAYOVERFLOW_PROXY_DEBUG") != NULL;
++  P.initial_size = P.initial_size > 0 ? CLAMP (P.initial_size, MIN_SIZE, MAX_SIZE)
++                                      : DEFAULT_SIZE;
+ 
+   if (!init_x11 ())
+     return 1;
+diff --git a/src/to-legacy.c b/src/to-legacy.c
+index 9f5aa03..bc6e968 100644
+--- a/src/to-legacy.c
++++ b/src/to-legacy.c
+@@ -29,6 +29,7 @@ static gint64       started_at = 0;
+ static guint        respawn_id = 0;
+ static gint         quick_failures = 0;
+ static gboolean     failed = FALSE;
++static gint         icon_size_hint = 0;  /* --icon-size para el proxy */
+ 
+ static void proxy_start (void);
+ 
+@@ -152,8 +153,15 @@ proxy_start (void)
+   g_subprocess_launcher_set_child_setup (launcher, child_setup, NULL, NULL);
+   /* En Wayland el proxy no ve el puntero real: usa la posición del
+    * ícono que le mandamos en cada clic */
+-  proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
+-                                       wayland ? "--wayland" : NULL, NULL);
++  {
++    /* Tamaño inicial de los íconos: el del panel, así nacen al tamaño
++     * justo (ver tray_legacy_set_icon_size_hint) */
++    gchar *size_arg = g_strdup_printf ("--icon-size=%d", icon_size_hint);
++
++    proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH, size_arg,
++                                         wayland ? "--wayland" : NULL, NULL);
++    g_free (size_arg);
++  }
+   g_object_unref (launcher);
+ 
+   if (proxy == NULL)
+@@ -193,6 +201,17 @@ proxy_stop (void)
+ 
+ 
+ 
++/* Tamaño en píxeles (ya multiplicado por la escala) con que conviene que
++ * nazcan los íconos antiguos. Vale para el próximo arranque del proxy;
++ * mientras corre, el proxy usa el último tamaño que se le pidió. */
++void
++tray_legacy_set_icon_size_hint (gint pixels)
++{
++  icon_size_hint = MAX (pixels, 0);
++}
++
++
++
+ void
+ tray_legacy_set_wanted (gpointer owner,
+                         gboolean wanted)
+diff --git a/src/to-legacy.h b/src/to-legacy.h
+index 6098ebd..51326ee 100644
+--- a/src/to-legacy.h
++++ b/src/to-legacy.h
+@@ -26,6 +26,7 @@ typedef enum
+ 
+ /* @owner identifica a quien lo pide (una instancia del plugin) */
+ void            tray_legacy_set_wanted (gpointer owner, gboolean wanted);
++void            tray_legacy_set_icon_size_hint (gint pixels);
+ gboolean        tray_legacy_available  (void);
+ TrayLegacyState tray_legacy_get_state  (GtkWidget *reference);
+ 
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index afca408..3a34bb7 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -723,9 +723,23 @@ plugin_remote_event (XfcePanelPlugin *panel_plugin,
+ 
+ 
+ 
++static void apply_legacy (TrayPlugin *p);
++
++static gboolean
++apply_legacy_idle (gpointer user_data)
++{
++  apply_legacy (user_data);
++  return G_SOURCE_REMOVE;
++}
++
++
++
+ static void
+ apply_legacy (TrayPlugin *p)
+ {
++  /* Antes de arrancar el proxy: el tamaño de los íconos del panel */
++  tray_legacy_set_icon_size_hint (tray_plugin_get_panel_icon_size (p)
++                                  * gtk_widget_get_scale_factor (GTK_WIDGET (p->panel_plugin)));
+   tray_legacy_set_wanted (p, tray_settings_get_legacy_tray (p->settings));
+ }
+ 
+@@ -903,7 +917,9 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
+ 
+   /* Apps antiguas (XEmbed): arrancar o detener el proxy según la opción */
+   g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (apply_legacy), p);
+-  apply_legacy (p);
++  /* En un idle: al construirse, el plugin todavía no sabe el tamaño del
++   * panel, y el proxy lo necesita para que los íconos nazcan a su tamaño */
++  g_idle_add (apply_legacy_idle, p);
+ 
+   p->theme_changed_id = g_signal_connect_swapped (gtk_icon_theme_get_default (), "changed",
+                                                   G_CALLBACK (refresh_all_icons), p);
+diff --git a/tests/apps/ibus_like_app.py b/tests/apps/ibus_like_app.py
+new file mode 100755
+index 0000000..8329a6c
+--- /dev/null
++++ b/tests/apps/ibus_like_app.py
+@@ -0,0 +1,34 @@
++#!/usr/bin/env python3
++# App antigua de prueba que imita a ibus 1.5 (ui/gtk3/panel.vala): si el
++# ícono nace sin tamaño, espera a "size" y conecta "activate" CADA VEZ que
++# el tamaño cambia, sin desconectar el anterior. Con un cambio de tamaño
++# después de anclar, un clic "abre" dos menús. Anota en $1: "INIT <tamaño>"
++# y "MENU" por cada menú que abriría.
++import sys, warnings
++import gi
++gi.require_version('Gtk', '3.0')
++from gi.repository import GLib, Gtk
++
++warnings.simplefilter('ignore')
++GLib.set_prgname('ibus-like-app')   # clave fija para el plugin
++log = open(sys.argv[1], 'a', buffering=1)
++# Como ibus: el ícono nace vacío; la imagen se pone recién al conocer el
++# tamaño (en init)
++icon = Gtk.StatusIcon()
++# Como ibus: cambiar el nombre recién creado el ícono hace que GTK recree
++# su ventana (el proxy ve un anclado, un desanclado y otro anclado)
++icon.set_name('ibus-like-app')
++icon.set_title('ibus-like-app')
++
++
++def init(*args):
++    log.write('INIT %d\n' % icon.get_size())
++    icon.set_from_icon_name('dialog-information')
++    icon.connect('activate', lambda i: log.write('MENU\n'))
++
++
++if icon.get_size() > 0:
++    init()
++else:
++    icon.connect('notify::size', init)
++Gtk.main()
+diff --git a/tests/run.sh b/tests/run.sh
+index 96e3513..516f52f 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -28,7 +28,7 @@ PANEL_Y=$((SCREEN_H - PANEL_SIZE / 2))   # centro vertical del panel
+ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
+        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
+        arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas
+-       iconos_simbolicos)
++       iconos_simbolicos un_menu_por_clic)
+ 
+ 
+ # ════════════════════════════════════════════════════════════════════════
+@@ -467,6 +467,22 @@ t_iconos_simbolicos() {
+     || fail "al desactivarla no volvió el color (saturación $after)"
+ }
+ 
++# App antigua que imita a ibus (ver apps/ibus_like_app.py). Con el panel en
++# 22 px: el ícono aparece (el proxy le avisa el tamaño final cuando recorta
++# su pedido; sin eso GTK no dibujaba), nace al tamaño justo y un clic abre
++# un solo menú (ibus conecta su menú en cada cambio de tamaño)
++t_un_menu_por_clic() {
++  xfconf-query -c xfce4-panel -p /plugins/plugin-1/panel-icon-size -n -t int -s 22
++  start_panel
++  start_app ibus_like_app.py "$WORK/app.log"
++  sleep 3
++  click 15 "$PANEL_Y" 1; sleep 1.5
++  [ "$(count INIT "$WORK/app.log")" = 1 ] && ok "un solo tamaño al aparecer" \
++    || fail "$(count INIT "$WORK/app.log") tamaños al aparecer: $(grep INIT "$WORK/app.log" | tr '\n' ' ')"
++  [ "$(count MENU "$WORK/app.log")" = 1 ] && ok "un clic abre un solo menú" \
++    || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
++}
++
+ # ════════════════════════════════════════════════════════════════════════
+ # Principal
+ # ════════════════════════════════════════════════════════════════════════

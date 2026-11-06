@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.29\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Claude (traducción automática, revisar)\n"
@@ -200,5 +200,30 @@ msgstr "Zone de notification avec une fenêtre surgissante pour les icônes masq
 msgid "Show hidden icons"
 msgstr "Afficher les icônes masquées"
 
+#, c-format
+msgid "Asking for attention: %s"
+msgstr "Demandent votre attention : %s"
+
 msgid "Drop icons here to hide them"
 msgstr "Déposez des icônes ici pour les masquer"
+
+msgid "_Diagnostics"
+msgstr "_Diagnostic"
+
+msgid "C_opy"
+msgstr "_Copier"
+
+msgid "_Update"
+msgstr "_Actualiser"
+
+msgid "Copied to the clipboard."
+msgstr "Copié dans le presse-papiers."
+
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr "Si quelque chose ne fonctionne pas, copiez ces informations et joignez-les à votre rapport. Elles ne contiennent aucune donnée personnelle, hormis le nom des applications de la zone de notification."
+
+msgid "Use a sin_gle row of icons in the panel"
+msgstr "Utiliser une seu_le rangée d'icônes dans le panneau"
+
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr "Toutes les icônes sur une rangée (une colonne dans un panneau vertical), même si le panneau a plusieurs rangées. Avec la taille automatique, les icônes occupent toute la hauteur du panneau."

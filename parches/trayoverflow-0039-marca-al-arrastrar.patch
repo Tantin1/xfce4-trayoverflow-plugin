@@ -1,0 +1,326 @@
+diff --git a/README.md b/README.md
+index f8532b9..ad5b2df 100644
+--- a/README.md
++++ b/README.md
+@@ -17,7 +17,8 @@ Windows 10/11.
+ 
+ - **Ocultar y mostrar** íconos arrastrándolos entre el panel y la ventana
+   emergente, o desde la lista de la configuración.
+-- **Reordenar** arrastrando, en el panel o en la ventana emergente.
++- **Reordenar** arrastrando, en el panel o en la ventana emergente. Una
++  línea marca dónde va a quedar el ícono antes de soltarlo.
+ - Quedarse con un ícono sobre la flecha mientras se arrastra **abre la
+   ventana emergente**, como en Windows.
+ - **Apps cerradas recordadas**: se pueden ocultar de antemano; al abrirse
+diff --git a/meson.build b/meson.build
+index 3fbb032..62dc22b 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.36',
++  version: '0.2.37',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 998bcb3..df7d87e 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.36\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.37\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-dnd.c b/src/to-dnd.c
+index 55113f8..2e3e5bb 100644
+--- a/src/to-dnd.c
++++ b/src/to-dnd.c
+@@ -16,6 +16,7 @@
+ 
+ #define DND_TARGET     "application/x-" TO_CSS_PREFIX "-item"
+ #define DRAG_OPEN_MS   450
++#define DROP_MARK_WIDTH 2   /* grosor de la marca de inserción */
+ 
+ static const GtkTargetEntry dnd_targets[] = {
+   { (gchar *) DND_TARGET, GTK_TARGET_SAME_APP, 0 },
+@@ -60,6 +61,8 @@ button_drag_data_get (GtkWidget        *widget,
+ 
+ 
+ 
++static void drop_mark_clear (TrayPlugin *p);
++
+ static void
+ button_drag_end (GtkWidget      *widget,
+                  GdkDragContext *context,
+@@ -67,6 +70,7 @@ button_drag_end (GtkWidget      *widget,
+ {
+   p->dragging = FALSE;
+   p->drag_item = NULL;
++  drop_mark_clear (p);
+ 
+   if (p->drag_open_id != 0)
+     {
+@@ -133,15 +137,16 @@ drag_data_item (TrayPlugin       *p,
+ /* Busca el botón más cercano al punto (x, y) de @dest y decide si el
+  * ítem va antes o después. @row_major: cuadrícula que se llena por filas. */
+ static void
+-find_drop_anchor (TrayPlugin  *p,
+-                  GtkWidget   *dest,
+-                  GPtrArray   *order,
+-                  gint         x,
+-                  gint         y,
+-                  gboolean     row_major,
+-                  TrayItem    *dragged,
++find_drop_anchor (TrayPlugin   *p,
++                  GtkWidget    *dest,
++                  GPtrArray    *order,
++                  gint          x,
++                  gint          y,
++                  gboolean      row_major,
++                  TrayItem     *dragged,
+                   const gchar **anchor,
+-                  gboolean    *after)
++                  gboolean     *after,
++                  GdkRectangle *anchor_rect)
+ {
+   gdouble best = G_MAXDOUBLE;
+   guint i;
+@@ -172,6 +177,13 @@ find_drop_anchor (TrayPlugin  *p,
+         {
+           best = dist;
+           *anchor = tray_item_get_key (item);
++          if (anchor_rect != NULL)
++            {
++              anchor_rect->x = bx;
++              anchor_rect->y = by;
++              anchor_rect->width = alloc.width;
++              anchor_rect->height = alloc.height;
++            }
+ 
+           if (row_major)
+             *after = y > by + alloc.height || (y >= by && x > cx);
+@@ -183,6 +195,162 @@ find_drop_anchor (TrayPlugin  *p,
+ 
+ 
+ 
++/* ¿Los íconos de este destino siguen el orden de izquierda a derecha
++ * (TRUE) o de arriba abajo (FALSE)? Una sola fila o columna sigue su
++ * propio eje: así, en un panel de una fila, "antes" y "después" son la
++ * mitad izquierda y la derecha del ícono, no la de arriba y la de abajo. */
++static gboolean
++drop_row_major (TrayPlugin *p,
++                GtkWidget  *dest)
++{
++  if (dest == p->popup_frame)
++    return p->layout_params.columns > 1;
++
++  if (tray_plugin_is_horizontal (p))
++    /* Horizontal de varias filas: se llena por columnas */
++    return xfce_panel_plugin_get_nrows (p->panel_plugin) <= 1;
++
++  /* Vertical: por filas de @nrows columnas; con una sola, de arriba abajo */
++  return xfce_panel_plugin_get_nrows (p->panel_plugin) > 1;
++}
++
++
++
++/* Dónde caería el ícono soltado en (x, y) de @dest */
++static void
++drop_target_anchor (TrayPlugin   *p,
++                    GtkWidget    *dest,
++                    gint          x,
++                    gint          y,
++                    TrayItem     *dragged,
++                    const gchar **anchor,
++                    gboolean     *after,
++                    GdkRectangle *anchor_rect,
++                    gboolean     *row_major)
++{
++  GPtrArray *order = dest == p->popup_frame ? p->popup_order : p->panel_order;
++
++  *row_major = drop_row_major (p, dest);
++  find_drop_anchor (p, dest, order, x, y, *row_major, dragged, anchor, after, anchor_rect);
++}
++
++
++
++/* ── Marca de inserción: una línea en el hueco donde caerá el ícono ──── */
++
++static void
++drop_mark_clear (TrayPlugin *p)
++{
++  if (p->drop_mark_widget != NULL)
++    {
++      gtk_widget_queue_draw (p->drop_mark_widget);
++      p->drop_mark_widget = NULL;
++    }
++}
++
++
++
++static gboolean
++drop_mark_draw (GtkWidget  *widget,
++                cairo_t    *cr,
++                TrayPlugin *p)
++{
++  GtkStyleContext *context;
++  GdkRGBA color;
++
++  if (widget != p->drop_mark_widget)
++    return FALSE;
++
++  context = gtk_widget_get_style_context (widget);
++  if (!gtk_style_context_lookup_color (context, "theme_selected_bg_color", &color))
++    gtk_style_context_get_color (context, gtk_style_context_get_state (context), &color);
++
++  gdk_cairo_set_source_rgba (cr, &color);
++  cairo_rectangle (cr, p->drop_mark.x, p->drop_mark.y,
++                   p->drop_mark.width, p->drop_mark.height);
++  cairo_fill (cr);
++  return FALSE;
++}
++
++
++
++static gboolean
++drop_mark_motion (GtkWidget      *widget,
++                  GdkDragContext *context,
++                  gint            x,
++                  gint            y,
++                  guint           time_,
++                  TrayPlugin     *p)
++{
++  const gchar *anchor = NULL;
++  gboolean after = TRUE, row_major;
++  GdkRectangle rect, mark;
++  GtkAllocation alloc;
++  gint spacing;
++
++  if (!p->dragging || p->drag_item == NULL)
++    return FALSE;
++
++  drop_target_anchor (p, widget, x, y, p->drag_item, &anchor, &after, &rect, &row_major);
++
++  /* Sin otros íconos no hay hueco que marcar */
++  if (anchor == NULL)
++    {
++      drop_mark_clear (p);
++      return FALSE;
++    }
++
++  /* La línea va en medio de la separación entre íconos */
++  spacing = widget == p->popup_frame ? p->layout_params.popup_spacing
++                                     : p->layout_params.panel_spacing;
++  if (row_major)
++    {
++      mark.x = (after ? rect.x + rect.width + spacing / 2 : rect.x - (spacing + 1) / 2)
++               - DROP_MARK_WIDTH / 2;
++      mark.y = rect.y;
++      mark.width = DROP_MARK_WIDTH;
++      mark.height = rect.height;
++    }
++  else
++    {
++      mark.x = rect.x;
++      mark.y = (after ? rect.y + rect.height + spacing / 2 : rect.y - (spacing + 1) / 2)
++               - DROP_MARK_WIDTH / 2;
++      mark.width = rect.width;
++      mark.height = DROP_MARK_WIDTH;
++    }
++
++  /* Que no quede afuera del destino (primer o último ícono, sin aire) */
++  gtk_widget_get_allocation (widget, &alloc);
++  mark.x = CLAMP (mark.x, 0, MAX (0, alloc.width - mark.width));
++  mark.y = CLAMP (mark.y, 0, MAX (0, alloc.height - mark.height));
++
++  if (p->drop_mark_widget != widget
++      || !gdk_rectangle_equal (&mark, &p->drop_mark))
++    {
++      drop_mark_clear (p);
++      p->drop_mark_widget = widget;
++      p->drop_mark = mark;
++      gtk_widget_queue_draw (widget);
++    }
++
++  return FALSE;
++}
++
++
++
++static void
++drop_mark_leave (GtkWidget      *widget,
++                 GdkDragContext *context,
++                 guint           time_,
++                 TrayPlugin     *p)
++{
++  if (p->drop_mark_widget == widget)
++    drop_mark_clear (p);
++}
++
++
++
+ static void
+ drop_on_widget (GtkWidget        *widget,
+                 GdkDragContext   *context,
+@@ -209,18 +377,15 @@ drop_on_widget (GtkWidget        *widget,
+         anchor = tray_item_get_key (tray_button_get_item (
+                    g_ptr_array_index (p->popup_order, p->popup_order->len - 1)));
+     }
+-  else if (widget == p->popup_frame)
+-    {
+-      hidden = TRUE;
+-      find_drop_anchor (p, widget, p->popup_order, x, y, TRUE, item, &anchor, &after);
+-    }
+   else
+     {
+-      hidden = FALSE;
+-      p->dropped_on_panel = TRUE;
+-      /* Panel horizontal multi-fila se llena por columnas; vertical, por filas */
+-      find_drop_anchor (p, widget, p->panel_order, x, y, !tray_plugin_is_horizontal (p),
+-                        item, &anchor, &after);
++      gboolean row_major;
++
++      hidden = widget == p->popup_frame;
++      if (!hidden)
++        p->dropped_on_panel = TRUE;
++      /* El mismo cálculo que la marca de inserción */
++      drop_target_anchor (p, widget, x, y, item, &anchor, &after, NULL, &row_major);
+     }
+ 
+   tray_settings_freeze (p->settings);
+@@ -283,6 +448,15 @@ tray_dnd_setup_drop_target (TrayPlugin *p, GtkWidget *widget)
+   gtk_drag_dest_set (widget, GTK_DEST_DEFAULT_ALL,
+                      dnd_targets, G_N_ELEMENTS (dnd_targets), GDK_ACTION_MOVE);
+   g_signal_connect (widget, "drag-data-received", G_CALLBACK (drop_on_widget), p);
++
++  /* Panel y popup (la flecha no: ahí siempre va al final del popup) */
++  if (widget != p->arrow)
++    {
++      g_signal_connect (widget, "drag-motion", G_CALLBACK (drop_mark_motion), p);
++      g_signal_connect (widget, "drag-leave", G_CALLBACK (drop_mark_leave), p);
++      /* Después de dibujar los íconos: la marca queda encima */
++      g_signal_connect_after (widget, "draw", G_CALLBACK (drop_mark_draw), p);
++    }
+ }
+ 
+ 
+diff --git a/src/to-plugin.h b/src/to-plugin.h
+index b0ede2f..34b3ef6 100644
+--- a/src/to-plugin.h
++++ b/src/to-plugin.h
+@@ -97,6 +97,8 @@ struct _TrayPlugin
+   gboolean         dropped_on_panel;
+   TrayItem        *drag_item;
+   guint            drag_open_id;
++  GtkWidget       *drop_mark_widget; /* dónde se dibuja la marca de inserción */
++  GdkRectangle     drop_mark;        /* en coordenadas de ese widget */
+ 
+   guint            relayout_id;
+   TrayLayoutParams layout_params;   /* con qué se armaron las cuadrículas */
