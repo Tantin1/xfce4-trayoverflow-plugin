@@ -227,3 +227,15 @@ msgstr "Usar uma única _linha de ícones no painel"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo que o painel tenha várias linhas. Com o tamanho automático, os ícones usam toda a altura do painel."
+
+msgid "Mi_nimum button size (px):"
+msgstr "Tamanho _mínimo dos botões (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "Botões _compactos (só do tamanho do ícone)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Os botões são pelo menos tão grandes quanto com um ícone deste tamanho, no painel e na janela suspensa; ícones menores ficam centralizados. No painel, cada botão ocupa toda a altura da sua linha."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Botões tão pequenos quanto o seu ícone, sem tamanho mínimo, como nas versões anteriores."

@@ -34,6 +34,14 @@ Windows 10/11.
   de ícono elegido a mano no entra en las filas del panel, se usa el más
   grande que entra (lo elegido se conserva). Opción **una sola fila**: los
   íconos van en una fila aunque el panel tenga varias.
+- **Botones en franja**, como en Windows: en el panel, cada ícono es un
+  botón de todo el alto de su fila y un ancho mínimo (como un ícono de
+  22 px, configurable), así es fácil de clickear aunque el ícono sea de
+  16 px. En la ventana emergente, el mismo tamaño mínimo. La casilla
+  **Botones compactos** vuelve a los botones del tamaño del ícono. Las
+  esquinas de los botones son las del tema, como en el resto del panel.
+- La ventana emergente usa los **colores de los menús del tema** (fondo,
+  borde y texto), igual que los plugins de XFCE.
 - X11 y **Wayland** (sesión Wayland de XFCE 4.20).
 - Varias instancias (p. ej. una por panel), cada una con su configuración.
 - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a

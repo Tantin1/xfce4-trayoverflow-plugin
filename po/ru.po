@@ -227,3 +227,15 @@ msgstr "_Использовать один ряд значков на панел
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Все значки в один ряд (в один столбец на вертикальной панели), даже если у панели несколько рядов. При автоматическом размере значки занимают всю высоту панели."
+
+msgid "Mi_nimum button size (px):"
+msgstr "_Минимальный размер кнопок (пикс.):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "_Компактные кнопки (только по размеру значка)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Кнопки не меньше, чем со значком этого размера, на панели и во всплывающем окне; меньшие значки располагаются по центру. На панели каждая кнопка занимает всю высоту своего ряда."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Кнопки размером со свой значок, без минимального размера, как в прежних версиях."

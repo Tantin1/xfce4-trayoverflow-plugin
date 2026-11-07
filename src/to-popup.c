@@ -38,6 +38,25 @@
 /* Radio de las esquinas del popup: opción "redondeadas" y tope para el
  * que se copia del tema */
 #define POPUP_RADIUS_ROUNDED 8
+
+/* Marco del popup con nodo CSS "menu" (el nombre de nodo es por clase):
+ * así toma los colores del menú del tema. Sin la clase "background": en
+ * algunos temas (Greybird claro) pisaría el fondo del menú */
+typedef struct { GtkBox parent; } TrayMenuFrame;
+typedef struct { GtkBoxClass parent_class; } TrayMenuFrameClass;
+G_DEFINE_TYPE (TrayMenuFrame, tray_menu_frame, GTK_TYPE_BOX)
+
+static void
+tray_menu_frame_class_init (TrayMenuFrameClass *klass)
+{
+  gtk_widget_class_set_css_name (GTK_WIDGET_CLASS (klass), "menu");
+}
+
+static void
+tray_menu_frame_init (TrayMenuFrame *self)
+{
+  (void) self;
+}
 #define POPUP_RADIUS_MAX     24
 
 static void kbd_select (TrayPlugin *p, GtkWidget *button);
@@ -1342,6 +1361,17 @@ tray_popup_apply_corners (TrayPlugin *p)
         }
     }
 
+  /* Borde: el del menú del tema; si no tiene, una línea suave nuestra */
+  {
+    GtkStyleContext *frame = gtk_widget_get_style_context (p->popup_frame);
+    GtkBorder border;
+
+    gtk_style_context_remove_class (frame, TO_CSS_PREFIX "-edge");
+    gtk_style_context_get_border (frame, gtk_style_context_get_state (frame), &border);
+    if (border.left == 0 && border.right == 0 && border.top == 0 && border.bottom == 0)
+      gtk_style_context_add_class (frame, TO_CSS_PREFIX "-edge");
+  }
+
   p->popup_rounded = radius > 0;
   if (p->popup_rounded)
     gtk_style_context_add_class (gtk_widget_get_style_context (p->popup_frame), "rounded");
@@ -1441,7 +1471,8 @@ tray_popup_create (TrayPlugin *p)
       gtk_style_context_add_class (context, "rounded");
     }
 
-  p->popup_frame = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+  p->popup_frame = g_object_new (tray_menu_frame_get_type (),
+                                 "orientation", GTK_ORIENTATION_VERTICAL, NULL);
   context = gtk_widget_get_style_context (p->popup_frame);
   gtk_style_context_add_class (context, TO_CSS_PREFIX "-popup-frame");
   /* Radio de las esquinas: proveedor propio del marco, por encima del CSS

@@ -227,3 +227,15 @@ msgstr "Utiliser une seu_le rangée d'icônes dans le panneau"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Toutes les icônes sur une rangée (une colonne dans un panneau vertical), même si le panneau a plusieurs rangées. Avec la taille automatique, les icônes occupent toute la hauteur du panneau."
+
+msgid "Mi_nimum button size (px):"
+msgstr "Taille _minimale des boutons (px) :"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "Boutons compacts (_uniquement de la taille de l'icône)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Les boutons sont au moins aussi grands qu'avec une icône de cette taille, dans le panneau et dans la fenêtre surgissante ; les icônes plus petites restent centrées. Dans le panneau, chaque bouton occupe toute la hauteur de sa rangée."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Boutons aussi petits que leur icône, sans taille minimale, comme dans les versions précédentes."

@@ -227,3 +227,15 @@ msgstr "パネルのアイコンを1行にする(_G)"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "パネルが複数行でも、すべてのアイコンを1行(縦のパネルでは1列)に並べます。サイズが自動の場合、アイコンはパネルの高さいっぱいに表示されます。"
+
+msgid "Mi_nimum button size (px):"
+msgstr "ボタンの最小サイズ (px)(_N):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "コンパクトなボタン (アイコンの大きさだけ)(_M)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "パネルとポップアップのボタンは、このサイズのアイコンのときと同じ大きさ以上になります。小さいアイコンは中央に表示されます。パネルでは、各ボタンが行の高さいっぱいを使います。"
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "以前のバージョンのように、最小サイズなしでアイコンと同じ大きさのボタンにします。"

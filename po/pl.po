@@ -227,3 +227,15 @@ msgstr "_Jeden wiersz ikon na panelu"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Wszystkie ikony w jednym wierszu (w jednej kolumnie na panelu pionowym), nawet jeśli panel ma kilka wierszy. Przy automatycznym rozmiarze ikony zajmują całą wysokość panelu."
+
+msgid "Mi_nimum button size (px):"
+msgstr "Minimalny rozmiar przy_cisków (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "Kompaktowe przyciski (tylko wie_lkości ikony)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Przyciski są co najmniej tak duże jak z ikoną tego rozmiaru, na panelu i w okienku; mniejsze ikony pozostają wyśrodkowane. Na panelu każdy przycisk zajmuje całą wysokość swojego wiersza."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Przyciski tak małe jak ich ikona, bez minimalnego rozmiaru, jak w poprzednich wersjach."

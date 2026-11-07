@@ -25,6 +25,7 @@ typedef struct
   gint     columns;
   gint     panel_spacing;
   gint     popup_spacing;
+  gint     button_min;   /* botón mínimo (como un ícono de N px); 0 = compactos */
 } TrayLayoutParams;
 
 struct _TrayPlugin

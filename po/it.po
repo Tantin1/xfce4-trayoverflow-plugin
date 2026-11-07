@@ -227,3 +227,15 @@ msgstr "Usa una sola _riga di icone nel pannello"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Tutte le icone su una riga (una colonna in un pannello verticale), anche se il pannello ha più righe. Con la dimensione automatica, le icone usano tutta l'altezza del pannello."
+
+msgid "Mi_nimum button size (px):"
+msgstr "Dimensione _minima dei pulsanti (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "P_ulsanti compatti (grandi solo quanto l'icona)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "I pulsanti sono grandi almeno come con un'icona di questa dimensione, nel pannello e nella finestra a comparsa; le icone più piccole restano centrate. Nel pannello, ogni pulsante occupa tutta l'altezza della sua riga."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Pulsanti piccoli come la loro icona, senza dimensione minima, come nelle versioni precedenti."

@@ -51,6 +51,8 @@ typedef struct
   GtkWidget    *new_in_popup;
   GtkWidget    *symbolic;
   GtkWidget    *single_row;
+  GtkWidget    *compact;
+  GtkWidget    *button_min;
 
   GtkListStore *store;
   GtkWidget    *tree;
@@ -125,6 +127,8 @@ spin_changed (GtkSpinButton *spin,
     tray_settings_set_popup_spacing (s, value);
   else if (GTK_WIDGET (spin) == d->popup_columns)
     tray_settings_set_popup_columns (s, value);
+  else if (GTK_WIDGET (spin) == d->button_min)
+    tray_settings_set_button_min_size (s, value);
 }
 
 
@@ -180,6 +184,21 @@ single_row_toggled (GtkToggleButton *toggle,
   if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (d->panel_auto)))
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->panel_size),
                                tray_plugin_get_panel_icon_size (d->p));
+}
+
+
+
+static void
+compact_toggled (GtkToggleButton *toggle,
+                 DialogData      *d)
+{
+  gboolean compact = gtk_toggle_button_get_active (toggle);
+
+  if (!d->syncing)
+    tray_settings_set_compact_buttons (d->p->settings, compact);
+
+  /* El tamaño mínimo no se usa con botones compactos */
+  gtk_widget_set_sensitive (d->button_min, !compact);
 }
 
 
@@ -289,6 +308,26 @@ appearance_page (DialogData *d)
   g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
   gtk_widget_set_margin_start (d->single_row, 12);
   gtk_grid_attach (GTK_GRID (grid), d->single_row, 0, row++, 3, 1);
+
+  d->button_min = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX,
+                             tray_settings_get_button_min_size (s));
+  gtk_widget_set_tooltip_text (d->button_min,
+                               _("The buttons are at least as big as with an icon of this "
+                                 "size, in the panel and in the popup; smaller icons stay "
+                                 "centered. In the panel, each button takes the whole height "
+                                 "of its row."));
+  add_row (grid, &row, _("Mi_nimum button size (px):"), d->button_min, NULL);
+
+  d->compact = gtk_check_button_new_with_mnemonic (_("Co_mpact buttons (only as big as the icon)"));
+  gtk_widget_set_tooltip_text (d->compact,
+                               _("Buttons as small as their icon, without a minimum size, "
+                                 "like in earlier versions."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->compact),
+                                tray_settings_get_compact_buttons (s));
+  gtk_widget_set_sensitive (d->button_min, !tray_settings_get_compact_buttons (s));
+  g_signal_connect (d->compact, "toggled", G_CALLBACK (compact_toggled), d);
+  gtk_widget_set_margin_start (d->compact, 12);
+  gtk_grid_attach (GTK_GRID (grid), d->compact, 0, row++, 3, 1);
 
   /* Mismo orden que TrayArrowPosition */
   d->arrow_position = gtk_combo_box_text_new ();
@@ -1273,6 +1312,10 @@ sync_from_settings (DialogData *d)
                             tray_settings_get_popup_corners (s));
   gtk_combo_box_set_active (GTK_COMBO_BOX (d->arrow_position),
                             tray_settings_get_arrow_position (s));
+  gtk_spin_button_set_value (GTK_SPIN_BUTTON (d->button_min),
+                             tray_settings_get_button_min_size (s));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->compact),
+                                tray_settings_get_compact_buttons (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
                                 tray_settings_get_passive_in_popup (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),

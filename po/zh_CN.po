@@ -227,3 +227,15 @@ msgstr "面板中只使用一行图标(_G)"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "即使面板有多行，也将所有图标放在一行（竖直面板中为一列）。大小为自动时，图标会占满面板的高度。"
+
+msgid "Mi_nimum button size (px):"
+msgstr "按钮最小尺寸 (px)(_N):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "紧凑按钮（仅与图标一样大）(_M)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "面板和弹出窗口中的按钮至少与此尺寸的图标一样大；较小的图标居中显示。在面板中，每个按钮占满所在行的高度。"
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "像以前的版本一样，按钮与图标一样小，没有最小尺寸。"

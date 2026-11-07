@@ -227,3 +227,15 @@ msgstr "패널에서 아이콘을 한 줄로 표시(_G)"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "패널이 여러 줄이어도 모든 아이콘을 한 줄(세로 패널에서는 한 열)에 표시합니다. 크기가 자동이면 아이콘이 패널 높이 전체를 사용합니다."
+
+msgid "Mi_nimum button size (px):"
+msgstr "버튼 최소 크기 (px)(_N):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "작은 버튼 (아이콘 크기만큼)(_M)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "패널과 팝업의 버튼은 이 크기의 아이콘일 때만큼은 커집니다. 더 작은 아이콘은 가운데에 놓입니다. 패널에서는 각 버튼이 줄의 높이 전체를 차지합니다."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "이전 버전처럼 최소 크기 없이 아이콘만 한 버튼을 사용합니다."

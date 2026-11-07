@@ -32,8 +32,10 @@
 #include <string.h>
 
 static const gchar plugin_css[] =
+  /* Sin border-radius: las esquinas son las del tema, como en los botones
+   * de los demás plugins del panel */
   "." TO_CSS_PREFIX "-button {"
-  "  padding: 1px; margin: 0; min-width: 0; min-height: 0; border-radius: 4px;"
+  "  padding: 1px; margin: 0; min-width: 0; min-height: 0;"
   "}"
   "." TO_CSS_PREFIX "-arrow {"
   "  padding: 0 1px; margin: 0; min-width: 0; min-height: 0;"
@@ -44,10 +46,16 @@ static const gchar plugin_css[] =
   "." TO_CSS_PREFIX "-popup.rounded {"
   "  background-color: transparent;"
   "}"
-  "." TO_CSS_PREFIX "-popup-frame {"
-  "  background-color: @theme_bg_color;"
-  "  border: 1px solid alpha(@theme_fg_color, 0.18);"
-  "  padding: 6px;"
+  /* El marco del popup es un nodo "menu": fondo, borde y color de texto
+   * los del menú del tema, como los plugins nativos (GtkMenu). Solo se
+   * anula lo que los temas ponen alrededor de los menús */
+  "menu." TO_CSS_PREFIX "-popup-frame {"
+  "  margin: 0; box-shadow: none; padding: 6px;"
+  "}"
+  /* Temas cuyos menús no tienen borde (el borde lo pone la decoración de
+   * la ventana, que el popup no tiene): una línea suave */
+  "menu." TO_CSS_PREFIX "-popup-frame." TO_CSS_PREFIX "-edge {"
+  "  border: 1px solid alpha(currentColor, 0.18);"
   "}"
   "." TO_CSS_PREFIX "-popup ." TO_CSS_PREFIX "-button {"
   "  padding: 4px;"
@@ -378,6 +386,8 @@ tray_plugin_relayout (TrayPlugin *p)
   params.columns = tray_settings_get_popup_columns (p->settings);
   params.panel_spacing = tray_settings_get_panel_spacing (p->settings);
   params.popup_spacing = tray_settings_get_popup_spacing (p->settings);
+  params.button_min = tray_settings_get_compact_buttons (p->settings)
+                      ? 0 : tray_settings_get_button_min_size (p->settings);
 
   /* Ordenar los ítems listos según la configuración */
   entries = g_array_new (FALSE, FALSE, sizeof (SortEntry));
@@ -425,7 +435,8 @@ tray_plugin_relayout (TrayPlugin *p)
    * respeta lo elegido. */
   if (new_popup->len > 0)
     {
-      gint max_rows = tray_popup_max_rows (p, params.popup_size, params.popup_spacing);
+      gint max_rows = tray_popup_max_rows (p, MAX (params.popup_size, params.button_min),
+                                           params.popup_spacing);
       gint needed;
 
       if (max_rows > 0)
@@ -462,6 +473,11 @@ tray_plugin_relayout (TrayPlugin *p)
           gint major = i / params.nrows, minor = i % params.nrows;
 
           tray_button_set_icon_size (TRAY_BUTTON (button), params.panel_size);
+          /* Franja: ancho mínimo en un panel horizontal (el alto lo da la
+           * fila), alto mínimo en uno vertical */
+          tray_button_set_min_size (TRAY_BUTTON (button),
+                                    params.horizontal ? params.button_min : 0,
+                                    params.horizontal ? 0 : params.button_min);
           if (params.horizontal)
             gtk_grid_attach (GTK_GRID (p->panel_grid), button, major, minor, 1, 1);
           else
@@ -471,6 +487,20 @@ tray_plugin_relayout (TrayPlugin *p)
 
       gtk_grid_set_row_spacing (GTK_GRID (p->panel_grid), params.panel_spacing);
       gtk_grid_set_column_spacing (GTK_GRID (p->panel_grid), params.panel_spacing);
+
+      /* Botones en franja: ocupan todo el alto de su fila (todo el ancho
+       * en un panel vertical), como en Windows. Compactos: del tamaño del
+       * ícono, centrados. */
+      {
+        gboolean strips = params.button_min > 0;
+
+        gtk_widget_set_valign (p->panel_grid, strips && params.horizontal
+                                              ? GTK_ALIGN_FILL : GTK_ALIGN_CENTER);
+        gtk_widget_set_halign (p->panel_grid, strips && !params.horizontal
+                                              ? GTK_ALIGN_FILL : GTK_ALIGN_CENTER);
+        gtk_grid_set_row_homogeneous (GTK_GRID (p->panel_grid), strips && params.horizontal);
+        gtk_grid_set_column_homogeneous (GTK_GRID (p->panel_grid), strips && !params.horizontal);
+      }
       gtk_box_set_spacing (GTK_BOX (p->box), params.panel_spacing);
 
       /* Con el panel vacío durante un arrastre, dejar una zona para soltar */
@@ -486,6 +516,7 @@ tray_plugin_relayout (TrayPlugin *p)
           GtkWidget *button = g_ptr_array_index (p->popup_order, i);
 
           tray_button_set_icon_size (TRAY_BUTTON (button), params.popup_size);
+          tray_button_set_min_size (TRAY_BUTTON (button), params.button_min, params.button_min);
           gtk_grid_attach (GTK_GRID (p->popup_grid), button,
                            i % params.columns, i / params.columns, 1, 1);
           gtk_widget_show (button);

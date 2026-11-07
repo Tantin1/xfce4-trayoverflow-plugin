@@ -20,6 +20,9 @@ G_BEGIN_DECLS
 #define TRAY_ICON_SIZE_MAX 128
 #define TRAY_SPACING_MAX   32
 #define TRAY_COLUMNS_MAX   12
+/* Tamaño mínimo de los botones (como un ícono de N px) */
+#define TRAY_BUTTON_MIN_DEFAULT 22
+#define TRAY_BUTTON_MIN_MAX     64
 
 /* Esquinas del popup */
 typedef enum
@@ -58,6 +61,8 @@ gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
 gboolean tray_settings_get_new_in_popup      (TraySettings *s);
 gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
 gboolean tray_settings_get_single_row        (TraySettings *s);
+gboolean tray_settings_get_compact_buttons   (TraySettings *s);
+gint     tray_settings_get_button_min_size   (TraySettings *s);
 gint     tray_settings_get_popup_corners     (TraySettings *s);
 gint     tray_settings_get_arrow_position    (TraySettings *s);
 
@@ -70,6 +75,8 @@ void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
 void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
 void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
 void     tray_settings_set_single_row        (TraySettings *s, gboolean value);
+void     tray_settings_set_compact_buttons   (TraySettings *s, gboolean value);
+void     tray_settings_set_button_min_size   (TraySettings *s, gint value);
 void     tray_settings_set_popup_corners     (TraySettings *s, gint value);
 void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
 

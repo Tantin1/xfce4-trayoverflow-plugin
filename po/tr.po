@@ -227,3 +227,15 @@ msgstr "Simgeleri panelde tek satı_rda göster"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Panelde birden fazla satır olsa bile tüm simgeler tek satırda (dikey panelde tek sütunda) gösterilir. Otomatik boyutta simgeler panelin tüm yüksekliğini kullanır."
+
+msgid "Mi_nimum button size (px):"
+msgstr "En küçük _düğme boyutu (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "Ko_mpakt düğmeler (yalnızca simge boyutunda)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Düğmeler, panelde ve açılır pencerede en az bu boyutta bir simgeyle olacakları kadar büyüktür; daha küçük simgeler ortalanır. Panelde her düğme kendi satırının tüm yüksekliğini kaplar."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Önceki sürümlerdeki gibi, en küçük boyut olmadan simgeleri kadar küçük düğmeler."

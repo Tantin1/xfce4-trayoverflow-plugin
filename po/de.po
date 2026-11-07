@@ -227,3 +227,15 @@ msgstr "_Nur eine Symbolzeile im Panel verwenden"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Alle Symbole in einer Zeile (einer Spalte in einem senkrechten Panel), auch wenn das Panel mehrere Zeilen hat. Bei automatischer Größe nutzen die Symbole die ganze Höhe des Panels."
+
+msgid "Mi_nimum button size (px):"
+msgstr "_Mindestgröße der Knöpfe (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "_Kompakte Knöpfe (nur so groß wie das Symbol)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Die Knöpfe sind mindestens so groß wie mit einem Symbol dieser Größe, im Panel und im Aufklappfenster; kleinere Symbole bleiben zentriert. Im Panel nimmt jeder Knopf die ganze Höhe seiner Zeile ein."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Knöpfe so klein wie ihr Symbol, ohne Mindestgröße, wie in früheren Versionen."

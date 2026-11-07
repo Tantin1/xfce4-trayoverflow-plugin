@@ -21,6 +21,7 @@
 #define DEFAULT_NEW_IN_POPUP     FALSE
 #define DEFAULT_SYMBOLIC_ICONS   FALSE
 #define DEFAULT_SINGLE_ROW       FALSE
+#define DEFAULT_COMPACT_BUTTONS  FALSE
 #define DEFAULT_LEGACY_TRAY      FALSE
 #define MAX_KNOWN                200
 #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
@@ -44,6 +45,8 @@ struct _TraySettings
   gboolean       new_in_popup;      /* apps nuevas: directo al popup */
   gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
   gboolean       single_row;        /* una sola fila en el panel, aunque tenga varias */
+  gboolean       compact_buttons;   /* botones del tamaño del ícono (sin mínimo) */
+  gint           button_min_size;   /* botón mínimo: como un ícono de N px */
   gboolean       legacy_tray;
 
   GHashTable    *hidden;   /* claves ocultas explícitamente */
@@ -292,6 +295,12 @@ save_all (TraySettings *s)
     p = prop (s, "single-row");
     xfconf_channel_set_bool (s->channel, p, s->single_row);
     g_free (p);
+    p = prop (s, "compact-buttons");
+    xfconf_channel_set_bool (s->channel, p, s->compact_buttons);
+    g_free (p);
+    p = prop (s, "button-min-size");
+    xfconf_channel_set_int (s->channel, p, s->button_min_size);
+    g_free (p);
     p = prop (s, "legacy-tray");
     xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
     g_free (p);
@@ -361,6 +370,15 @@ load_all (TraySettings *s)
 
   p = prop (s, "single-row");
   s->single_row = xfconf_channel_get_bool (s->channel, p, DEFAULT_SINGLE_ROW);
+  g_free (p);
+
+  p = prop (s, "compact-buttons");
+  s->compact_buttons = xfconf_channel_get_bool (s->channel, p, DEFAULT_COMPACT_BUTTONS);
+  g_free (p);
+
+  p = prop (s, "button-min-size");
+  s->button_min_size = CLAMP (xfconf_channel_get_int (s->channel, p, TRAY_BUTTON_MIN_DEFAULT),
+                              TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX);
   g_free (p);
 
   p = prop (s, "legacy-tray");
@@ -605,10 +623,11 @@ snapshot (TraySettings *s)
   GString *out = g_string_new (NULL);
   guint i;
 
-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d\n",
+  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
                           s->popup_spacing, s->popup_columns, s->popup_corners,
                           s->arrow_position, s->symbolic_icons, s->single_row,
+                          s->compact_buttons, s->button_min_size,
                           s->passive_in_popup, s->new_in_popup, s->legacy_tray);
   snapshot_set (out, "hidden", s->hidden, FALSE);
   snapshot_set (out, "visible", s->visible, FALSE);
@@ -894,6 +913,53 @@ tray_settings_set_single_row (TraySettings *s, gboolean value)
   if (s->single_row != !!value)
     {
       s->single_row = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
+gboolean
+tray_settings_get_compact_buttons (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  return s->compact_buttons;
+}
+
+
+
+void
+tray_settings_set_compact_buttons (TraySettings *s, gboolean value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  if (s->compact_buttons != !!value)
+    {
+      s->compact_buttons = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
+gint
+tray_settings_get_button_min_size (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), TRAY_BUTTON_MIN_DEFAULT);
+  return s->button_min_size;
+}
+
+
+
+void
+tray_settings_set_button_min_size (TraySettings *s, gint value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  value = CLAMP (value, TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX);
+  if (s->button_min_size != value)
+    {
+      s->button_min_size = value;
       notify (s, TRUE);
     }
 }

@@ -215,11 +215,14 @@ tray_diag_report (TrayPlugin *p)
                           tray_settings_get_arrow_position (p->settings));
   g_string_append_printf (out,
                           "Options: passive in popup %s, new in popup %s, "
-                          "symbolic %s, single row %s, older apps %s\n",
+                          "symbolic %s, single row %s, compact buttons %s, "
+                          "minimum button %d, older apps %s\n",
                           yes_no (tray_settings_get_passive_in_popup (p->settings)),
                           yes_no (tray_settings_get_new_in_popup (p->settings)),
                           yes_no (tray_settings_get_symbolic_icons (p->settings)),
                           yes_no (tray_settings_get_single_row (p->settings)),
+                          yes_no (tray_settings_get_compact_buttons (p->settings)),
+                          tray_settings_get_button_min_size (p->settings),
                           yes_no (tray_settings_get_legacy_tray (p->settings)));
 
   /* ── Apps abiertas ── */

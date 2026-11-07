@@ -227,3 +227,15 @@ msgstr "Eén _rij pictogrammen in het paneel gebruiken"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Alle pictogrammen in één rij (één kolom in een verticaal paneel), ook als het paneel meerdere rijen heeft. Met de automatische grootte gebruiken de pictogrammen de hele hoogte van het paneel."
+
+msgid "Mi_nimum button size (px):"
+msgstr "_Minimale knopgrootte (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "_Compacte knoppen (alleen zo groot als het pictogram)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "De knoppen zijn minstens zo groot als met een pictogram van deze grootte, in het paneel en in het pop-upvenster; kleinere pictogrammen blijven gecentreerd. In het paneel neemt elke knop de hele hoogte van zijn rij in."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Knoppen zo klein als hun pictogram, zonder minimale grootte, zoals in eerdere versies."

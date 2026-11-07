@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.45\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.47\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
@@ -281,3 +281,15 @@ msgstr "Usar una sola _fila de íconos en el panel"
 
 msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
 msgstr "Todos los íconos en una fila (una columna en un panel vertical), aunque el panel tenga varias filas. Con el tamaño automático, los íconos usan todo el alto del panel."
+
+msgid "Mi_nimum button size (px):"
+msgstr "Tamaño _mínimo del botón (px):"
+
+msgid "Co_mpact buttons (only as big as the icon)"
+msgstr "Botones c_ompactos (solo del tamaño del ícono)"
+
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr "Los botones son por lo menos tan grandes como con un ícono de este tamaño, en el panel y en la ventana emergente; los íconos más chicos quedan centrados. En el panel, cada botón ocupa todo el alto de su fila."
+
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr "Botones tan chicos como su ícono, sin tamaño mínimo, como en versiones anteriores."

@@ -21,6 +21,8 @@ struct _TrayButton
   GtkWidget *image;
   gint       icon_size;
   gboolean   sized;            /* ya recibió su tamaño real */
+  gint       min_width;        /* espacio mínimo para la imagen (0 = el del ícono) */
+  gint       min_height;
 
   guint      pressed_button;   /* botón presionado sobre nosotros, 0 si ninguno */
   gdouble    scroll_x;         /* acumuladores de scroll suave */
@@ -551,6 +553,27 @@ tray_button_set_icon_size (TrayButton *button,
 
 
 void
+tray_button_set_min_size (TrayButton *button,
+                          gint        width,
+                          gint        height)
+{
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+
+  width = MAX (width, 0);
+  height = MAX (height, 0);
+  if (button->min_width != width || button->min_height != height)
+    {
+      button->min_width = width;
+      button->min_height = height;
+      gtk_widget_set_size_request (button->image,
+                                   MAX (button->icon_size, width),
+                                   MAX (button->icon_size, height));
+    }
+}
+
+
+
+void
 tray_button_set_icon_override (TrayButton  *button,
                                const gchar *icon)
 {
@@ -646,8 +669,11 @@ tray_button_update (TrayButton *button)
       gtk_image_clear (GTK_IMAGE (button->image));
     }
 
-  /* Reservar siempre el cuadrado completo para que la grilla no salte */
-  gtk_widget_set_size_request (button->image, button->icon_size, button->icon_size);
+  /* Reservar siempre el cuadrado completo para que la grilla no salte
+   * (y, si hay mínimo, el espacio del mínimo: el ícono queda centrado) */
+  gtk_widget_set_size_request (button->image,
+                               MAX (button->icon_size, button->min_width),
+                               MAX (button->icon_size, button->min_height));
 
   update_tooltip (button);
 }

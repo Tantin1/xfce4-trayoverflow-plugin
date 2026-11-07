@@ -1,0 +1,153 @@
+diff --git a/README.md b/README.md
+index 5baa8d1..2323122 100644
+--- a/README.md
++++ b/README.md
+@@ -36,9 +36,12 @@ Windows 10/11.
+   íconos van en una fila aunque el panel tenga varias.
+ - **Botones en franja**, como en Windows: en el panel, cada ícono es un
+   botón de todo el alto de su fila y un ancho mínimo (como un ícono de
+-  24 px, configurable), así es fácil de clickear aunque el ícono sea de
++  22 px, configurable), así es fácil de clickear aunque el ícono sea de
+   16 px. En la ventana emergente, el mismo tamaño mínimo. La casilla
+-  **Botones compactos** vuelve a los botones del tamaño del ícono.
++  **Botones compactos** vuelve a los botones del tamaño del ícono. Las
++  esquinas de los botones son las del tema, como en el resto del panel.
++- La ventana emergente usa los **colores de los menús del tema** (fondo,
++  borde y texto), igual que los plugins de XFCE.
+ - X11 y **Wayland** (sesión Wayland de XFCE 4.20).
+ - Varias instancias (p. ej. una por panel), cada una con su configuración.
+ - **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
+diff --git a/meson.build b/meson.build
+index 500587b..b823e11 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.46',
++  version: '0.2.47',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 1492679..6056e68 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.46\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.47\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-plugin.c b/src/to-plugin.c
+index 03ff7b3..d0d0563 100644
+--- a/src/to-plugin.c
++++ b/src/to-plugin.c
+@@ -32,8 +32,10 @@
+ #include <string.h>
+ 
+ static const gchar plugin_css[] =
++  /* Sin border-radius: las esquinas son las del tema, como en los botones
++   * de los demás plugins del panel */
+   "." TO_CSS_PREFIX "-button {"
+-  "  padding: 1px; margin: 0; min-width: 0; min-height: 0; border-radius: 4px;"
++  "  padding: 1px; margin: 0; min-width: 0; min-height: 0;"
+   "}"
+   "." TO_CSS_PREFIX "-arrow {"
+   "  padding: 0 1px; margin: 0; min-width: 0; min-height: 0;"
+@@ -44,10 +46,16 @@ static const gchar plugin_css[] =
+   "." TO_CSS_PREFIX "-popup.rounded {"
+   "  background-color: transparent;"
+   "}"
+-  "." TO_CSS_PREFIX "-popup-frame {"
+-  "  background-color: @theme_bg_color;"
+-  "  border: 1px solid alpha(@theme_fg_color, 0.18);"
+-  "  padding: 6px;"
++  /* El marco del popup es un nodo "menu": fondo, borde y color de texto
++   * los del menú del tema, como los plugins nativos (GtkMenu). Solo se
++   * anula lo que los temas ponen alrededor de los menús */
++  "menu." TO_CSS_PREFIX "-popup-frame {"
++  "  margin: 0; box-shadow: none; padding: 6px;"
++  "}"
++  /* Temas cuyos menús no tienen borde (el borde lo pone la decoración de
++   * la ventana, que el popup no tiene): una línea suave */
++  "menu." TO_CSS_PREFIX "-popup-frame." TO_CSS_PREFIX "-edge {"
++  "  border: 1px solid alpha(currentColor, 0.18);"
+   "}"
+   "." TO_CSS_PREFIX "-popup ." TO_CSS_PREFIX "-button {"
+   "  padding: 4px;"
+diff --git a/src/to-popup.c b/src/to-popup.c
+index 32161cd..179f272 100644
+--- a/src/to-popup.c
++++ b/src/to-popup.c
+@@ -38,6 +38,25 @@
+ /* Radio de las esquinas del popup: opción "redondeadas" y tope para el
+  * que se copia del tema */
+ #define POPUP_RADIUS_ROUNDED 8
++
++/* Marco del popup con nodo CSS "menu" (el nombre de nodo es por clase):
++ * así toma los colores del menú del tema. Sin la clase "background": en
++ * algunos temas (Greybird claro) pisaría el fondo del menú */
++typedef struct { GtkBox parent; } TrayMenuFrame;
++typedef struct { GtkBoxClass parent_class; } TrayMenuFrameClass;
++G_DEFINE_TYPE (TrayMenuFrame, tray_menu_frame, GTK_TYPE_BOX)
++
++static void
++tray_menu_frame_class_init (TrayMenuFrameClass *klass)
++{
++  gtk_widget_class_set_css_name (GTK_WIDGET_CLASS (klass), "menu");
++}
++
++static void
++tray_menu_frame_init (TrayMenuFrame *self)
++{
++  (void) self;
++}
+ #define POPUP_RADIUS_MAX     24
+ 
+ static void kbd_select (TrayPlugin *p, GtkWidget *button);
+@@ -1342,6 +1361,17 @@ tray_popup_apply_corners (TrayPlugin *p)
+         }
+     }
+ 
++  /* Borde: el del menú del tema; si no tiene, una línea suave nuestra */
++  {
++    GtkStyleContext *frame = gtk_widget_get_style_context (p->popup_frame);
++    GtkBorder border;
++
++    gtk_style_context_remove_class (frame, TO_CSS_PREFIX "-edge");
++    gtk_style_context_get_border (frame, gtk_style_context_get_state (frame), &border);
++    if (border.left == 0 && border.right == 0 && border.top == 0 && border.bottom == 0)
++      gtk_style_context_add_class (frame, TO_CSS_PREFIX "-edge");
++  }
++
+   p->popup_rounded = radius > 0;
+   if (p->popup_rounded)
+     gtk_style_context_add_class (gtk_widget_get_style_context (p->popup_frame), "rounded");
+@@ -1441,7 +1471,8 @@ tray_popup_create (TrayPlugin *p)
+       gtk_style_context_add_class (context, "rounded");
+     }
+ 
+-  p->popup_frame = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
++  p->popup_frame = g_object_new (tray_menu_frame_get_type (),
++                                 "orientation", GTK_ORIENTATION_VERTICAL, NULL);
+   context = gtk_widget_get_style_context (p->popup_frame);
+   gtk_style_context_add_class (context, TO_CSS_PREFIX "-popup-frame");
+   /* Radio de las esquinas: proveedor propio del marco, por encima del CSS
+diff --git a/src/to-settings.h b/src/to-settings.h
+index 72082ed..50ab619 100644
+--- a/src/to-settings.h
++++ b/src/to-settings.h
+@@ -21,7 +21,7 @@ G_BEGIN_DECLS
+ #define TRAY_SPACING_MAX   32
+ #define TRAY_COLUMNS_MAX   12
+ /* Tamaño mínimo de los botones (como un ícono de N px) */
+-#define TRAY_BUTTON_MIN_DEFAULT 24
++#define TRAY_BUTTON_MIN_DEFAULT 22
+ #define TRAY_BUTTON_MIN_MAX     64
+ 
+ /* Esquinas del popup */
