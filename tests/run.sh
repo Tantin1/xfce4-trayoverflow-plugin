@@ -10,9 +10,10 @@
 # configuración en una carpeta temporal: no toca tu panel ni tu
 # configuración. Wayland no se prueba acá.
 #
-# Necesita: Xvfb, xfwm4, xfce4-panel, xdotool, ImageMagick y PyGObject.
-#   Arch:   sudo pacman -S xorg-server-xvfb xdotool imagemagick python-gobject
-#   Debian: sudo apt install xvfb xdotool imagemagick python3-gi gir1.2-gtk-3.0
+# Necesita: Xvfb, xfwm4, xfce4-panel, xdotool, xwininfo, ImageMagick y
+# PyGObject.
+#   Arch:   sudo pacman -S xorg-server-xvfb xdotool xorg-xwininfo imagemagick python-gobject
+#   Debian: sudo apt install xvfb xdotool x11-utils imagemagick python3-gi gir1.2-gtk-3.0
 set -u
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -64,7 +65,7 @@ find_proxy() {
 
 check_requirements() {
   local missing=() cmd
-  for cmd in Xvfb xfwm4 xfce4-panel xfconf-query xdotool import convert gdbus dbus-run-session; do
+  for cmd in Xvfb xfwm4 xfce4-panel xfconf-query xdotool xwininfo import convert gdbus dbus-run-session; do
     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
   PYTHON=$(find_python) || missing+=("PyGObject con GTK 3")

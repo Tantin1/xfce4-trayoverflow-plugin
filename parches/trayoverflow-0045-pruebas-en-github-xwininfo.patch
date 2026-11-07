@@ -1,0 +1,66 @@
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+index 1bd9928..680269b 100644
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -69,7 +69,7 @@ jobs:
+       - name: Instalar el .deb y lo necesario para las pruebas
+         run: |
+           apt-get install -y --no-install-recommends ./xfce4-trayoverflow-plugin_*.deb \
+-            xfce4-panel xfwm4 xfconf dbus xvfb xdotool imagemagick \
++            xfce4-panel xfwm4 xfconf dbus xvfb xdotool x11-utils imagemagick \
+             python3 python3-gi gir1.2-gtk-3.0 adwaita-icon-theme librsvg2-common
+ 
+       - name: Pruebas automáticas (X11)
+diff --git a/meson.build b/meson.build
+index 7b2c336..6e5db7d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.42',
++  version: '0.2.43',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index 24bae3c..1792370 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.42\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.43\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/tests/run.sh b/tests/run.sh
+index c8fc957..adcf45b 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -10,9 +10,10 @@
+ # configuración en una carpeta temporal: no toca tu panel ni tu
+ # configuración. Wayland no se prueba acá.
+ #
+-# Necesita: Xvfb, xfwm4, xfce4-panel, xdotool, ImageMagick y PyGObject.
+-#   Arch:   sudo pacman -S xorg-server-xvfb xdotool imagemagick python-gobject
+-#   Debian: sudo apt install xvfb xdotool imagemagick python3-gi gir1.2-gtk-3.0
++# Necesita: Xvfb, xfwm4, xfce4-panel, xdotool, xwininfo, ImageMagick y
++# PyGObject.
++#   Arch:   sudo pacman -S xorg-server-xvfb xdotool xorg-xwininfo imagemagick python-gobject
++#   Debian: sudo apt install xvfb xdotool x11-utils imagemagick python3-gi gir1.2-gtk-3.0
+ set -u
+ 
+ HERE=$(cd "$(dirname "$0")" && pwd)
+@@ -64,7 +65,7 @@ find_proxy() {
+ 
+ check_requirements() {
+   local missing=() cmd
+-  for cmd in Xvfb xfwm4 xfce4-panel xfconf-query xdotool import convert gdbus dbus-run-session; do
++  for cmd in Xvfb xfwm4 xfce4-panel xfconf-query xdotool xwininfo import convert gdbus dbus-run-session; do
+     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+   done
+   PYTHON=$(find_python) || missing+=("PyGObject con GTK 3")
