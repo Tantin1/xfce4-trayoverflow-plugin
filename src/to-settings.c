@@ -76,6 +76,10 @@ enum
 
 static guint signals[N_SIGNALS];
 
+/* Todas las instancias vivas del proceso (para no borrar de la caché un
+ * ícono que otra instancia del plugin todavía usa) */
+static GList *all_settings = NULL;
+
 
 
 static void
@@ -440,6 +444,34 @@ tray_settings_flush (TraySettings *s)
 
 
 
+/* ¿Otra instancia viva (no quitada) recuerda esta app? */
+static gboolean
+key_known_elsewhere (TraySettings *s,
+                     const gchar  *key)
+{
+  GList *l;
+  guint i;
+
+  if (key == NULL)
+    return FALSE;
+
+  for (l = all_settings; l != NULL; l = l->next)
+    {
+      TraySettings *other = l->data;
+
+      if (other == s || other->discarded)
+        continue;
+
+      for (i = 0; i < other->known->len; i++)
+        if (g_strcmp0 (((TrayKnown *) g_ptr_array_index (other->known, i))->key, key) == 0)
+          return TRUE;
+    }
+
+  return FALSE;
+}
+
+
+
 void
 tray_settings_discard (TraySettings *s)
 {
@@ -456,6 +488,21 @@ tray_settings_discard (TraySettings *s)
       s->reload_id = 0;
     }
   s->discarded = TRUE;
+
+  /* Quitado del panel: su configuración desaparece, así que las copias de
+   * íconos de sus apps en la caché ya no las usa nadie (salvo que otra
+   * instancia recuerde la misma app) */
+  {
+    guint i;
+
+    for (i = 0; i < s->known->len; i++)
+      {
+        TrayKnown *k = g_ptr_array_index (s->known, i);
+
+        if (!key_known_elsewhere (s, k->key))
+          known_unlink_cached_icon (k);
+      }
+  }
 }
 
 
@@ -647,6 +694,7 @@ tray_settings_finalize (GObject *object)
   /* Escribir lo pendiente antes de cerrar (salvo que el plugin se haya
    * quitado del panel: ahí su configuración ya no debe existir) */
   tray_settings_flush (s);
+  all_settings = g_list_remove (all_settings, s);
 
   if (s->reload_id != 0)
     g_source_remove (s->reload_id);
@@ -692,6 +740,8 @@ tray_settings_init (TraySettings *s)
   s->visible = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   s->known = g_ptr_array_new_with_free_func (known_free);
   s->icons = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+
+  all_settings = g_list_prepend (all_settings, s);
 }
 
 

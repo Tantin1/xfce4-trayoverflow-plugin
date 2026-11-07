@@ -194,7 +194,7 @@ La lista se instala con el plugin, en
 por app:
 
 ```
-xfce4-clipman=xfce4-clipman-plugin;org.xfce.clipman
+xfce4-clipman=clipman;xfce4-clipman-plugin;org.xfce.clipman
 org-jdownloader-*=jdownloader
 ```
 
@@ -212,7 +212,9 @@ lista.
 
 La configuración se guarda en xfconf, en el canal `xfce4-panel`, bajo
 `/plugins/plugin-N/`. Los íconos de apps cerradas se guardan en
-`~/.cache/xfce4/trayoverflow/`.
+`~/.cache/xfce4/trayoverflow/`. Al quitar el plugin del panel, el panel
+borra su configuración y el plugin borra esas copias (salvo las de apps
+que recuerde otra instancia).
 
 ## Limitaciones conocidas
 

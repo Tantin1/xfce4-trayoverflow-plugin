@@ -754,6 +754,18 @@ refresh_all_icons (TrayPlugin *p)
 
 
 
+/* Cambió el tema de íconos: la lista de íconos por defecto usa el primero
+ * que exista en el tema, así que hay que volver a elegir (si no, quedaba
+ * el elegido con el tema anterior) y después redibujar todo */
+static void
+icon_theme_changed (TrayPlugin *p)
+{
+  apply_icon_overrides (p);
+  refresh_all_icons (p);
+}
+
+
+
 /* La flecha antes o después de los íconos visibles (en un GtkBox
  * vertical, "antes" es arriba) */
 static void
@@ -1077,7 +1089,7 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
   g_idle_add (apply_legacy_idle, p);
 
   p->theme_changed_id = g_signal_connect_swapped (gtk_icon_theme_get_default (), "changed",
-                                                  G_CALLBACK (refresh_all_icons), p);
+                                                  G_CALLBACK (icon_theme_changed), p);
 
   /* Modelo compartido: tomar los ítems que ya existan */
   p->model = tray_model_ref_default ();
