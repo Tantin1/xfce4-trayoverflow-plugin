@@ -1,0 +1,110 @@
+diff --git a/meson.build b/meson.build
+index a695b17..025e9a8 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.49',
++  version: '0.2.50',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/es.po b/po/es.po
+index fef2bb2..c9e743b 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.49\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.50\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+diff --git a/src/to-sni.c b/src/to-sni.c
+index 8102bca..bfee605 100644
+--- a/src/to-sni.c
++++ b/src/to-sni.c
+@@ -115,6 +115,7 @@ struct _SniItem
+   guint         refresh_id;
+   gboolean      refresh_busy;   /* hay un GetAll en curso */
+   gboolean      refresh_again;  /* llegaron avisos durante ese GetAll */
++  guint         retries;        /* lecturas fallidas antes de estar listo */
+ 
+   gboolean      have_props;
+   gboolean      have_pid;
+@@ -134,6 +135,8 @@ G_DEFINE_TYPE (SniItem, sni_item, TRAY_TYPE_ITEM)
+ 
+ 
+ 
++#define SNI_READ_RETRIES 3
++
+ static gboolean
+ menu_path_is_valid (const gchar *path)
+ {
+@@ -701,6 +704,7 @@ sni_item_apply_properties (SniItem  *item,
+ 
+ 
+ static void sni_item_schedule_refresh (SniItem *item);
++static gboolean sni_item_refresh (gpointer user_data);
+ 
+ static void
+ sni_item_get_all_done (GObject      *source,
+@@ -742,8 +746,25 @@ sni_item_get_all_done (GObject      *source,
+       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)
+           && !item->removed && !item->ready)
+         {
+-          g_debug ("Ítem SNI %s inválido: %s", item->reg_key, error->message);
+-          host_remove_item (item->reg_key);
++          /* Algunas apps se registran un instante antes de poder responder:
++           * reintentar (0,5 s, 1 s, 2 s) antes de descartarla. Desde que el
++           * watcher ignora los registros repetidos, la app ya no "vuelve"
++           * sola volviéndose a registrar */
++          if (item->retries < SNI_READ_RETRIES)
++            {
++              guint delay = 500u << item->retries;
++
++              item->retries++;
++              g_debug ("Ítem SNI %s no responde (%s): reintento en %u ms",
++                       item->reg_key, error->message, delay);
++              if (item->refresh_id == 0)
++                item->refresh_id = g_timeout_add (delay, sni_item_refresh, item);
++            }
++          else
++            {
++              g_debug ("Ítem SNI %s inválido: %s", item->reg_key, error->message);
++              host_remove_item (item->reg_key);
++            }
+         }
+       g_error_free (error);
+     }
+@@ -1043,11 +1064,13 @@ watcher_item_owner_changed (GDBusConnection *conn,
+                             GVariant        *params,
+                             gpointer         user_data)
+ {
+-  const gchar *new_owner = NULL;
++  const gchar *old_owner = NULL, *new_owner = NULL;
+   gchar *key;
+ 
+-  g_variant_get (params, "(&s&s&s)", NULL, NULL, &new_owner);
+-  if (new_owner != NULL && *new_owner != '\0')
++  /* Baja si el nombre se quedó sin dueño o cambió de dueño (el dueño
++   * nuevo es otra app: tiene que registrarse ella misma) */
++  g_variant_get (params, "(&s&s&s)", NULL, &old_owner, &new_owner);
++  if (old_owner == NULL || *old_owner == '\0')
+     return;
+ 
+   /* Copia: la entrada (y user_data) se liberan al quitarla */
+@@ -1148,6 +1171,9 @@ watcher_method_call (GDBusConnection       *conn,
+       if (g_hash_table_contains (backend->watched_items, key))
+         {
+           g_dbus_method_invocation_return_value (invocation, NULL);
++          /* Pero si nuestro host la había descartado (no respondía), se
++           * vuelve a agregar por dentro: sin señales, así no hay bucle */
++          host_add_item (key);
+           g_free (key);
+           return;
+         }

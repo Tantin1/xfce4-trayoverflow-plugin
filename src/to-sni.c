@@ -115,6 +115,8 @@ struct _SniItem
   guint         refresh_id;
   gboolean      refresh_busy;   /* hay un GetAll en curso */
   gboolean      refresh_again;  /* llegaron avisos durante ese GetAll */
+  guint         retries;        /* lecturas fallidas antes de estar listo */
+  guint         idle_reads;     /* lecturas seguidas sin ningún cambio */
 
   gboolean      have_props;
   gboolean      have_pid;
@@ -133,6 +135,11 @@ struct _SniItem
 G_DEFINE_TYPE (SniItem, sni_item, TRAY_TYPE_ITEM)
 
 
+
+#define SNI_READ_RETRIES 3
+#define SNI_IDLE_READS_MAX 25
+/* Imágenes por ícono que se aceptan (las apps mandan varios tamaños) */
+#define SNI_PIXMAPS_MAX 8
 
 static gboolean
 menu_path_is_valid (const gchar *path)
@@ -530,7 +537,10 @@ sni_item_check_ready (SniItem *item)
 
   if (item->ready)
     {
-      tray_item_emit_changed (TRAY_ITEM (item));
+      if (tray_item_emit_changed (TRAY_ITEM (item)))
+        item->idle_reads = 0;
+      else if (item->idle_reads < G_MAXUINT)
+        item->idle_reads++;
       return;
     }
 
@@ -576,7 +586,8 @@ parse_pixmaps (GVariant *value)
   array = g_ptr_array_new_with_free_func (g_object_unref);
 
   g_variant_iter_init (&iter, value);
-  while (g_variant_iter_next (&iter, "(ii@ay)", &width, &height, &data))
+  while (array->len < SNI_PIXMAPS_MAX
+         && g_variant_iter_next (&iter, "(ii@ay)", &width, &height, &data))
     {
       gsize length = 0;
       const guchar *src = g_variant_get_fixed_array (data, &length, 1);
@@ -701,6 +712,7 @@ sni_item_apply_properties (SniItem  *item,
 
 
 static void sni_item_schedule_refresh (SniItem *item);
+static gboolean sni_item_refresh (gpointer user_data);
 
 static void
 sni_item_get_all_done (GObject      *source,
@@ -742,8 +754,25 @@ sni_item_get_all_done (GObject      *source,
       if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)
           && !item->removed && !item->ready)
         {
-          g_debug ("Ítem SNI %s inválido: %s", item->reg_key, error->message);
-          host_remove_item (item->reg_key);
+          /* Algunas apps se registran un instante antes de poder responder:
+           * reintentar (0,5 s, 1 s, 2 s) antes de descartarla. Desde que el
+           * watcher ignora los registros repetidos, la app ya no "vuelve"
+           * sola volviéndose a registrar */
+          if (item->retries < SNI_READ_RETRIES)
+            {
+              guint delay = 500u << item->retries;
+
+              item->retries++;
+              g_debug ("Ítem SNI %s no responde (%s): reintento en %u ms",
+                       item->reg_key, error->message, delay);
+              if (item->refresh_id == 0)
+                item->refresh_id = g_timeout_add (delay, sni_item_refresh, item);
+            }
+          else
+            {
+              g_debug ("Ítem SNI %s inválido: %s", item->reg_key, error->message);
+              host_remove_item (item->reg_key);
+            }
         }
       g_error_free (error);
     }
@@ -786,8 +815,11 @@ sni_item_refresh (gpointer user_data)
 static void
 sni_item_schedule_refresh (SniItem *item)
 {
+  /* Una app que avisa sin parar sin cambiar nada (p. ej. cada vez que se
+   * la lee) pasa a leerse una vez por segundo hasta que algo cambie */
   if (item->refresh_id == 0 && !item->removed)
-    item->refresh_id = g_timeout_add (40, sni_item_refresh, item);
+    item->refresh_id = g_timeout_add (item->idle_reads > SNI_IDLE_READS_MAX ? 1000 : 40,
+                                      sni_item_refresh, item);
 }
 
 
@@ -1043,11 +1075,13 @@ watcher_item_owner_changed (GDBusConnection *conn,
                             GVariant        *params,
                             gpointer         user_data)
 {
-  const gchar *new_owner = NULL;
+  const gchar *old_owner = NULL, *new_owner = NULL;
   gchar *key;
 
-  g_variant_get (params, "(&s&s&s)", NULL, NULL, &new_owner);
-  if (new_owner != NULL && *new_owner != '\0')
+  /* Baja si el nombre se quedó sin dueño o cambió de dueño (el dueño
+   * nuevo es otra app: tiene que registrarse ella misma) */
+  g_variant_get (params, "(&s&s&s)", NULL, &old_owner, &new_owner);
+  if (old_owner == NULL || *old_owner == '\0')
     return;
 
   /* Copia: la entrada (y user_data) se liberan al quitarla */
@@ -1140,6 +1174,21 @@ watcher_method_call (GDBusConnection       *conn,
 
       key = g_strconcat (bus_name, path, NULL);
 
+      /* Ya registrado: responder OK y nada más, como el watcher de KDE.
+       * Algunas apps (libappindicator viejo, p. ej. indicator-keylock) se
+       * vuelven a registrar cada vez que ven nuestras señales: si las
+       * emitiéramos otra vez, el ida y vuelta no terminaba nunca (miles
+       * por segundo, el panel al 96 % de CPU) */
+      if (g_hash_table_contains (backend->watched_items, key))
+        {
+          g_dbus_method_invocation_return_value (invocation, NULL);
+          /* Pero si nuestro host la había descartado (no respondía), se
+           * vuelve a agregar por dentro: sin señales, así no hay bucle */
+          host_add_item (key);
+          g_free (key);
+          return;
+        }
+
       entry = g_new0 (WatchEntry, 1);
       entry->name = g_strdup (bus_name);
       entry->sub_id = subscribe_name_vanish (bus_name, watcher_item_owner_changed, key);
@@ -1153,7 +1202,9 @@ watcher_method_call (GDBusConnection       *conn,
     }
   else if (g_strcmp0 (method_name, "RegisterStatusNotifierHost") == 0)
     {
-      if (!g_hash_table_contains (backend->watched_hosts, sender))
+      gboolean is_new = !g_hash_table_contains (backend->watched_hosts, sender);
+
+      if (is_new)
         {
           entry = g_new0 (WatchEntry, 1);
           entry->name = g_strdup (sender);
@@ -1162,7 +1213,10 @@ watcher_method_call (GDBusConnection       *conn,
         }
 
       g_dbus_method_invocation_return_value (invocation, NULL);
-      watcher_emit ("StatusNotifierHostRegistered", NULL);
+
+      /* Mismo criterio: avisar solo de un host nuevo */
+      if (is_new)
+        watcher_emit ("StatusNotifierHostRegistered", NULL);
     }
   else
     {

@@ -821,20 +821,21 @@ tray_item_set_tooltip (TrayItem    *item,
 
 
 
-void
+gboolean
 tray_item_emit_changed (TrayItem *item)
 {
   TrayItemPrivate *priv;
 
-  g_return_if_fail (TRAY_IS_ITEM (item));
+  g_return_val_if_fail (TRAY_IS_ITEM (item), FALSE);
   priv = PRIV (item);
 
   /* La app avisó, pero no cambió nada que se vea */
   if (priv->changes == 0)
-    return;
+    return FALSE;
 
   g_signal_emit (item, signals[SIGNAL_CHANGED], 0);
   priv->changes = 0;
+  return TRUE;
 }
 
 

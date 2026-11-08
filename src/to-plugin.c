@@ -624,18 +624,30 @@ item_icon_for_registry (TrayPlugin *p,
 
   if (refresh_cache || !g_file_test (path, G_FILE_TEST_EXISTS))
     {
+      gchar *png = NULL, *old = NULL;
+      gsize png_len = 0, old_len = 0;
+
       pixbuf = tray_item_render_icon (item, 32, 1, NULL, FALSE);
-      if (pixbuf != NULL)
+      if (pixbuf != NULL && gdk_pixbuf_save_to_buffer (pixbuf, &png, &png_len, "png", NULL, NULL))
         {
-          if (g_mkdir_with_parents (dir, 0700) != 0
-              || !gdk_pixbuf_save (pixbuf, path, "png", NULL, NULL))
+          /* Escribir solo si cambió: hay apps que aparecen y desaparecen
+           * seguido (o recrean su ícono), y cada vez se reescribía el
+           * archivo aunque fuera idéntico */
+          gboolean same = g_file_get_contents (path, &old, &old_len, NULL)
+                          && old_len == png_len && memcmp (old, png, png_len) == 0;
+
+          if (!same
+              && (g_mkdir_with_parents (dir, 0700) != 0
+                  || !g_file_set_contents (path, png, png_len, NULL)))
             g_clear_pointer (&path, g_free);
-          g_object_unref (pixbuf);
         }
       else
         {
           g_clear_pointer (&path, g_free);
         }
+      g_free (png);
+      g_free (old);
+      g_clear_object (&pixbuf);
     }
 
   g_free (dir);

@@ -115,7 +115,7 @@ typedef enum
 } TrayItemChanges;
 
 /* Emite "changed" una vez tras una tanda de setters, solo si algo cambió */
-void tray_item_emit_changed        (TrayItem *item);
+gboolean tray_item_emit_changed    (TrayItem *item);   /* TRUE si algo cambió */
 /* Durante "changed": qué cambió (combinación de TrayItemChanges) */
 guint tray_item_get_changes        (TrayItem *item);
 /* La app rechazó Activate: la vista debe mostrar el menú en su lugar.
