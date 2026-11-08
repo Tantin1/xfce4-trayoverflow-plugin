@@ -39,7 +39,7 @@ msgstr "Lewo"
 msgid "Right"
 msgstr "Prawo"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "Położenie _strzałki:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,8 +51,8 @@ msgstr "Okienko"
 msgid "Icon si_ze (px):"
 msgstr "Ro_zmiar ikon (px):"
 
-msgid "Icon spa_cing (px):"
-msgstr "Odstęp _między ikonami (px):"
+msgid "Icon spacin_g (px):"
+msgstr "_Odstęp między ikonami (px):"
 
 msgid "C_olumns:"
 msgstr "_Kolumny:"
@@ -75,7 +75,7 @@ msgstr "Bez menedżera kompozycji rogi są zawsze proste."
 msgid "Behavior"
 msgstr "Zachowanie"
 
-msgid "Move _inactive icons to the popup"
+msgid "Move inac_tive icons to the popup"
 msgstr "Przenoś _nieaktywne ikony do okienka"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
@@ -143,7 +143,7 @@ msgstr "Nie działa żaden klasyczny zasobnik: starsze programy, które używaj�
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Starsze programy, które używają klasycznego zasobnika (XEmbed), są pokazywane przez inny zasobnik, na przykład wbudowaną wtyczkę zasobnika systemowego. Pokazuje on też nowoczesne programy: aby nie widzieć ich dwa razy, ukryj je w jego właściwościach."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Pokazuj też _starsze programy (klasyczny zasobnik XEmbed)"
 
 msgid "This build does not include support for older apps"
@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
 msgstr "Wybierz inną ikonę dla zaznaczonego programu"
 
 msgid "Put _new apps in the popup"
-msgstr "Umieszczaj _nowe programy w okienku"
+msgstr "_Umieszczaj nowe programy w okienku"
 
 msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
 msgstr "Programy, które pojawiają się po raz pierwszy, są na początku ukryte. Programy, które już są na liście, nie zmieniają się."
@@ -239,3 +239,12 @@ msgstr "Przyciski są co najmniej tak duże jak z ikoną tego rozmiaru, na panel
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Przyciski tak małe jak ich ikona, bez minimalnego rozmiaru, jak w poprzednich wersjach."
+
+msgid "Pan_el button"
+msgstr "Przycisk _panelu"
+
+msgid "Popup _window"
+msgstr "Ok_ienko"
+
+msgid "Co_mpact"
+msgstr "_Kompaktowe"

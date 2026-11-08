@@ -19,10 +19,10 @@ msgid "Panel"
 msgstr "Panel"
 
 msgid "_Automatic"
-msgstr "_Otomatik"
+msgstr "Otomat_ik"
 
 msgid "Icon _size (px):"
-msgstr "Simge _boyutu (px):"
+msgstr "_Simge boyutu (px):"
 
 msgid "Icon s_pacing (px):"
 msgstr "Simge _aralığı (px):"
@@ -39,7 +39,7 @@ msgstr "Sol"
 msgid "Right"
 msgstr "Sağ"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "_Okun konumu:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,7 +51,7 @@ msgstr "Açılır pencere"
 msgid "Icon si_ze (px):"
 msgstr "Simge b_oyutu (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Simge ar_alığı (px):"
 
 msgid "C_olumns:"
@@ -67,7 +67,7 @@ msgid "Square"
 msgstr "Köşeli"
 
 msgid "Co_rners:"
-msgstr "_Köşeler:"
+msgstr "K_öşeler:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
@@ -75,8 +75,8 @@ msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
 msgid "Behavior"
 msgstr "Davranış"
 
-msgid "Move _inactive icons to the popup"
-msgstr "_Etkin olmayan simgeleri açılır pencereye taşı"
+msgid "Move inac_tive icons to the popup"
+msgstr "Etkin _olmayan simgeleri açılır pencereye taşı"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "Bazı uygulamalar bildirecek bir şey olmadığında simgelerini etkin değil olarak işaretler. Panele kendiniz yerleştirdiğiniz simgeler orada kalır."
@@ -143,7 +143,7 @@ msgstr "Çalışan klasik tepsi yok: XEmbed kullanan eski uygulamalar simge gös
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Klasik tepsiyi (XEmbed) kullanan eski uygulamalar, yerleşik durum tepsisi eklentisi gibi başka bir tepside gösteriliyor. O tepsi modern uygulamaları da gösterir: onları iki kez görmemek için özelliklerinden gizleyin."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "_Eski uygulamaları da göster (klasik XEmbed tepsisi)"
 
 msgid "This build does not include support for older apps"
@@ -211,7 +211,7 @@ msgid "_Diagnostics"
 msgstr "_Tanılama"
 
 msgid "C_opy"
-msgstr "_Kopyala"
+msgstr "K_opyala"
 
 msgid "_Update"
 msgstr "Gü_ncelle"
@@ -239,3 +239,12 @@ msgstr "Düğmeler, panelde ve açılır pencerede en az bu boyutta bir simgeyle
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Önceki sürümlerdeki gibi, en küçük boyut olmadan simgeleri kadar küçük düğmeler."
+
+msgid "Pan_el button"
+msgstr "_Panel düğmesi"
+
+msgid "Popup _window"
+msgstr "A_çılır pencere"
+
+msgid "Co_mpact"
+msgstr "Ko_mpakt"

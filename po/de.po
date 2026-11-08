@@ -19,7 +19,7 @@ msgid "Panel"
 msgstr "Leiste"
 
 msgid "_Automatic"
-msgstr "_Automatisch"
+msgstr "Au_tomatisch"
 
 msgid "Icon _size (px):"
 msgstr "Symbol_größe (px):"
@@ -39,7 +39,7 @@ msgstr "Links"
 msgid "Right"
 msgstr "Rechts"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "Position des _Pfeils:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,11 +51,11 @@ msgstr "Aufklappfenster"
 msgid "Icon si_ze (px):"
 msgstr "Symbolgr_öße (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Symbola_bstand (px):"
 
 msgid "C_olumns:"
-msgstr "_Spalten:"
+msgstr "S_palten:"
 
 msgid "From theme"
 msgstr "Vom Thema"
@@ -67,7 +67,7 @@ msgid "Square"
 msgstr "Eckig"
 
 msgid "Co_rners:"
-msgstr "_Ecken:"
+msgstr "E_cken:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Ohne Compositor sind die Ecken immer eckig."
@@ -75,8 +75,8 @@ msgstr "Ohne Compositor sind die Ecken immer eckig."
 msgid "Behavior"
 msgstr "Verhalten"
 
-msgid "Move _inactive icons to the popup"
-msgstr "_Inaktive Symbole in das Aufklappfenster verschieben"
+msgid "Move inac_tive icons to the popup"
+msgstr "Inaktive Symbole in _das Aufklappfenster verschieben"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "Manche Anwendungen markieren ihr Symbol als inaktiv, wenn es nichts zu melden gibt. Symbole, die Sie selbst in die Leiste legen, bleiben dort."
@@ -143,7 +143,7 @@ msgstr "Es läuft kein klassischer Infobereich: Ältere Anwendungen, die XEmbed 
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Ältere Anwendungen, die den klassischen Infobereich (XEmbed) verwenden, werden in einem anderen Infobereich angezeigt, etwa im mitgelieferten Statusbereich-Plugin. Dieser zeigt auch moderne Anwendungen: Um sie nicht doppelt zu sehen, blenden Sie sie in seinen Eigenschaften aus."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Auch ä_ltere Anwendungen anzeigen (klassischer XEmbed-Infobereich)"
 
 msgid "This build does not include support for older apps"
@@ -239,3 +239,12 @@ msgstr "Die Knöpfe sind mindestens so groß wie mit einem Symbol dieser Größe
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Knöpfe so klein wie ihr Symbol, ohne Mindestgröße, wie in früheren Versionen."
+
+msgid "Pan_el button"
+msgstr "Panelkn_opf"
+
+msgid "Popup _window"
+msgstr "A_ufklappfenster"
+
+msgid "Co_mpact"
+msgstr "_Kompakt"

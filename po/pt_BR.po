@@ -39,7 +39,7 @@ msgstr "Esquerda"
 msgid "Right"
 msgstr "Direita"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "Posição da _seta:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,7 +51,7 @@ msgstr "Janela suspensa"
 msgid "Icon si_ze (px):"
 msgstr "Taman_ho dos ícones (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Espa_çamento dos ícones (px):"
 
 msgid "C_olumns:"
@@ -75,8 +75,8 @@ msgstr "Sem compositor, os cantos são sempre retos."
 msgid "Behavior"
 msgstr "Comportamento"
 
-msgid "Move _inactive icons to the popup"
-msgstr "Mover ícones _inativos para a janela suspensa"
+msgid "Move inac_tive icons to the popup"
+msgstr "_Mover ícones inativos para a janela suspensa"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "Alguns aplicativos marcam o ícone como inativo quando não há nada a informar. Os ícones que você coloca no painel ficam lá."
@@ -143,7 +143,7 @@ msgstr "Nenhuma bandeja clássica em execução: aplicativos antigos que usam XE
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Aplicativos antigos que usam a bandeja clássica (XEmbed) são mostrados por outra bandeja, como o plugin nativo de bandeja de status. Ela também mostra aplicativos modernos: para não vê-los duas vezes, oculte-os nas propriedades dela."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Mostrar também aplicativos a_ntigos (bandeja clássica XEmbed)"
 
 msgid "This build does not include support for older apps"
@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
 msgstr "Escolher outro ícone para o aplicativo selecionado"
 
 msgid "Put _new apps in the popup"
-msgstr "Colocar aplicativos _novos na janela suspensa"
+msgstr "Colocar _aplicativos novos na janela suspensa"
 
 msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
 msgstr "Aplicativos que aparecem pela primeira vez começam ocultos. Os que já estão na lista não mudam."
@@ -229,7 +229,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
 msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo que o painel tenha várias linhas. Com o tamanho automático, os ícones usam toda a altura do painel."
 
 msgid "Mi_nimum button size (px):"
-msgstr "Tamanho _mínimo dos botões (px):"
+msgstr "Tama_nho mínimo dos botões (px):"
 
 msgid "Co_mpact buttons (only as big as the icon)"
 msgstr "Botões _compactos (só do tamanho do ícone)"
@@ -239,3 +239,12 @@ msgstr "Os botões são pelo menos tão grandes quanto com um ícone deste taman
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Botões tão pequenos quanto o seu ícone, sem tamanho mínimo, como nas versões anteriores."
+
+msgid "Pan_el button"
+msgstr "Botão do _painel"
+
+msgid "Popup _window"
+msgstr "_Janela suspensa"
+
+msgid "Co_mpact"
+msgstr "Co_mpactos"

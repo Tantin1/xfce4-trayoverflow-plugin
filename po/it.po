@@ -22,7 +22,7 @@ msgid "_Automatic"
 msgstr "_Automatica"
 
 msgid "Icon _size (px):"
-msgstr "_Dimensione icone (px):"
+msgstr "Dimensione _icone (px):"
 
 msgid "Icon s_pacing (px):"
 msgstr "_Spaziatura icone (px):"
@@ -39,7 +39,7 @@ msgstr "Sinistra"
 msgid "Right"
 msgstr "Destra"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "Posizione della _freccia:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,11 +51,11 @@ msgstr "Finestra a comparsa"
 msgid "Icon si_ze (px):"
 msgstr "Dimensi_one icone (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Spa_ziatura icone (px):"
 
 msgid "C_olumns:"
-msgstr "_Colonne:"
+msgstr "Co_lonne:"
 
 msgid "From theme"
 msgstr "Dal tema"
@@ -75,7 +75,7 @@ msgstr "Senza compositor, gli angoli sono sempre squadrati."
 msgid "Behavior"
 msgstr "Comportamento"
 
-msgid "Move _inactive icons to the popup"
+msgid "Move inac_tive icons to the popup"
 msgstr "Sposta le icone _inattive nella finestra a comparsa"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
@@ -143,7 +143,7 @@ msgstr "Nessuna area di notifica classica in esecuzione: le applicazioni meno re
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Le applicazioni meno recenti che usano l'area di notifica classica (XEmbed) vengono mostrate da un'altra area, come il plugin nativo dell'area di stato. Questa mostra anche le applicazioni moderne: per non vederle due volte, nascondile nelle sue proprietà."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Mostra anche le applicazioni meno _recenti (area di notifica XEmbed classica)"
 
 msgid "This build does not include support for older apps"
@@ -165,13 +165,13 @@ msgid "Move down"
 msgstr "Sposta giù"
 
 msgid "_Forget"
-msgstr "_Dimentica"
+msgstr "Di_mentica"
 
 msgid "Remove an app that is not running from the list"
 msgstr "Rimuovi dalla lista un'applicazione che non è in esecuzione"
 
 msgid "Ic_on…"
-msgstr "I_cona…"
+msgstr "Ic_ona…"
 
 msgid "Choose a different icon for the selected app"
 msgstr "Scegli un'icona diversa per l'applicazione selezionata"
@@ -211,7 +211,7 @@ msgid "_Diagnostics"
 msgstr "_Diagnostica"
 
 msgid "C_opy"
-msgstr "_Copia"
+msgstr "C_opia"
 
 msgid "_Update"
 msgstr "A_ggiorna"
@@ -229,7 +229,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
 msgstr "Tutte le icone su una riga (una colonna in un pannello verticale), anche se il pannello ha più righe. Con la dimensione automatica, le icone usano tutta l'altezza del pannello."
 
 msgid "Mi_nimum button size (px):"
-msgstr "Dimensione _minima dei pulsanti (px):"
+msgstr "Dime_nsione minima dei pulsanti (px):"
 
 msgid "Co_mpact buttons (only as big as the icon)"
 msgstr "P_ulsanti compatti (grandi solo quanto l'icona)"
@@ -239,3 +239,12 @@ msgstr "I pulsanti sono grandi almeno come con un'icona di questa dimensione, ne
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Pulsanti piccoli come la loro icona, senza dimensione minima, come nelle versioni precedenti."
+
+msgid "Pan_el button"
+msgstr "Pulsante del _pannello"
+
+msgid "Popup _window"
+msgstr "Fines_tra a comparsa"
+
+msgid "Co_mpact"
+msgstr "Co_mpatti"

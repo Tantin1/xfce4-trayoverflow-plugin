@@ -39,8 +39,8 @@ msgstr "左"
 msgid "Right"
 msgstr "右"
 
-msgid "Arro_w position:"
-msgstr "箭头位置(_W)："
+msgid "Arrow p_osition:"
+msgstr "箭头位置(_O)："
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "相对于可见图标。在竖直面板中，左表示上，右表示下。"
@@ -51,8 +51,8 @@ msgstr "弹出窗口"
 msgid "Icon si_ze (px):"
 msgstr "图标大小（像素）(_Z)："
 
-msgid "Icon spa_cing (px):"
-msgstr "图标间距（像素）(_C)："
+msgid "Icon spacin_g (px):"
+msgstr "图标间距（像素）(_G)："
 
 msgid "C_olumns:"
 msgstr "列数(_O)："
@@ -75,8 +75,8 @@ msgstr "没有混成器时，边角始终为直角。"
 msgid "Behavior"
 msgstr "行为"
 
-msgid "Move _inactive icons to the popup"
-msgstr "将非活动图标移到弹出窗口(_I)"
+msgid "Move inac_tive icons to the popup"
+msgstr "将非活动图标移到弹出窗口(_T)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "有些应用在没有消息时会把图标标记为非活动。您自己放到面板上的图标会留在那里。"
@@ -143,8 +143,8 @@ msgstr "没有运行中的经典托盘：使用 XEmbed 的旧应用不会显示�
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "使用经典托盘（XEmbed）的旧应用由另一个托盘显示，例如自带的状态托盘插件。该托盘也会显示新式应用：为避免重复显示，请在它的属性中隐藏这些应用。"
 
-msgid "Also show _older apps (classic XEmbed tray)"
-msgstr "同时显示旧应用（经典 XEmbed 托盘）(_O)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
+msgstr "同时显示旧应用（经典 XEmbed 托盘）(_L)"
 
 msgid "This build does not include support for older apps"
 msgstr "此版本不包含对旧应用的支持"
@@ -239,3 +239,12 @@ msgstr "面板和弹出窗口中的按钮至少与此尺寸的图标一样大；
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "像以前的版本一样，按钮与图标一样小，没有最小尺寸。"
+
+msgid "Pan_el button"
+msgstr "面板按钮(_E)"
+
+msgid "Popup _window"
+msgstr "弹出窗口(_W)"
+
+msgid "Co_mpact"
+msgstr "紧凑(_M)"

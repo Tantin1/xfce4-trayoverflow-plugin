@@ -28,7 +28,7 @@ msgid "Icon s_pacing (px):"
 msgstr "_Tussenruimte (px):"
 
 msgid "Use sym_bolic icons (if available)"
-msgstr "_Symbolische pictogrammen gebruiken (indien beschikbaar)"
+msgstr "Symbolische pictogrammen gebruiken (indien _beschikbaar)"
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "Eenkleurige pictogrammen in de tekstkleur van het paneel, in het paneel en in het pop-upvenster. Alleen voor toepassingen waarvan het pictogram uit het pictogramthema komt; de rest houdt het eigen pictogram."
@@ -39,7 +39,7 @@ msgstr "Links"
 msgid "Right"
 msgstr "Rechts"
 
-msgid "Arro_w position:"
+msgid "Arrow p_osition:"
 msgstr "Positie van de _pijl:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
@@ -51,7 +51,7 @@ msgstr "Pop-upvenster"
 msgid "Icon si_ze (px):"
 msgstr "Pictogram_grootte (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "T_ussenruimte (px):"
 
 msgid "C_olumns:"
@@ -75,8 +75,8 @@ msgstr "Zonder compositor zijn de hoeken altijd recht."
 msgid "Behavior"
 msgstr "Gedrag"
 
-msgid "Move _inactive icons to the popup"
-msgstr "_Inactieve pictogrammen naar het pop-upvenster verplaatsen"
+msgid "Move inac_tive icons to the popup"
+msgstr "Inactieve _pictogrammen naar het pop-upvenster verplaatsen"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "Sommige toepassingen markeren hun pictogram als inactief als er niets te melden is. Pictogrammen die u zelf in het paneel plaatst, blijven daar."
@@ -143,7 +143,7 @@ msgstr "Er draait geen klassiek systeemvak: oudere toepassingen die XEmbed gebru
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Oudere toepassingen die het klassieke systeemvak (XEmbed) gebruiken, worden door een ander systeemvak getoond, zoals de ingebouwde systeemvak-plug-in. Die toont ook moderne toepassingen: verberg ze in de eigenschappen ervan om ze niet dubbel te zien."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Ook _oudere toepassingen tonen (klassiek XEmbed-systeemvak)"
 
 msgid "This build does not include support for older apps"
@@ -239,3 +239,12 @@ msgstr "De knoppen zijn minstens zo groot als met een pictogram van deze grootte
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Knoppen zo klein als hun pictogram, zonder minimale grootte, zoals in eerdere versies."
+
+msgid "Pan_el button"
+msgstr "Panee_lknop"
+
+msgid "Popup _window"
+msgstr "Pop-upv_enster"
+
+msgid "Co_mpact"
+msgstr "_Compact"

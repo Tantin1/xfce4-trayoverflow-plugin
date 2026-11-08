@@ -169,16 +169,24 @@ ocultos.
 
 ## Configuración
 
-**Apariencia**: tamaño de ícono del panel (automático o fijo), separación
-entre íconos, una sola fila de íconos en el panel, **íconos simbólicos** (monocromos, del color del texto del
-panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
-columnas, y si los íconos inactivos van a la ventana emergente.
+**Botón del panel**: tamaño de ícono del panel (automático o fijo),
+separación entre íconos, tamaño mínimo del botón (o **Compactos**),
+posición de la flecha, **íconos simbólicos** (monocromos, del color del
+texto del panel; solo en apps cuyo ícono viene del tema, como en la
+bandeja de XFCE) y una sola fila de íconos en el panel.
+
+**Ventana emergente**: tamaño y separación de los íconos, número de
+columnas y esquinas.
 
 **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
 para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
 y **Olvidar** para quitar apps que ya no usás. Con **Poner las apps nuevas en la
 ventana emergente**, cada app que aparece por primera vez empieza oculta,
-como en Windows 11; las que ya estaban en la lista no cambian.
+como en Windows 11; las que ya estaban en la lista no cambian. **Mover
+los íconos inactivos a la ventana emergente** también está acá.
+
+Las explicaciones de cada opción aparecen al dejar el mouse encima. Si
+la pantalla es muy baja, las pestañas se pueden desplazar.
 
 ### Elegir otro ícono
 

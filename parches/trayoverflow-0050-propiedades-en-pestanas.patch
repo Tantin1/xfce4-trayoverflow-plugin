@@ -1,0 +1,1269 @@
+diff --git a/README.md b/README.md
+index 2323122..8ea26db 100644
+--- a/README.md
++++ b/README.md
+@@ -169,16 +169,24 @@ ocultos.
+ 
+ ## Configuración
+ 
+-**Apariencia**: tamaño de ícono del panel (automático o fijo), separación
+-entre íconos, una sola fila de íconos en el panel, **íconos simbólicos** (monocromos, del color del texto del
+-panel; solo en apps cuyo ícono viene del tema, como en la bandeja de XFCE), tamaño y separación en la ventana emergente, número de
+-columnas, y si los íconos inactivos van a la ventana emergente.
++**Botón del panel**: tamaño de ícono del panel (automático o fijo),
++separación entre íconos, tamaño mínimo del botón (o **Compactos**),
++posición de la flecha, **íconos simbólicos** (monocromos, del color del
++texto del panel; solo en apps cuyo ícono viene del tema, como en la
++bandeja de XFCE) y una sola fila de íconos en el panel.
++
++**Ventana emergente**: tamaño y separación de los íconos, número de
++columnas y esquinas.
+ 
+ **Elementos**: lista de todas las apps vistas alguna vez, con una casilla
+ para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
+ y **Olvidar** para quitar apps que ya no usás. Con **Poner las apps nuevas en la
+ ventana emergente**, cada app que aparece por primera vez empieza oculta,
+-como en Windows 11; las que ya estaban en la lista no cambian.
++como en Windows 11; las que ya estaban en la lista no cambian. **Mover
++los íconos inactivos a la ventana emergente** también está acá.
++
++Las explicaciones de cada opción aparecen al dejar el mouse encima. Si
++la pantalla es muy baja, las pestañas se pueden desplazar.
+ 
+ ### Elegir otro ícono
+ 
+diff --git a/meson.build b/meson.build
+index b823e11..4c17952 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,7 +1,7 @@
+ project(
+   'xfce4-trayoverflow-plugin',
+   'c',
+-  version: '0.2.47',
++  version: '0.2.48',
+   license: 'GPL-2.0-or-later',
+   meson_version: '>= 0.56.0',
+   default_options: [
+diff --git a/po/de.po b/po/de.po
+index dede17d..36ecd33 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -19,7 +19,7 @@ msgid "Panel"
+ msgstr "Leiste"
+ 
+ msgid "_Automatic"
+-msgstr "_Automatisch"
++msgstr "Au_tomatisch"
+ 
+ msgid "Icon _size (px):"
+ msgstr "Symbol_größe (px):"
+@@ -39,7 +39,7 @@ msgstr "Links"
+ msgid "Right"
+ msgstr "Rechts"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Position des _Pfeils:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,11 +51,11 @@ msgstr "Aufklappfenster"
+ msgid "Icon si_ze (px):"
+ msgstr "Symbolgr_öße (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Symbola_bstand (px):"
+ 
+ msgid "C_olumns:"
+-msgstr "_Spalten:"
++msgstr "S_palten:"
+ 
+ msgid "From theme"
+ msgstr "Vom Thema"
+@@ -67,7 +67,7 @@ msgid "Square"
+ msgstr "Eckig"
+ 
+ msgid "Co_rners:"
+-msgstr "_Ecken:"
++msgstr "E_cken:"
+ 
+ msgid "Without a compositor, corners are always square."
+ msgstr "Ohne Compositor sind die Ecken immer eckig."
+@@ -75,8 +75,8 @@ msgstr "Ohne Compositor sind die Ecken immer eckig."
+ msgid "Behavior"
+ msgstr "Verhalten"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "_Inaktive Symbole in das Aufklappfenster verschieben"
++msgid "Move inac_tive icons to the popup"
++msgstr "Inaktive Symbole in _das Aufklappfenster verschieben"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "Manche Anwendungen markieren ihr Symbol als inaktiv, wenn es nichts zu melden gibt. Symbole, die Sie selbst in die Leiste legen, bleiben dort."
+@@ -143,7 +143,7 @@ msgstr "Es läuft kein klassischer Infobereich: Ältere Anwendungen, die XEmbed
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Ältere Anwendungen, die den klassischen Infobereich (XEmbed) verwenden, werden in einem anderen Infobereich angezeigt, etwa im mitgelieferten Statusbereich-Plugin. Dieser zeigt auch moderne Anwendungen: Um sie nicht doppelt zu sehen, blenden Sie sie in seinen Eigenschaften aus."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Auch ä_ltere Anwendungen anzeigen (klassischer XEmbed-Infobereich)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -239,3 +239,12 @@ msgstr "Die Knöpfe sind mindestens so groß wie mit einem Symbol dieser Größe
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Knöpfe so klein wie ihr Symbol, ohne Mindestgröße, wie in früheren Versionen."
++
++msgid "Pan_el button"
++msgstr "Panelkn_opf"
++
++msgid "Popup _window"
++msgstr "A_ufklappfenster"
++
++msgid "Co_mpact"
++msgstr "_Kompakt"
+diff --git a/po/es.po b/po/es.po
+index 6056e68..95ff736 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -4,7 +4,7 @@
+ #
+ msgid ""
+ msgstr ""
+-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.47\n"
++"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.48\n"
+ "Report-Msgid-Bugs-To: \n"
+ "PO-Revision-Date: 2026-10-27 12:20-0300\n"
+ "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+@@ -33,11 +33,11 @@ msgstr "Ventana emergente"
+ msgid "Icon si_ze (px):"
+ msgstr "Tama_ño de ícono (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Sepa_ración (px):"
+ 
+ msgid "C_olumns:"
+-msgstr "_Columnas:"
++msgstr "C_olumnas:"
+ 
+ msgid "Left"
+ msgstr "Izquierda"
+@@ -45,8 +45,8 @@ msgstr "Izquierda"
+ msgid "Right"
+ msgstr "Derecha"
+ 
+-msgid "Arro_w position:"
+-msgstr "Posición de la fl_echa:"
++msgid "Arrow p_osition:"
++msgstr "Posición de _la flecha:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+ msgstr "Respecto de los íconos visibles. En paneles verticales, izquierda es arriba y derecha es abajo."
+@@ -69,7 +69,7 @@ msgstr "Sin compositor, las esquinas siempre son rectas."
+ msgid "Behavior"
+ msgstr "Comportamiento"
+ 
+-msgid "Move _inactive icons to the popup"
++msgid "Move inac_tive icons to the popup"
+ msgstr "Mover los íconos _inactivos a la ventana emergente"
+ 
+ msgid "Use sym_bolic icons (if available)"
+@@ -157,7 +157,7 @@ msgstr ""
+ "también muestra las aplicaciones modernas: para no verlas dos veces, "
+ "ocúltelas en sus propiedades."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Mostrar también las aplicaciones _antiguas (bandeja clásica XEmbed)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -216,7 +216,7 @@ msgid "Asking for attention: %s"
+ msgstr "Piden atención: %s"
+ 
+ msgid "Ic_on…"
+-msgstr "Í_cono…"
++msgstr "_Ícono…"
+ 
+ msgid "Choose a different icon for the selected app"
+ msgstr "Elegir otro ícono para la aplicación seleccionada"
+@@ -265,7 +265,7 @@ msgid "_Diagnostics"
+ msgstr "_Diagnóstico"
+ 
+ msgid "C_opy"
+-msgstr "_Copiar"
++msgstr "C_opiar"
+ 
+ msgid "_Update"
+ msgstr "_Actualizar"
+@@ -283,7 +283,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
+ msgstr "Todos los íconos en una fila (una columna en un panel vertical), aunque el panel tenga varias filas. Con el tamaño automático, los íconos usan todo el alto del panel."
+ 
+ msgid "Mi_nimum button size (px):"
+-msgstr "Tamaño _mínimo del botón (px):"
++msgstr "Tama_ño mínimo del botón (px):"
+ 
+ msgid "Co_mpact buttons (only as big as the icon)"
+ msgstr "Botones c_ompactos (solo del tamaño del ícono)"
+@@ -293,3 +293,12 @@ msgstr "Los botones son por lo menos tan grandes como con un ícono de este tama
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Botones tan chicos como su ícono, sin tamaño mínimo, como en versiones anteriores."
++
++msgid "Pan_el button"
++msgstr "Botón del _panel"
++
++msgid "Popup _window"
++msgstr "_Ventana emergente"
++
++msgid "Co_mpact"
++msgstr "Co_mpactos"
+diff --git a/po/fr.po b/po/fr.po
+index 1d8c69f..4a5e2c1 100644
+--- a/po/fr.po
++++ b/po/fr.po
+@@ -39,8 +39,8 @@ msgstr "Gauche"
+ msgid "Right"
+ msgstr "Droite"
+ 
+-msgid "Arro_w position:"
+-msgstr "Position de la _flèche :"
++msgid "Arrow p_osition:"
++msgstr "P_osition de la flèche :"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+ msgstr "Par rapport aux icônes visibles. Dans les tableaux de bord verticaux, gauche signifie haut et droite signifie bas."
+@@ -51,7 +51,7 @@ msgstr "Fenêtre surgissante"
+ msgid "Icon si_ze (px):"
+ msgstr "Ta_ille des icônes (px) :"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Espa_cement des icônes (px) :"
+ 
+ msgid "C_olumns:"
+@@ -75,8 +75,8 @@ msgstr "Sans compositeur, les coins sont toujours carrés."
+ msgid "Behavior"
+ msgstr "Comportement"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "Déplacer les icônes i_nactives dans la fenêtre surgissante"
++msgid "Move inac_tive icons to the popup"
++msgstr "Déplacer _les icônes inactives dans la fenêtre surgissante"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "Certaines applications marquent leur icône comme inactive quand elles n'ont rien à signaler. Les icônes que vous placez vous-même dans le tableau de bord y restent."
+@@ -143,7 +143,7 @@ msgstr "Aucune zone de notification classique n'est en cours d'exécution : les
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Les anciennes applications qui utilisent la zone de notification classique (XEmbed) sont affichées par une autre zone, comme le greffon natif de zone de notification. Celle-ci affiche aussi les applications modernes : pour ne pas les voir en double, masquez-les dans ses propriétés."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Afficher aussi les a_nciennes applications (zone de notification XEmbed classique)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
+ msgstr "Choisir une autre icône pour l'application sélectionnée"
+ 
+ msgid "Put _new apps in the popup"
+-msgstr "Mettre les _nouvelles applications dans la fenêtre surgissante"
++msgstr "_Mettre les nouvelles applications dans la fenêtre surgissante"
+ 
+ msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+ msgstr "Les applications qui apparaissent pour la première fois sont d'abord masquées. Celles déjà dans la liste ne changent pas."
+@@ -239,3 +239,12 @@ msgstr "Les boutons sont au moins aussi grands qu'avec une icône de cette taill
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Boutons aussi petits que leur icône, sans taille minimale, comme dans les versions précédentes."
++
++msgid "Pan_el button"
++msgstr "Bouton du _panneau"
++
++msgid "Popup _window"
++msgstr "Fenêtre _surgissante"
++
++msgid "Co_mpact"
++msgstr "_Compacts"
+diff --git a/po/it.po b/po/it.po
+index d3b6eef..edd6005 100644
+--- a/po/it.po
++++ b/po/it.po
+@@ -22,7 +22,7 @@ msgid "_Automatic"
+ msgstr "_Automatica"
+ 
+ msgid "Icon _size (px):"
+-msgstr "_Dimensione icone (px):"
++msgstr "Dimensione _icone (px):"
+ 
+ msgid "Icon s_pacing (px):"
+ msgstr "_Spaziatura icone (px):"
+@@ -39,7 +39,7 @@ msgstr "Sinistra"
+ msgid "Right"
+ msgstr "Destra"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Posizione della _freccia:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,11 +51,11 @@ msgstr "Finestra a comparsa"
+ msgid "Icon si_ze (px):"
+ msgstr "Dimensi_one icone (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Spa_ziatura icone (px):"
+ 
+ msgid "C_olumns:"
+-msgstr "_Colonne:"
++msgstr "Co_lonne:"
+ 
+ msgid "From theme"
+ msgstr "Dal tema"
+@@ -75,7 +75,7 @@ msgstr "Senza compositor, gli angoli sono sempre squadrati."
+ msgid "Behavior"
+ msgstr "Comportamento"
+ 
+-msgid "Move _inactive icons to the popup"
++msgid "Move inac_tive icons to the popup"
+ msgstr "Sposta le icone _inattive nella finestra a comparsa"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+@@ -143,7 +143,7 @@ msgstr "Nessuna area di notifica classica in esecuzione: le applicazioni meno re
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Le applicazioni meno recenti che usano l'area di notifica classica (XEmbed) vengono mostrate da un'altra area, come il plugin nativo dell'area di stato. Questa mostra anche le applicazioni moderne: per non vederle due volte, nascondile nelle sue proprietà."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Mostra anche le applicazioni meno _recenti (area di notifica XEmbed classica)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -165,13 +165,13 @@ msgid "Move down"
+ msgstr "Sposta giù"
+ 
+ msgid "_Forget"
+-msgstr "_Dimentica"
++msgstr "Di_mentica"
+ 
+ msgid "Remove an app that is not running from the list"
+ msgstr "Rimuovi dalla lista un'applicazione che non è in esecuzione"
+ 
+ msgid "Ic_on…"
+-msgstr "I_cona…"
++msgstr "Ic_ona…"
+ 
+ msgid "Choose a different icon for the selected app"
+ msgstr "Scegli un'icona diversa per l'applicazione selezionata"
+@@ -211,7 +211,7 @@ msgid "_Diagnostics"
+ msgstr "_Diagnostica"
+ 
+ msgid "C_opy"
+-msgstr "_Copia"
++msgstr "C_opia"
+ 
+ msgid "_Update"
+ msgstr "A_ggiorna"
+@@ -229,7 +229,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
+ msgstr "Tutte le icone su una riga (una colonna in un pannello verticale), anche se il pannello ha più righe. Con la dimensione automatica, le icone usano tutta l'altezza del pannello."
+ 
+ msgid "Mi_nimum button size (px):"
+-msgstr "Dimensione _minima dei pulsanti (px):"
++msgstr "Dime_nsione minima dei pulsanti (px):"
+ 
+ msgid "Co_mpact buttons (only as big as the icon)"
+ msgstr "P_ulsanti compatti (grandi solo quanto l'icona)"
+@@ -239,3 +239,12 @@ msgstr "I pulsanti sono grandi almeno come con un'icona di questa dimensione, ne
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Pulsanti piccoli come la loro icona, senza dimensione minima, come nelle versioni precedenti."
++
++msgid "Pan_el button"
++msgstr "Pulsante del _pannello"
++
++msgid "Popup _window"
++msgstr "Fines_tra a comparsa"
++
++msgid "Co_mpact"
++msgstr "Co_mpatti"
+diff --git a/po/ja.po b/po/ja.po
+index 20e9b66..c6684e2 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -39,8 +39,8 @@ msgstr "左"
+ msgid "Right"
+ msgstr "右"
+ 
+-msgid "Arro_w position:"
+-msgstr "矢印の位置(_W):"
++msgid "Arrow p_osition:"
++msgstr "矢印の位置(_O):"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+ msgstr "表示されているアイコンに対する位置です。縦置きのパネルでは、左は上、右は下を意味します。"
+@@ -51,8 +51,8 @@ msgstr "ポップアップ"
+ msgid "Icon si_ze (px):"
+ msgstr "アイコンサイズ (px)(_Z):"
+ 
+-msgid "Icon spa_cing (px):"
+-msgstr "アイコンの間隔 (px)(_C):"
++msgid "Icon spacin_g (px):"
++msgstr "アイコンの間隔 (px)(_G):"
+ 
+ msgid "C_olumns:"
+ msgstr "列数(_O):"
+@@ -75,8 +75,8 @@ msgstr "コンポジターがない場合、角は常に四角になります。
+ msgid "Behavior"
+ msgstr "動作"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "非アクティブなアイコンをポップアップに移動する(_I)"
++msgid "Move inac_tive icons to the popup"
++msgstr "非アクティブなアイコンをポップアップに移動する(_T)"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。自分でパネルに置いたアイコンはそのまま残ります。"
+@@ -143,8 +143,8 @@ msgstr "クラシックトレイが動作していないため、XEmbed を使
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "クラシックトレイ (XEmbed) を使う古いアプリは、標準のステータストレイプラグインなど、別のトレイに表示されています。そのトレイには最新のアプリも表示されるため、二重に表示されないよう、そのプロパティで非表示にしてください。"
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
+-msgstr "古いアプリも表示する (クラシック XEmbed トレイ)(_O)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
++msgstr "古いアプリも表示する (クラシック XEmbed トレイ)(_L)"
+ 
+ msgid "This build does not include support for older apps"
+ msgstr "このビルドには古いアプリのサポートが含まれていません"
+@@ -239,3 +239,12 @@ msgstr "パネルとポップアップのボタンは、このサイズのアイ
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "以前のバージョンのように、最小サイズなしでアイコンと同じ大きさのボタンにします。"
++
++msgid "Pan_el button"
++msgstr "パネルのボタン(_E)"
++
++msgid "Popup _window"
++msgstr "ポップアップ(_W)"
++
++msgid "Co_mpact"
++msgstr "コンパクト(_M)"
+diff --git a/po/ko.po b/po/ko.po
+index 7e7cc18..ab7f3fc 100644
+--- a/po/ko.po
++++ b/po/ko.po
+@@ -39,8 +39,8 @@ msgstr "왼쪽"
+ msgid "Right"
+ msgstr "오른쪽"
+ 
+-msgid "Arro_w position:"
+-msgstr "화살표 위치(_W):"
++msgid "Arrow p_osition:"
++msgstr "화살표 위치(_O):"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+ msgstr "보이는 아이콘을 기준으로 합니다. 세로 패널에서는 왼쪽이 위, 오른쪽이 아래를 뜻합니다."
+@@ -51,8 +51,8 @@ msgstr "팝업"
+ msgid "Icon si_ze (px):"
+ msgstr "아이콘 크기(px)(_Z):"
+ 
+-msgid "Icon spa_cing (px):"
+-msgstr "아이콘 간격(px)(_C):"
++msgid "Icon spacin_g (px):"
++msgstr "아이콘 간격(px)(_G):"
+ 
+ msgid "C_olumns:"
+ msgstr "열 수(_O):"
+@@ -75,8 +75,8 @@ msgstr "컴포지터가 없으면 모서리는 항상 각집니다."
+ msgid "Behavior"
+ msgstr "동작"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "비활성 아이콘을 팝업으로 이동(_I)"
++msgid "Move inac_tive icons to the popup"
++msgstr "비활성 아이콘을 팝업으로 이동(_T)"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "일부 앱은 알릴 것이 없을 때 아이콘을 비활성으로 표시합니다. 직접 패널에 둔 아이콘은 그대로 남습니다."
+@@ -143,8 +143,8 @@ msgstr "실행 중인 클래식 트레이가 없습니다. XEmbed를 쓰는 오
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "클래식 트레이(XEmbed)를 쓰는 오래된 앱은 기본 상태 트레이 플러그인 같은 다른 트레이에 표시됩니다. 그 트레이는 최신 앱도 표시하므로, 두 번 보이지 않게 해당 속성에서 숨기세요."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
+-msgstr "오래된 앱도 표시(클래식 XEmbed 트레이)(_O)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
++msgstr "오래된 앱도 표시(클래식 XEmbed 트레이)(_L)"
+ 
+ msgid "This build does not include support for older apps"
+ msgstr "이 빌드에는 오래된 앱 지원이 포함되어 있지 않습니다"
+@@ -239,3 +239,12 @@ msgstr "패널과 팝업의 버튼은 이 크기의 아이콘일 때만큼은 
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "이전 버전처럼 최소 크기 없이 아이콘만 한 버튼을 사용합니다."
++
++msgid "Pan_el button"
++msgstr "패널 버튼(_E)"
++
++msgid "Popup _window"
++msgstr "팝업 창(_W)"
++
++msgid "Co_mpact"
++msgstr "작게(_M)"
+diff --git a/po/nl.po b/po/nl.po
+index 44259cb..76bc4f0 100644
+--- a/po/nl.po
++++ b/po/nl.po
+@@ -28,7 +28,7 @@ msgid "Icon s_pacing (px):"
+ msgstr "_Tussenruimte (px):"
+ 
+ msgid "Use sym_bolic icons (if available)"
+-msgstr "_Symbolische pictogrammen gebruiken (indien beschikbaar)"
++msgstr "Symbolische pictogrammen gebruiken (indien _beschikbaar)"
+ 
+ msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+ msgstr "Eenkleurige pictogrammen in de tekstkleur van het paneel, in het paneel en in het pop-upvenster. Alleen voor toepassingen waarvan het pictogram uit het pictogramthema komt; de rest houdt het eigen pictogram."
+@@ -39,7 +39,7 @@ msgstr "Links"
+ msgid "Right"
+ msgstr "Rechts"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Positie van de _pijl:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,7 +51,7 @@ msgstr "Pop-upvenster"
+ msgid "Icon si_ze (px):"
+ msgstr "Pictogram_grootte (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "T_ussenruimte (px):"
+ 
+ msgid "C_olumns:"
+@@ -75,8 +75,8 @@ msgstr "Zonder compositor zijn de hoeken altijd recht."
+ msgid "Behavior"
+ msgstr "Gedrag"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "_Inactieve pictogrammen naar het pop-upvenster verplaatsen"
++msgid "Move inac_tive icons to the popup"
++msgstr "Inactieve _pictogrammen naar het pop-upvenster verplaatsen"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "Sommige toepassingen markeren hun pictogram als inactief als er niets te melden is. Pictogrammen die u zelf in het paneel plaatst, blijven daar."
+@@ -143,7 +143,7 @@ msgstr "Er draait geen klassiek systeemvak: oudere toepassingen die XEmbed gebru
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Oudere toepassingen die het klassieke systeemvak (XEmbed) gebruiken, worden door een ander systeemvak getoond, zoals de ingebouwde systeemvak-plug-in. Die toont ook moderne toepassingen: verberg ze in de eigenschappen ervan om ze niet dubbel te zien."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Ook _oudere toepassingen tonen (klassiek XEmbed-systeemvak)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -239,3 +239,12 @@ msgstr "De knoppen zijn minstens zo groot als met een pictogram van deze grootte
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Knoppen zo klein als hun pictogram, zonder minimale grootte, zoals in eerdere versies."
++
++msgid "Pan_el button"
++msgstr "Panee_lknop"
++
++msgid "Popup _window"
++msgstr "Pop-upv_enster"
++
++msgid "Co_mpact"
++msgstr "_Compact"
+diff --git a/po/pl.po b/po/pl.po
+index a72e7a1..555c84a 100644
+--- a/po/pl.po
++++ b/po/pl.po
+@@ -39,7 +39,7 @@ msgstr "Lewo"
+ msgid "Right"
+ msgstr "Prawo"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Położenie _strzałki:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,8 +51,8 @@ msgstr "Okienko"
+ msgid "Icon si_ze (px):"
+ msgstr "Ro_zmiar ikon (px):"
+ 
+-msgid "Icon spa_cing (px):"
+-msgstr "Odstęp _między ikonami (px):"
++msgid "Icon spacin_g (px):"
++msgstr "_Odstęp między ikonami (px):"
+ 
+ msgid "C_olumns:"
+ msgstr "_Kolumny:"
+@@ -75,7 +75,7 @@ msgstr "Bez menedżera kompozycji rogi są zawsze proste."
+ msgid "Behavior"
+ msgstr "Zachowanie"
+ 
+-msgid "Move _inactive icons to the popup"
++msgid "Move inac_tive icons to the popup"
+ msgstr "Przenoś _nieaktywne ikony do okienka"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+@@ -143,7 +143,7 @@ msgstr "Nie działa żaden klasyczny zasobnik: starsze programy, które używaj
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Starsze programy, które używają klasycznego zasobnika (XEmbed), są pokazywane przez inny zasobnik, na przykład wbudowaną wtyczkę zasobnika systemowego. Pokazuje on też nowoczesne programy: aby nie widzieć ich dwa razy, ukryj je w jego właściwościach."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Pokazuj też _starsze programy (klasyczny zasobnik XEmbed)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
+ msgstr "Wybierz inną ikonę dla zaznaczonego programu"
+ 
+ msgid "Put _new apps in the popup"
+-msgstr "Umieszczaj _nowe programy w okienku"
++msgstr "_Umieszczaj nowe programy w okienku"
+ 
+ msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+ msgstr "Programy, które pojawiają się po raz pierwszy, są na początku ukryte. Programy, które już są na liście, nie zmieniają się."
+@@ -239,3 +239,12 @@ msgstr "Przyciski są co najmniej tak duże jak z ikoną tego rozmiaru, na panel
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Przyciski tak małe jak ich ikona, bez minimalnego rozmiaru, jak w poprzednich wersjach."
++
++msgid "Pan_el button"
++msgstr "Przycisk _panelu"
++
++msgid "Popup _window"
++msgstr "Ok_ienko"
++
++msgid "Co_mpact"
++msgstr "_Kompaktowe"
+diff --git a/po/pt_BR.po b/po/pt_BR.po
+index af73691..c5a1e2b 100644
+--- a/po/pt_BR.po
++++ b/po/pt_BR.po
+@@ -39,7 +39,7 @@ msgstr "Esquerda"
+ msgid "Right"
+ msgstr "Direita"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Posição da _seta:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,7 +51,7 @@ msgstr "Janela suspensa"
+ msgid "Icon si_ze (px):"
+ msgstr "Taman_ho dos ícones (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Espa_çamento dos ícones (px):"
+ 
+ msgid "C_olumns:"
+@@ -75,8 +75,8 @@ msgstr "Sem compositor, os cantos são sempre retos."
+ msgid "Behavior"
+ msgstr "Comportamento"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "Mover ícones _inativos para a janela suspensa"
++msgid "Move inac_tive icons to the popup"
++msgstr "_Mover ícones inativos para a janela suspensa"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "Alguns aplicativos marcam o ícone como inativo quando não há nada a informar. Os ícones que você coloca no painel ficam lá."
+@@ -143,7 +143,7 @@ msgstr "Nenhuma bandeja clássica em execução: aplicativos antigos que usam XE
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Aplicativos antigos que usam a bandeja clássica (XEmbed) são mostrados por outra bandeja, como o plugin nativo de bandeja de status. Ela também mostra aplicativos modernos: para não vê-los duas vezes, oculte-os nas propriedades dela."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Mostrar também aplicativos a_ntigos (bandeja clássica XEmbed)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
+ msgstr "Escolher outro ícone para o aplicativo selecionado"
+ 
+ msgid "Put _new apps in the popup"
+-msgstr "Colocar aplicativos _novos na janela suspensa"
++msgstr "Colocar _aplicativos novos na janela suspensa"
+ 
+ msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+ msgstr "Aplicativos que aparecem pela primeira vez começam ocultos. Os que já estão na lista não mudam."
+@@ -229,7 +229,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
+ msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo que o painel tenha várias linhas. Com o tamanho automático, os ícones usam toda a altura do painel."
+ 
+ msgid "Mi_nimum button size (px):"
+-msgstr "Tamanho _mínimo dos botões (px):"
++msgstr "Tama_nho mínimo dos botões (px):"
+ 
+ msgid "Co_mpact buttons (only as big as the icon)"
+ msgstr "Botões _compactos (só do tamanho do ícone)"
+@@ -239,3 +239,12 @@ msgstr "Os botões são pelo menos tão grandes quanto com um ícone deste taman
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Botões tão pequenos quanto o seu ícone, sem tamanho mínimo, como nas versões anteriores."
++
++msgid "Pan_el button"
++msgstr "Botão do _painel"
++
++msgid "Popup _window"
++msgstr "_Janela suspensa"
++
++msgid "Co_mpact"
++msgstr "Co_mpactos"
+diff --git a/po/ru.po b/po/ru.po
+index b358e95..8d5aa9f 100644
+--- a/po/ru.po
++++ b/po/ru.po
+@@ -28,7 +28,7 @@ msgid "Icon s_pacing (px):"
+ msgstr "_Отступ между значками (пикс.):"
+ 
+ msgid "Use sym_bolic icons (if available)"
+-msgstr "Использовать _символьные значки (если есть)"
++msgstr "Использовать символьные значки (_если есть)"
+ 
+ msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+ msgstr "Одноцветные значки цвета текста панели — на панели и во всплывающем окне. Только для приложений, чей значок берётся из темы значков; остальные сохраняют свой значок."
+@@ -39,7 +39,7 @@ msgstr "Слева"
+ msgid "Right"
+ msgstr "Справа"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "Положение _стрелки:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -49,10 +49,10 @@ msgid "Popup"
+ msgstr "Всплывающее окно"
+ 
+ msgid "Icon si_ze (px):"
+-msgstr "Ра_змер значков (пикс.):"
++msgstr "_Размер значков (пикс.):"
+ 
+-msgid "Icon spa_cing (px):"
+-msgstr "От_ступ между значками (пикс.):"
++msgid "Icon spacin_g (px):"
++msgstr "_Отступ между значками (пикс.):"
+ 
+ msgid "C_olumns:"
+ msgstr "_Столбцы:"
+@@ -75,7 +75,7 @@ msgstr "Без композитора углы всегда прямые."
+ msgid "Behavior"
+ msgstr "Поведение"
+ 
+-msgid "Move _inactive icons to the popup"
++msgid "Move inac_tive icons to the popup"
+ msgstr "Перемещать _неактивные значки во всплывающее окно"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+@@ -143,7 +143,7 @@ msgstr "Классический лоток не запущен: старые п
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Старые приложения, использующие классический лоток (XEmbed), показываются другим лотком, например встроенным модулем области уведомлений. Он показывает и современные приложения: чтобы не видеть их дважды, скройте их в его свойствах."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "Показывать также _старые приложения (классический лоток XEmbed)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -165,19 +165,19 @@ msgid "Move down"
+ msgstr "Вниз"
+ 
+ msgid "_Forget"
+-msgstr "_Забыть"
++msgstr "З_абыть"
+ 
+ msgid "Remove an app that is not running from the list"
+ msgstr "Удалить из списка незапущенное приложение"
+ 
+ msgid "Ic_on…"
+-msgstr "З_начок…"
++msgstr "Зна_чок…"
+ 
+ msgid "Choose a different icon for the selected app"
+ msgstr "Выбрать другой значок для выбранного приложения"
+ 
+ msgid "Put _new apps in the popup"
+-msgstr "Помещать _новые приложения во всплывающее окно"
++msgstr "Помещать новые приложения во всплывающее _окно"
+ 
+ msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+ msgstr "Приложения, появившиеся впервые, сразу скрыты. Приложения, уже находящиеся в списке, не меняются."
+@@ -239,3 +239,12 @@ msgstr "Кнопки не меньше, чем со значком этого р
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Кнопки размером со свой значок, без минимального размера, как в прежних версиях."
++
++msgid "Pan_el button"
++msgstr "Кнопка _панели"
++
++msgid "Popup _window"
++msgstr "_Всплывающее окно"
++
++msgid "Co_mpact"
++msgstr "_Компактные"
+diff --git a/po/tr.po b/po/tr.po
+index 3b419d9..b34144b 100644
+--- a/po/tr.po
++++ b/po/tr.po
+@@ -19,10 +19,10 @@ msgid "Panel"
+ msgstr "Panel"
+ 
+ msgid "_Automatic"
+-msgstr "_Otomatik"
++msgstr "Otomat_ik"
+ 
+ msgid "Icon _size (px):"
+-msgstr "Simge _boyutu (px):"
++msgstr "_Simge boyutu (px):"
+ 
+ msgid "Icon s_pacing (px):"
+ msgstr "Simge _aralığı (px):"
+@@ -39,7 +39,7 @@ msgstr "Sol"
+ msgid "Right"
+ msgstr "Sağ"
+ 
+-msgid "Arro_w position:"
++msgid "Arrow p_osition:"
+ msgstr "_Okun konumu:"
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+@@ -51,7 +51,7 @@ msgstr "Açılır pencere"
+ msgid "Icon si_ze (px):"
+ msgstr "Simge b_oyutu (px):"
+ 
+-msgid "Icon spa_cing (px):"
++msgid "Icon spacin_g (px):"
+ msgstr "Simge ar_alığı (px):"
+ 
+ msgid "C_olumns:"
+@@ -67,7 +67,7 @@ msgid "Square"
+ msgstr "Köşeli"
+ 
+ msgid "Co_rners:"
+-msgstr "_Köşeler:"
++msgstr "K_öşeler:"
+ 
+ msgid "Without a compositor, corners are always square."
+ msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
+@@ -75,8 +75,8 @@ msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
+ msgid "Behavior"
+ msgstr "Davranış"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "_Etkin olmayan simgeleri açılır pencereye taşı"
++msgid "Move inac_tive icons to the popup"
++msgstr "Etkin _olmayan simgeleri açılır pencereye taşı"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "Bazı uygulamalar bildirecek bir şey olmadığında simgelerini etkin değil olarak işaretler. Panele kendiniz yerleştirdiğiniz simgeler orada kalır."
+@@ -143,7 +143,7 @@ msgstr "Çalışan klasik tepsi yok: XEmbed kullanan eski uygulamalar simge gös
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "Klasik tepsiyi (XEmbed) kullanan eski uygulamalar, yerleşik durum tepsisi eklentisi gibi başka bir tepside gösteriliyor. O tepsi modern uygulamaları da gösterir: onları iki kez görmemek için özelliklerinden gizleyin."
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
+ msgstr "_Eski uygulamaları da göster (klasik XEmbed tepsisi)"
+ 
+ msgid "This build does not include support for older apps"
+@@ -211,7 +211,7 @@ msgid "_Diagnostics"
+ msgstr "_Tanılama"
+ 
+ msgid "C_opy"
+-msgstr "_Kopyala"
++msgstr "K_opyala"
+ 
+ msgid "_Update"
+ msgstr "Gü_ncelle"
+@@ -239,3 +239,12 @@ msgstr "Düğmeler, panelde ve açılır pencerede en az bu boyutta bir simgeyle
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "Önceki sürümlerdeki gibi, en küçük boyut olmadan simgeleri kadar küçük düğmeler."
++
++msgid "Pan_el button"
++msgstr "_Panel düğmesi"
++
++msgid "Popup _window"
++msgstr "A_çılır pencere"
++
++msgid "Co_mpact"
++msgstr "Ko_mpakt"
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index d773641..e901563 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -39,8 +39,8 @@ msgstr "左"
+ msgid "Right"
+ msgstr "右"
+ 
+-msgid "Arro_w position:"
+-msgstr "箭头位置(_W)："
++msgid "Arrow p_osition:"
++msgstr "箭头位置(_O)："
+ 
+ msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+ msgstr "相对于可见图标。在竖直面板中，左表示上，右表示下。"
+@@ -51,8 +51,8 @@ msgstr "弹出窗口"
+ msgid "Icon si_ze (px):"
+ msgstr "图标大小（像素）(_Z)："
+ 
+-msgid "Icon spa_cing (px):"
+-msgstr "图标间距（像素）(_C)："
++msgid "Icon spacin_g (px):"
++msgstr "图标间距（像素）(_G)："
+ 
+ msgid "C_olumns:"
+ msgstr "列数(_O)："
+@@ -75,8 +75,8 @@ msgstr "没有混成器时，边角始终为直角。"
+ msgid "Behavior"
+ msgstr "行为"
+ 
+-msgid "Move _inactive icons to the popup"
+-msgstr "将非活动图标移到弹出窗口(_I)"
++msgid "Move inac_tive icons to the popup"
++msgstr "将非活动图标移到弹出窗口(_T)"
+ 
+ msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+ msgstr "有些应用在没有消息时会把图标标记为非活动。您自己放到面板上的图标会留在那里。"
+@@ -143,8 +143,8 @@ msgstr "没有运行中的经典托盘：使用 XEmbed 的旧应用不会显示
+ msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+ msgstr "使用经典托盘（XEmbed）的旧应用由另一个托盘显示，例如自带的状态托盘插件。该托盘也会显示新式应用：为避免重复显示，请在它的属性中隐藏这些应用。"
+ 
+-msgid "Also show _older apps (classic XEmbed tray)"
+-msgstr "同时显示旧应用（经典 XEmbed 托盘）(_O)"
++msgid "Also show o_lder apps (classic XEmbed tray)"
++msgstr "同时显示旧应用（经典 XEmbed 托盘）(_L)"
+ 
+ msgid "This build does not include support for older apps"
+ msgstr "此版本不包含对旧应用的支持"
+@@ -239,3 +239,12 @@ msgstr "面板和弹出窗口中的按钮至少与此尺寸的图标一样大；
+ 
+ msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+ msgstr "像以前的版本一样，按钮与图标一样小，没有最小尺寸。"
++
++msgid "Pan_el button"
++msgstr "面板按钮(_E)"
++
++msgid "Popup _window"
++msgstr "弹出窗口(_W)"
++
++msgid "Co_mpact"
++msgstr "紧凑(_M)"
+diff --git a/src/to-dialog.c b/src/to-dialog.c
+index 5cf7fe6..f181bd8 100644
+--- a/src/to-dialog.c
++++ b/src/to-dialog.c
+@@ -226,22 +226,6 @@ make_spin (DialogData *d, gint min, gint max, gint value)
+ 
+ 
+ 
+-static void
+-add_section (GtkWidget *grid, gint *row, const gchar *title)
+-{
+-  GtkWidget *label = gtk_label_new (NULL);
+-  gchar *markup = g_markup_printf_escaped ("<b>%s</b>", title);
+-
+-  gtk_label_set_markup (GTK_LABEL (label), markup);
+-  g_free (markup);
+-  gtk_widget_set_halign (label, GTK_ALIGN_START);
+-  if (*row > 0)
+-    gtk_widget_set_margin_top (label, 12);
+-  gtk_grid_attach (GTK_GRID (grid), label, 0, (*row)++, 3, 1);
+-}
+-
+-
+-
+ static void
+ add_row (GtkWidget *grid, gint *row, const gchar *text, GtkWidget *control, GtkWidget *extra)
+ {
+@@ -259,20 +243,69 @@ add_row (GtkWidget *grid, gint *row, const gchar *text, GtkWidget *control, GtkW
+ 
+ 
+ 
++/* Red de seguridad para pantallas bajas: la pestaña toma su alto natural,
++ * pero nunca más que lo que entra en el monitor; si no entra, aparece una
++ * barra de desplazamiento en vez de pasarse del borde */
++#define DIALOG_SCREEN_MARGIN 220   /* título, pestañas, botones y el panel */
++
+ static GtkWidget *
+-appearance_page (DialogData *d)
++scrollable_page (DialogData *d, GtkWidget *page)
+ {
+-  TraySettings *s = d->p->settings;
+-  GtkWidget *grid, *hint;
+-  gboolean automatic = tray_settings_get_panel_icon_size (s) == 0;
+-  gint row = 0;
++  GtkWidget *scrolled = gtk_scrolled_window_new (NULL, NULL);
++  GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (d->p->panel_plugin));
++  GdkDisplay *display = gtk_widget_get_display (GTK_WIDGET (d->p->panel_plugin));
++  GdkMonitor *monitor = window != NULL ? gdk_display_get_monitor_at_window (display, window)
++                                       : gdk_display_get_primary_monitor (display);
++  GdkRectangle area;
++
++  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
++                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
++  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scrolled), TRUE);
++  gtk_scrolled_window_set_propagate_natural_width (GTK_SCROLLED_WINDOW (scrolled), TRUE);
++  if (monitor != NULL)
++    {
++      gdk_monitor_get_workarea (monitor, &area);
++      gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scrolled),
++                                                  MAX (200, area.height - DIALOG_SCREEN_MARGIN));
++    }
++  gtk_container_add (GTK_CONTAINER (scrolled), page);
++  return scrolled;
++}
++
++
++
++/* Una pestaña de opciones: rejilla con borde */
++static GtkWidget *
++options_grid (void)
++{
++  GtkWidget *grid = gtk_grid_new ();
+ 
+-  grid = gtk_grid_new ();
+   gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
+   gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
+   gtk_container_set_border_width (GTK_CONTAINER (grid), 12);
++  return grid;
++}
++
+ 
+-  add_section (grid, &row, _("Panel"));
++
++static void
++add_check (GtkWidget *grid, gint *row, GtkWidget *check)
++{
++  gtk_widget_set_margin_start (check, 12);
++  gtk_grid_attach (GTK_GRID (grid), check, 0, (*row)++, 3, 1);
++}
++
++
++
++/* ── Pestaña Botón del panel ─────────────────────────────────────────── */
++
++static GtkWidget *
++panel_page (DialogData *d)
++{
++  TraySettings *s = d->p->settings;
++  GtkWidget *grid = options_grid ();
++  gboolean automatic = tray_settings_get_panel_icon_size (s) == 0;
++  gint row = 0;
+ 
+   d->panel_size = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX,
+                              automatic ? tray_plugin_get_panel_icon_size (d->p)
+@@ -286,29 +319,8 @@ appearance_page (DialogData *d)
+   d->panel_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_panel_spacing (s));
+   add_row (grid, &row, _("Icon s_pacing (px):"), d->panel_spacing, NULL);
+ 
+-  /* También vale para el popup, como en la bandeja de XFCE */
+-  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
+-  gtk_widget_set_tooltip_text (d->symbolic,
+-                               _("Monochrome icons in the color of the panel text, in the "
+-                                 "panel and in the popup. Only for apps whose icon comes "
+-                                 "from the icon theme; the rest keep their own icon."));
+-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
+-                                tray_settings_get_symbolic_icons (s));
+-  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
+-  gtk_widget_set_margin_start (d->symbolic, 12);
+-  gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
+-
+-  d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
+-  gtk_widget_set_tooltip_text (d->single_row,
+-                               _("All the icons in one row (one column in a vertical panel), "
+-                                 "even if the panel has several rows. With the automatic "
+-                                 "size, the icons use the whole height of the panel."));
+-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
+-                                tray_settings_get_single_row (s));
+-  g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
+-  gtk_widget_set_margin_start (d->single_row, 12);
+-  gtk_grid_attach (GTK_GRID (grid), d->single_row, 0, row++, 3, 1);
+-
++  /* Compactos al lado del mínimo, como Automático al lado del tamaño:
++   * la casilla desactiva el número */
+   d->button_min = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX,
+                              tray_settings_get_button_min_size (s));
+   gtk_widget_set_tooltip_text (d->button_min,
+@@ -316,9 +328,7 @@ appearance_page (DialogData *d)
+                                  "size, in the panel and in the popup; smaller icons stay "
+                                  "centered. In the panel, each button takes the whole height "
+                                  "of its row."));
+-  add_row (grid, &row, _("Mi_nimum button size (px):"), d->button_min, NULL);
+-
+-  d->compact = gtk_check_button_new_with_mnemonic (_("Co_mpact buttons (only as big as the icon)"));
++  d->compact = gtk_check_button_new_with_mnemonic (_("Co_mpact"));
+   gtk_widget_set_tooltip_text (d->compact,
+                                _("Buttons as small as their icon, without a minimum size, "
+                                  "like in earlier versions."));
+@@ -326,8 +336,7 @@ appearance_page (DialogData *d)
+                                 tray_settings_get_compact_buttons (s));
+   gtk_widget_set_sensitive (d->button_min, !tray_settings_get_compact_buttons (s));
+   g_signal_connect (d->compact, "toggled", G_CALLBACK (compact_toggled), d);
+-  gtk_widget_set_margin_start (d->compact, 12);
+-  gtk_grid_attach (GTK_GRID (grid), d->compact, 0, row++, 3, 1);
++  add_row (grid, &row, _("Mi_nimum button size (px):"), d->button_min, d->compact);
+ 
+   /* Mismo orden que TrayArrowPosition */
+   d->arrow_position = gtk_combo_box_text_new ();
+@@ -335,26 +344,53 @@ appearance_page (DialogData *d)
+   gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Right"));
+   gtk_combo_box_set_active (GTK_COMBO_BOX (d->arrow_position),
+                             tray_settings_get_arrow_position (s));
++  gtk_widget_set_tooltip_text (d->arrow_position,
++                               _("Relative to the visible icons. In vertical panels, "
++                                 "left means top and right means bottom."));
+   g_signal_connect (d->arrow_position, "changed", G_CALLBACK (arrow_position_changed), d);
+-  add_row (grid, &row, _("Arro_w position:"), d->arrow_position, NULL);
++  add_row (grid, &row, _("Arrow p_osition:"), d->arrow_position, NULL);
+ 
+-  hint = gtk_label_new (_("Relative to the visible icons. In vertical panels, "
+-                          "left means top and right means bottom."));
+-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
+-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
+-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
+-  gtk_widget_set_margin_start (hint, 12);
+-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
+-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
++  /* También vale para el popup, como en la bandeja de XFCE */
++  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
++  gtk_widget_set_tooltip_text (d->symbolic,
++                               _("Monochrome icons in the color of the panel text, in the "
++                                 "panel and in the popup. Only for apps whose icon comes "
++                                 "from the icon theme; the rest keep their own icon."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
++                                tray_settings_get_symbolic_icons (s));
++  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
++  add_check (grid, &row, d->symbolic);
+ 
+-  add_section (grid, &row, _("Popup"));
++  d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
++  gtk_widget_set_tooltip_text (d->single_row,
++                               _("All the icons in one row (one column in a vertical panel), "
++                                 "even if the panel has several rows. With the automatic "
++                                 "size, the icons use the whole height of the panel."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
++                                tray_settings_get_single_row (s));
++  g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
++  add_check (grid, &row, d->single_row);
++
++  return grid;
++}
++
++
++
++/* ── Pestaña Ventana emergente ───────────────────────────────────────── */
++
++static GtkWidget *
++popup_page (DialogData *d)
++{
++  TraySettings *s = d->p->settings;
++  GtkWidget *grid = options_grid ();
++  gint row = 0;
+ 
+   d->popup_size = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX,
+                              tray_settings_get_popup_icon_size (s));
+   add_row (grid, &row, _("Icon si_ze (px):"), d->popup_size, NULL);
+ 
+   d->popup_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_popup_spacing (s));
+-  add_row (grid, &row, _("Icon spa_cing (px):"), d->popup_spacing, NULL);
++  add_row (grid, &row, _("Icon spacin_g (px):"), d->popup_spacing, NULL);
+ 
+   d->popup_columns = make_spin (d, 1, TRAY_COLUMNS_MAX, tray_settings_get_popup_columns (s));
+   add_row (grid, &row, _("C_olumns:"), d->popup_columns, NULL);
+@@ -366,35 +402,11 @@ appearance_page (DialogData *d)
+   gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->popup_corners), _("Square"));
+   gtk_combo_box_set_active (GTK_COMBO_BOX (d->popup_corners),
+                             tray_settings_get_popup_corners (s));
++  gtk_widget_set_tooltip_text (d->popup_corners,
++                               _("Without a compositor, corners are always square."));
+   g_signal_connect (d->popup_corners, "changed", G_CALLBACK (corners_changed), d);
+   add_row (grid, &row, _("Co_rners:"), d->popup_corners, NULL);
+ 
+-  hint = gtk_label_new (_("Without a compositor, corners are always square."));
+-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
+-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
+-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
+-  gtk_widget_set_margin_start (hint, 12);
+-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
+-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
+-
+-  add_section (grid, &row, _("Behavior"));
+-
+-  d->passive = gtk_check_button_new_with_mnemonic (_("Move _inactive icons to the popup"));
+-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
+-                                tray_settings_get_passive_in_popup (s));
+-  g_signal_connect (d->passive, "toggled", G_CALLBACK (passive_toggled), d);
+-  gtk_widget_set_margin_start (d->passive, 12);
+-  gtk_grid_attach (GTK_GRID (grid), d->passive, 0, row++, 3, 1);
+-
+-  hint = gtk_label_new (_("Some apps mark their icon as inactive when there is nothing "
+-                          "to report. Icons you place in the panel yourself stay there."));
+-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
+-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
+-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
+-  gtk_widget_set_margin_start (hint, 36);
+-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
+-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
+-
+   return grid;
+ }
+ 
+@@ -1062,7 +1074,7 @@ legacy_section (DialogData *d)
+   vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+ 
+   d->legacy_check = gtk_check_button_new_with_mnemonic (
+-                      _("Also show _older apps (classic XEmbed tray)"));
++                      _("Also show o_lder apps (classic XEmbed tray)"));
+   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
+                                 tray_settings_get_legacy_tray (d->p->settings));
+   gtk_widget_set_sensitive (d->legacy_check, tray_legacy_available ());
+@@ -1158,6 +1170,7 @@ diag_page (DialogData *d)
+ 
+   scrolled = gtk_scrolled_window_new (NULL, NULL);
+   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
++  gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled), 150);
+   gtk_container_add (GTK_CONTAINER (scrolled), d->diag_view);
+   gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
+ 
+@@ -1233,6 +1246,8 @@ items_page (DialogData *d)
+   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
+                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
++  /* La ventana ya no tiene un alto fijo: que la lista no quede aplastada */
++  gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled), 150);
+   gtk_container_add (GTK_CONTAINER (scrolled), d->tree);
+   gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
+ 
+@@ -1267,6 +1282,15 @@ items_page (DialogData *d)
+   g_signal_connect (d->new_in_popup, "toggled", G_CALLBACK (new_in_popup_toggled), d);
+   gtk_box_pack_start (GTK_BOX (vbox), d->new_in_popup, FALSE, FALSE, 0);
+ 
++  d->passive = gtk_check_button_new_with_mnemonic (_("Move inac_tive icons to the popup"));
++  gtk_widget_set_tooltip_text (d->passive,
++                               _("Some apps mark their icon as inactive when there is nothing "
++                                 "to report. Icons you place in the panel yourself stay there."));
++  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
++                                tray_settings_get_passive_in_popup (d->p->settings));
++  g_signal_connect (d->passive, "toggled", G_CALLBACK (passive_toggled), d);
++  gtk_box_pack_start (GTK_BOX (vbox), d->passive, FALSE, FALSE, 0);
++
+   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
+ 
+   rebuild_list (d);
+@@ -1386,12 +1410,15 @@ tray_dialog_show (TrayPlugin *p)
+   p->dialog = d->dialog;
+ 
+   gtk_window_set_icon_name (GTK_WINDOW (d->dialog), "org.xfce.panel.systray");
+-  gtk_window_set_default_size (GTK_WINDOW (d->dialog), 480, 520);
++  /* Alto: el que pida la pestaña más alta (con tope, ver scrollable_page) */
++  gtk_window_set_default_size (GTK_WINDOW (d->dialog), 480, -1);
+   xfce_panel_plugin_block_menu (p->panel_plugin);
+ 
+   notebook = gtk_notebook_new ();
+-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), appearance_page (d),
+-                            gtk_label_new_with_mnemonic (_("A_ppearance")));
++  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, panel_page (d)),
++                            gtk_label_new_with_mnemonic (_("Pan_el button")));
++  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, popup_page (d)),
++                            gtk_label_new_with_mnemonic (_("Popup _window")));
+   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
+                             gtk_label_new_with_mnemonic (_("_Items")));
+   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), diag_page (d),

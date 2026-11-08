@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.47\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.48\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
@@ -33,11 +33,11 @@ msgstr "Ventana emergente"
 msgid "Icon si_ze (px):"
 msgstr "Tama_ño de ícono (px):"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Sepa_ración (px):"
 
 msgid "C_olumns:"
-msgstr "_Columnas:"
+msgstr "C_olumnas:"
 
 msgid "Left"
 msgstr "Izquierda"
@@ -45,8 +45,8 @@ msgstr "Izquierda"
 msgid "Right"
 msgstr "Derecha"
 
-msgid "Arro_w position:"
-msgstr "Posición de la fl_echa:"
+msgid "Arrow p_osition:"
+msgstr "Posición de _la flecha:"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Respecto de los íconos visibles. En paneles verticales, izquierda es arriba y derecha es abajo."
@@ -69,7 +69,7 @@ msgstr "Sin compositor, las esquinas siempre son rectas."
 msgid "Behavior"
 msgstr "Comportamiento"
 
-msgid "Move _inactive icons to the popup"
+msgid "Move inac_tive icons to the popup"
 msgstr "Mover los íconos _inactivos a la ventana emergente"
 
 msgid "Use sym_bolic icons (if available)"
@@ -157,7 +157,7 @@ msgstr ""
 "también muestra las aplicaciones modernas: para no verlas dos veces, "
 "ocúltelas en sus propiedades."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Mostrar también las aplicaciones _antiguas (bandeja clásica XEmbed)"
 
 msgid "This build does not include support for older apps"
@@ -216,7 +216,7 @@ msgid "Asking for attention: %s"
 msgstr "Piden atención: %s"
 
 msgid "Ic_on…"
-msgstr "Í_cono…"
+msgstr "_Ícono…"
 
 msgid "Choose a different icon for the selected app"
 msgstr "Elegir otro ícono para la aplicación seleccionada"
@@ -265,7 +265,7 @@ msgid "_Diagnostics"
 msgstr "_Diagnóstico"
 
 msgid "C_opy"
-msgstr "_Copiar"
+msgstr "C_opiar"
 
 msgid "_Update"
 msgstr "_Actualizar"
@@ -283,7 +283,7 @@ msgid "All the icons in one row (one column in a vertical panel), even if the pa
 msgstr "Todos los íconos en una fila (una columna en un panel vertical), aunque el panel tenga varias filas. Con el tamaño automático, los íconos usan todo el alto del panel."
 
 msgid "Mi_nimum button size (px):"
-msgstr "Tamaño _mínimo del botón (px):"
+msgstr "Tama_ño mínimo del botón (px):"
 
 msgid "Co_mpact buttons (only as big as the icon)"
 msgstr "Botones c_ompactos (solo del tamaño del ícono)"
@@ -293,3 +293,12 @@ msgstr "Los botones son por lo menos tan grandes como con un ícono de este tama
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Botones tan chicos como su ícono, sin tamaño mínimo, como en versiones anteriores."
+
+msgid "Pan_el button"
+msgstr "Botón del _panel"
+
+msgid "Popup _window"
+msgstr "_Ventana emergente"
+
+msgid "Co_mpact"
+msgstr "Co_mpactos"

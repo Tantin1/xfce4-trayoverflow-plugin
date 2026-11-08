@@ -227,22 +227,6 @@ make_spin (DialogData *d, gint min, gint max, gint value)
 
 
 static void
-add_section (GtkWidget *grid, gint *row, const gchar *title)
-{
-  GtkWidget *label = gtk_label_new (NULL);
-  gchar *markup = g_markup_printf_escaped ("<b>%s</b>", title);
-
-  gtk_label_set_markup (GTK_LABEL (label), markup);
-  g_free (markup);
-  gtk_widget_set_halign (label, GTK_ALIGN_START);
-  if (*row > 0)
-    gtk_widget_set_margin_top (label, 12);
-  gtk_grid_attach (GTK_GRID (grid), label, 0, (*row)++, 3, 1);
-}
-
-
-
-static void
 add_row (GtkWidget *grid, gint *row, const gchar *text, GtkWidget *control, GtkWidget *extra)
 {
   GtkWidget *label = gtk_label_new_with_mnemonic (text);
@@ -259,20 +243,69 @@ add_row (GtkWidget *grid, gint *row, const gchar *text, GtkWidget *control, GtkW
 
 
 
-static GtkWidget *
-appearance_page (DialogData *d)
-{
-  TraySettings *s = d->p->settings;
-  GtkWidget *grid, *hint;
-  gboolean automatic = tray_settings_get_panel_icon_size (s) == 0;
-  gint row = 0;
+/* Red de seguridad para pantallas bajas: la pestaña toma su alto natural,
+ * pero nunca más que lo que entra en el monitor; si no entra, aparece una
+ * barra de desplazamiento en vez de pasarse del borde */
+#define DIALOG_SCREEN_MARGIN 220   /* título, pestañas, botones y el panel */
 
-  grid = gtk_grid_new ();
+static GtkWidget *
+scrollable_page (DialogData *d, GtkWidget *page)
+{
+  GtkWidget *scrolled = gtk_scrolled_window_new (NULL, NULL);
+  GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (d->p->panel_plugin));
+  GdkDisplay *display = gtk_widget_get_display (GTK_WIDGET (d->p->panel_plugin));
+  GdkMonitor *monitor = window != NULL ? gdk_display_get_monitor_at_window (display, window)
+                                       : gdk_display_get_primary_monitor (display);
+  GdkRectangle area;
+
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
+                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scrolled), TRUE);
+  gtk_scrolled_window_set_propagate_natural_width (GTK_SCROLLED_WINDOW (scrolled), TRUE);
+  if (monitor != NULL)
+    {
+      gdk_monitor_get_workarea (monitor, &area);
+      gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scrolled),
+                                                  MAX (200, area.height - DIALOG_SCREEN_MARGIN));
+    }
+  gtk_container_add (GTK_CONTAINER (scrolled), page);
+  return scrolled;
+}
+
+
+
+/* Una pestaña de opciones: rejilla con borde */
+static GtkWidget *
+options_grid (void)
+{
+  GtkWidget *grid = gtk_grid_new ();
+
   gtk_grid_set_row_spacing (GTK_GRID (grid), 6);
   gtk_grid_set_column_spacing (GTK_GRID (grid), 12);
   gtk_container_set_border_width (GTK_CONTAINER (grid), 12);
+  return grid;
+}
 
-  add_section (grid, &row, _("Panel"));
+
+
+static void
+add_check (GtkWidget *grid, gint *row, GtkWidget *check)
+{
+  gtk_widget_set_margin_start (check, 12);
+  gtk_grid_attach (GTK_GRID (grid), check, 0, (*row)++, 3, 1);
+}
+
+
+
+/* ── Pestaña Botón del panel ─────────────────────────────────────────── */
+
+static GtkWidget *
+panel_page (DialogData *d)
+{
+  TraySettings *s = d->p->settings;
+  GtkWidget *grid = options_grid ();
+  gboolean automatic = tray_settings_get_panel_icon_size (s) == 0;
+  gint row = 0;
 
   d->panel_size = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX,
                              automatic ? tray_plugin_get_panel_icon_size (d->p)
@@ -286,6 +319,37 @@ appearance_page (DialogData *d)
   d->panel_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_panel_spacing (s));
   add_row (grid, &row, _("Icon s_pacing (px):"), d->panel_spacing, NULL);
 
+  /* Compactos al lado del mínimo, como Automático al lado del tamaño:
+   * la casilla desactiva el número */
+  d->button_min = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX,
+                             tray_settings_get_button_min_size (s));
+  gtk_widget_set_tooltip_text (d->button_min,
+                               _("The buttons are at least as big as with an icon of this "
+                                 "size, in the panel and in the popup; smaller icons stay "
+                                 "centered. In the panel, each button takes the whole height "
+                                 "of its row."));
+  d->compact = gtk_check_button_new_with_mnemonic (_("Co_mpact"));
+  gtk_widget_set_tooltip_text (d->compact,
+                               _("Buttons as small as their icon, without a minimum size, "
+                                 "like in earlier versions."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->compact),
+                                tray_settings_get_compact_buttons (s));
+  gtk_widget_set_sensitive (d->button_min, !tray_settings_get_compact_buttons (s));
+  g_signal_connect (d->compact, "toggled", G_CALLBACK (compact_toggled), d);
+  add_row (grid, &row, _("Mi_nimum button size (px):"), d->button_min, d->compact);
+
+  /* Mismo orden que TrayArrowPosition */
+  d->arrow_position = gtk_combo_box_text_new ();
+  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Left"));
+  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Right"));
+  gtk_combo_box_set_active (GTK_COMBO_BOX (d->arrow_position),
+                            tray_settings_get_arrow_position (s));
+  gtk_widget_set_tooltip_text (d->arrow_position,
+                               _("Relative to the visible icons. In vertical panels, "
+                                 "left means top and right means bottom."));
+  g_signal_connect (d->arrow_position, "changed", G_CALLBACK (arrow_position_changed), d);
+  add_row (grid, &row, _("Arrow p_osition:"), d->arrow_position, NULL);
+
   /* También vale para el popup, como en la bandeja de XFCE */
   d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
   gtk_widget_set_tooltip_text (d->symbolic,
@@ -295,8 +359,7 @@ appearance_page (DialogData *d)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
                                 tray_settings_get_symbolic_icons (s));
   g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
-  gtk_widget_set_margin_start (d->symbolic, 12);
-  gtk_grid_attach (GTK_GRID (grid), d->symbolic, 0, row++, 3, 1);
+  add_check (grid, &row, d->symbolic);
 
   d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
   gtk_widget_set_tooltip_text (d->single_row,
@@ -306,55 +369,28 @@ appearance_page (DialogData *d)
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
                                 tray_settings_get_single_row (s));
   g_signal_connect (d->single_row, "toggled", G_CALLBACK (single_row_toggled), d);
-  gtk_widget_set_margin_start (d->single_row, 12);
-  gtk_grid_attach (GTK_GRID (grid), d->single_row, 0, row++, 3, 1);
+  add_check (grid, &row, d->single_row);
 
-  d->button_min = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_BUTTON_MIN_MAX,
-                             tray_settings_get_button_min_size (s));
-  gtk_widget_set_tooltip_text (d->button_min,
-                               _("The buttons are at least as big as with an icon of this "
-                                 "size, in the panel and in the popup; smaller icons stay "
-                                 "centered. In the panel, each button takes the whole height "
-                                 "of its row."));
-  add_row (grid, &row, _("Mi_nimum button size (px):"), d->button_min, NULL);
+  return grid;
+}
 
-  d->compact = gtk_check_button_new_with_mnemonic (_("Co_mpact buttons (only as big as the icon)"));
-  gtk_widget_set_tooltip_text (d->compact,
-                               _("Buttons as small as their icon, without a minimum size, "
-                                 "like in earlier versions."));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->compact),
-                                tray_settings_get_compact_buttons (s));
-  gtk_widget_set_sensitive (d->button_min, !tray_settings_get_compact_buttons (s));
-  g_signal_connect (d->compact, "toggled", G_CALLBACK (compact_toggled), d);
-  gtk_widget_set_margin_start (d->compact, 12);
-  gtk_grid_attach (GTK_GRID (grid), d->compact, 0, row++, 3, 1);
 
-  /* Mismo orden que TrayArrowPosition */
-  d->arrow_position = gtk_combo_box_text_new ();
-  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Left"));
-  gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->arrow_position), _("Right"));
-  gtk_combo_box_set_active (GTK_COMBO_BOX (d->arrow_position),
-                            tray_settings_get_arrow_position (s));
-  g_signal_connect (d->arrow_position, "changed", G_CALLBACK (arrow_position_changed), d);
-  add_row (grid, &row, _("Arro_w position:"), d->arrow_position, NULL);
 
-  hint = gtk_label_new (_("Relative to the visible icons. In vertical panels, "
-                          "left means top and right means bottom."));
-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
-  gtk_widget_set_margin_start (hint, 12);
-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
+/* ── Pestaña Ventana emergente ───────────────────────────────────────── */
 
-  add_section (grid, &row, _("Popup"));
+static GtkWidget *
+popup_page (DialogData *d)
+{
+  TraySettings *s = d->p->settings;
+  GtkWidget *grid = options_grid ();
+  gint row = 0;
 
   d->popup_size = make_spin (d, TRAY_ICON_SIZE_MIN, TRAY_ICON_SIZE_MAX,
                              tray_settings_get_popup_icon_size (s));
   add_row (grid, &row, _("Icon si_ze (px):"), d->popup_size, NULL);
 
   d->popup_spacing = make_spin (d, 0, TRAY_SPACING_MAX, tray_settings_get_popup_spacing (s));
-  add_row (grid, &row, _("Icon spa_cing (px):"), d->popup_spacing, NULL);
+  add_row (grid, &row, _("Icon spacin_g (px):"), d->popup_spacing, NULL);
 
   d->popup_columns = make_spin (d, 1, TRAY_COLUMNS_MAX, tray_settings_get_popup_columns (s));
   add_row (grid, &row, _("C_olumns:"), d->popup_columns, NULL);
@@ -366,34 +402,10 @@ appearance_page (DialogData *d)
   gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->popup_corners), _("Square"));
   gtk_combo_box_set_active (GTK_COMBO_BOX (d->popup_corners),
                             tray_settings_get_popup_corners (s));
+  gtk_widget_set_tooltip_text (d->popup_corners,
+                               _("Without a compositor, corners are always square."));
   g_signal_connect (d->popup_corners, "changed", G_CALLBACK (corners_changed), d);
   add_row (grid, &row, _("Co_rners:"), d->popup_corners, NULL);
-
-  hint = gtk_label_new (_("Without a compositor, corners are always square."));
-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
-  gtk_widget_set_margin_start (hint, 12);
-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
-
-  add_section (grid, &row, _("Behavior"));
-
-  d->passive = gtk_check_button_new_with_mnemonic (_("Move _inactive icons to the popup"));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
-                                tray_settings_get_passive_in_popup (s));
-  g_signal_connect (d->passive, "toggled", G_CALLBACK (passive_toggled), d);
-  gtk_widget_set_margin_start (d->passive, 12);
-  gtk_grid_attach (GTK_GRID (grid), d->passive, 0, row++, 3, 1);
-
-  hint = gtk_label_new (_("Some apps mark their icon as inactive when there is nothing "
-                          "to report. Icons you place in the panel yourself stay there."));
-  gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
-  gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
-  gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
-  gtk_widget_set_margin_start (hint, 36);
-  gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
-  gtk_grid_attach (GTK_GRID (grid), hint, 0, row++, 3, 1);
 
   return grid;
 }
@@ -1062,7 +1074,7 @@ legacy_section (DialogData *d)
   vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
 
   d->legacy_check = gtk_check_button_new_with_mnemonic (
-                      _("Also show _older apps (classic XEmbed tray)"));
+                      _("Also show o_lder apps (classic XEmbed tray)"));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),
                                 tray_settings_get_legacy_tray (d->p->settings));
   gtk_widget_set_sensitive (d->legacy_check, tray_legacy_available ());
@@ -1158,6 +1170,7 @@ diag_page (DialogData *d)
 
   scrolled = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
+  gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled), 150);
   gtk_container_add (GTK_CONTAINER (scrolled), d->diag_view);
   gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
 
@@ -1233,6 +1246,8 @@ items_page (DialogData *d)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolled), GTK_SHADOW_IN);
+  /* La ventana ya no tiene un alto fijo: que la lista no quede aplastada */
+  gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled), 150);
   gtk_container_add (GTK_CONTAINER (scrolled), d->tree);
   gtk_box_pack_start (GTK_BOX (vbox), scrolled, TRUE, TRUE, 0);
 
@@ -1266,6 +1281,15 @@ items_page (DialogData *d)
                                 tray_settings_get_new_in_popup (d->p->settings));
   g_signal_connect (d->new_in_popup, "toggled", G_CALLBACK (new_in_popup_toggled), d);
   gtk_box_pack_start (GTK_BOX (vbox), d->new_in_popup, FALSE, FALSE, 0);
+
+  d->passive = gtk_check_button_new_with_mnemonic (_("Move inac_tive icons to the popup"));
+  gtk_widget_set_tooltip_text (d->passive,
+                               _("Some apps mark their icon as inactive when there is nothing "
+                                 "to report. Icons you place in the panel yourself stay there."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
+                                tray_settings_get_passive_in_popup (d->p->settings));
+  g_signal_connect (d->passive, "toggled", G_CALLBACK (passive_toggled), d);
+  gtk_box_pack_start (GTK_BOX (vbox), d->passive, FALSE, FALSE, 0);
 
   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
 
@@ -1386,12 +1410,15 @@ tray_dialog_show (TrayPlugin *p)
   p->dialog = d->dialog;
 
   gtk_window_set_icon_name (GTK_WINDOW (d->dialog), "org.xfce.panel.systray");
-  gtk_window_set_default_size (GTK_WINDOW (d->dialog), 480, 520);
+  /* Alto: el que pida la pestaña más alta (con tope, ver scrollable_page) */
+  gtk_window_set_default_size (GTK_WINDOW (d->dialog), 480, -1);
   xfce_panel_plugin_block_menu (p->panel_plugin);
 
   notebook = gtk_notebook_new ();
-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), appearance_page (d),
-                            gtk_label_new_with_mnemonic (_("A_ppearance")));
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, panel_page (d)),
+                            gtk_label_new_with_mnemonic (_("Pan_el button")));
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, popup_page (d)),
+                            gtk_label_new_with_mnemonic (_("Popup _window")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
                             gtk_label_new_with_mnemonic (_("_Items")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), diag_page (d),

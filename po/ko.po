@@ -39,8 +39,8 @@ msgstr "왼쪽"
 msgid "Right"
 msgstr "오른쪽"
 
-msgid "Arro_w position:"
-msgstr "화살표 위치(_W):"
+msgid "Arrow p_osition:"
+msgstr "화살표 위치(_O):"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "보이는 아이콘을 기준으로 합니다. 세로 패널에서는 왼쪽이 위, 오른쪽이 아래를 뜻합니다."
@@ -51,8 +51,8 @@ msgstr "팝업"
 msgid "Icon si_ze (px):"
 msgstr "아이콘 크기(px)(_Z):"
 
-msgid "Icon spa_cing (px):"
-msgstr "아이콘 간격(px)(_C):"
+msgid "Icon spacin_g (px):"
+msgstr "아이콘 간격(px)(_G):"
 
 msgid "C_olumns:"
 msgstr "열 수(_O):"
@@ -75,8 +75,8 @@ msgstr "컴포지터가 없으면 모서리는 항상 각집니다."
 msgid "Behavior"
 msgstr "동작"
 
-msgid "Move _inactive icons to the popup"
-msgstr "비활성 아이콘을 팝업으로 이동(_I)"
+msgid "Move inac_tive icons to the popup"
+msgstr "비활성 아이콘을 팝업으로 이동(_T)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "일부 앱은 알릴 것이 없을 때 아이콘을 비활성으로 표시합니다. 직접 패널에 둔 아이콘은 그대로 남습니다."
@@ -143,8 +143,8 @@ msgstr "실행 중인 클래식 트레이가 없습니다. XEmbed를 쓰는 오�
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "클래식 트레이(XEmbed)를 쓰는 오래된 앱은 기본 상태 트레이 플러그인 같은 다른 트레이에 표시됩니다. 그 트레이는 최신 앱도 표시하므로, 두 번 보이지 않게 해당 속성에서 숨기세요."
 
-msgid "Also show _older apps (classic XEmbed tray)"
-msgstr "오래된 앱도 표시(클래식 XEmbed 트레이)(_O)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
+msgstr "오래된 앱도 표시(클래식 XEmbed 트레이)(_L)"
 
 msgid "This build does not include support for older apps"
 msgstr "이 빌드에는 오래된 앱 지원이 포함되어 있지 않습니다"
@@ -239,3 +239,12 @@ msgstr "패널과 팝업의 버튼은 이 크기의 아이콘일 때만큼은 �
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "이전 버전처럼 최소 크기 없이 아이콘만 한 버튼을 사용합니다."
+
+msgid "Pan_el button"
+msgstr "패널 버튼(_E)"
+
+msgid "Popup _window"
+msgstr "팝업 창(_W)"
+
+msgid "Co_mpact"
+msgstr "작게(_M)"

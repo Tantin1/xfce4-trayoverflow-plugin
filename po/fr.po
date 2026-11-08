@@ -39,8 +39,8 @@ msgstr "Gauche"
 msgid "Right"
 msgstr "Droite"
 
-msgid "Arro_w position:"
-msgstr "Position de la _flèche :"
+msgid "Arrow p_osition:"
+msgstr "P_osition de la flèche :"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Par rapport aux icônes visibles. Dans les tableaux de bord verticaux, gauche signifie haut et droite signifie bas."
@@ -51,7 +51,7 @@ msgstr "Fenêtre surgissante"
 msgid "Icon si_ze (px):"
 msgstr "Ta_ille des icônes (px) :"
 
-msgid "Icon spa_cing (px):"
+msgid "Icon spacin_g (px):"
 msgstr "Espa_cement des icônes (px) :"
 
 msgid "C_olumns:"
@@ -75,8 +75,8 @@ msgstr "Sans compositeur, les coins sont toujours carrés."
 msgid "Behavior"
 msgstr "Comportement"
 
-msgid "Move _inactive icons to the popup"
-msgstr "Déplacer les icônes i_nactives dans la fenêtre surgissante"
+msgid "Move inac_tive icons to the popup"
+msgstr "Déplacer _les icônes inactives dans la fenêtre surgissante"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "Certaines applications marquent leur icône comme inactive quand elles n'ont rien à signaler. Les icônes que vous placez vous-même dans le tableau de bord y restent."
@@ -143,7 +143,7 @@ msgstr "Aucune zone de notification classique n'est en cours d'exécution : les 
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "Les anciennes applications qui utilisent la zone de notification classique (XEmbed) sont affichées par une autre zone, comme le greffon natif de zone de notification. Celle-ci affiche aussi les applications modernes : pour ne pas les voir en double, masquez-les dans ses propriétés."
 
-msgid "Also show _older apps (classic XEmbed tray)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
 msgstr "Afficher aussi les a_nciennes applications (zone de notification XEmbed classique)"
 
 msgid "This build does not include support for older apps"
@@ -177,7 +177,7 @@ msgid "Choose a different icon for the selected app"
 msgstr "Choisir une autre icône pour l'application sélectionnée"
 
 msgid "Put _new apps in the popup"
-msgstr "Mettre les _nouvelles applications dans la fenêtre surgissante"
+msgstr "_Mettre les nouvelles applications dans la fenêtre surgissante"
 
 msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
 msgstr "Les applications qui apparaissent pour la première fois sont d'abord masquées. Celles déjà dans la liste ne changent pas."
@@ -239,3 +239,12 @@ msgstr "Les boutons sont au moins aussi grands qu'avec une icône de cette taill
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "Boutons aussi petits que leur icône, sans taille minimale, comme dans les versions précédentes."
+
+msgid "Pan_el button"
+msgstr "Bouton du _panneau"
+
+msgid "Popup _window"
+msgstr "Fenêtre _surgissante"
+
+msgid "Co_mpact"
+msgstr "_Compacts"

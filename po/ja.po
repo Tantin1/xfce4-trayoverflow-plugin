@@ -39,8 +39,8 @@ msgstr "左"
 msgid "Right"
 msgstr "右"
 
-msgid "Arro_w position:"
-msgstr "矢印の位置(_W):"
+msgid "Arrow p_osition:"
+msgstr "矢印の位置(_O):"
 
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "表示されているアイコンに対する位置です。縦置きのパネルでは、左は上、右は下を意味します。"
@@ -51,8 +51,8 @@ msgstr "ポップアップ"
 msgid "Icon si_ze (px):"
 msgstr "アイコンサイズ (px)(_Z):"
 
-msgid "Icon spa_cing (px):"
-msgstr "アイコンの間隔 (px)(_C):"
+msgid "Icon spacin_g (px):"
+msgstr "アイコンの間隔 (px)(_G):"
 
 msgid "C_olumns:"
 msgstr "列数(_O):"
@@ -75,8 +75,8 @@ msgstr "コンポジターがない場合、角は常に四角になります。
 msgid "Behavior"
 msgstr "動作"
 
-msgid "Move _inactive icons to the popup"
-msgstr "非アクティブなアイコンをポップアップに移動する(_I)"
+msgid "Move inac_tive icons to the popup"
+msgstr "非アクティブなアイコンをポップアップに移動する(_T)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
 msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。自分でパネルに置いたアイコンはそのまま残ります。"
@@ -143,8 +143,8 @@ msgstr "クラシックトレイが動作していないため、XEmbed を使�
 msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
 msgstr "クラシックトレイ (XEmbed) を使う古いアプリは、標準のステータストレイプラグインなど、別のトレイに表示されています。そのトレイには最新のアプリも表示されるため、二重に表示されないよう、そのプロパティで非表示にしてください。"
 
-msgid "Also show _older apps (classic XEmbed tray)"
-msgstr "古いアプリも表示する (クラシック XEmbed トレイ)(_O)"
+msgid "Also show o_lder apps (classic XEmbed tray)"
+msgstr "古いアプリも表示する (クラシック XEmbed トレイ)(_L)"
 
 msgid "This build does not include support for older apps"
 msgstr "このビルドには古いアプリのサポートが含まれていません"
@@ -239,3 +239,12 @@ msgstr "パネルとポップアップのボタンは、このサイズのアイ
 
 msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
 msgstr "以前のバージョンのように、最小サイズなしでアイコンと同じ大きさのボタンにします。"
+
+msgid "Pan_el button"
+msgstr "パネルのボタン(_E)"
+
+msgid "Popup _window"
+msgstr "ポップアップ(_W)"
+
+msgid "Co_mpact"
+msgstr "コンパクト(_M)"
