@@ -3,7 +3,7 @@
 #
 # Uso: bash packaging/build-deb.sh
 # Resultado: xfce4-trayoverflow-plugin_<versión>_<arquitectura>_<distro>.deb
-# en la raíz (p. ej. ..._0.2.27_amd64_debian12.deb). Las dependencias se
+# en la raíz (p. ej. ..._<versión>_amd64_debian12.deb). Las dependencias se
 # toman de la distro donde se arma: usá el .deb de tu distro.
 set -euo pipefail
 
@@ -56,7 +56,7 @@ cat > "$STAGE/usr/share/doc/$NAME/copyright" <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: $NAME
 Files: *
-Copyright: 2026 Juan Sebastian Perez <juanchiperez97@gmail.com>
+Copyright: 2026 Juan Sebastian Perez <juanperez33840@gmail.com>
 License: GPL-2+
  On Debian systems, the full text of the GNU General Public License
  version 2 can be found in /usr/share/common-licenses/GPL-2.
@@ -67,22 +67,21 @@ cat > "$STAGE/DEBIAN/control" <<EOF
 Package: $NAME
 Version: $VERSION
 Architecture: $ARCH
-Maintainer: Juan Sebastian Perez <juanchiperez97@gmail.com>
+Maintainer: Tantin1 <juanperez33840@gmail.com>
 Installed-Size: $SIZE
 Depends: $DEPENDS_LINE
 Recommends: xfce4-panel
 Section: xfce
 Priority: optional
-Description: Bandeja de estado con ventana emergente para íconos ocultos
- Plugin para xfce4-panel que muestra los íconos StatusNotifierItem
- (AppIndicator) y permite ocultar los que no se usan a diario en una
- ventana emergente, como el área de notificación de Windows 10/11.
+Description: Status notifier tray with a popup for hidden icons
+ Xfce panel plugin displaying StatusNotifierItem (AppIndicator) icons
+ and allowing less-used icons to be hidden in a popup, similar to
+ the notification area in Windows 10/11.
  .
- Permite arrastrar íconos entre el panel y la ventana emergente,
- reordenarlos y ajustar el tamaño y la separación de los íconos.
+ Supports dragging icons between the panel and popup, reordering,
+ and independent icon size and spacing preferences.
  .
- Incluye un proxy opcional que muestra también las aplicaciones antiguas
- que usan la bandeja clásica de X11 (XEmbed).
+ An optional XEmbed proxy also displays classic X11 tray applications.
 EOF
 
 # Reiniciar el panel del usuario no es tarea del paquete; solo avisar

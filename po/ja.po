@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-msgid "Panel"
-msgstr "パネル"
 
 msgid "_Automatic"
 msgstr "自動(_A)"
@@ -45,9 +42,6 @@ msgstr "矢印の位置(_O):"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "表示されているアイコンに対する位置です。縦置きのパネルでは、左は上、右は下を意味します。"
 
-msgid "Popup"
-msgstr "ポップアップ"
-
 msgid "Icon si_ze (px):"
 msgstr "アイコンサイズ (px)(_Z):"
 
@@ -71,9 +65,6 @@ msgstr "角(_R):"
 
 msgid "Without a compositor, corners are always square."
 msgstr "コンポジターがない場合、角は常に四角になります。"
-
-msgid "Behavior"
-msgstr "動作"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "非アクティブなアイコンをポップアップに移動する(_T)"
@@ -188,9 +179,6 @@ msgstr "オーバーフロー付きトレイ"
 msgid "_Close"
 msgstr "閉じる(_C)"
 
-msgid "A_ppearance"
-msgstr "外観(_P)"
-
 msgid "_Items"
 msgstr "項目(_I)"
 
@@ -231,9 +219,6 @@ msgstr "パネルが複数行でも、すべてのアイコンを1行(縦のパ�
 msgid "Mi_nimum button size (px):"
 msgstr "ボタンの最小サイズ (px)(_N):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "コンパクトなボタン (アイコンの大きさだけ)(_M)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "パネルとポップアップのボタンは、このサイズのアイコンのときと同じ大きさ以上になります。小さいアイコンは中央に表示されます。パネルでは、各ボタンが行の高さいっぱいを使います。"
 
@@ -248,3 +233,18 @@ msgstr "ポップアップ(_W)"
 
 msgid "Co_mpact"
 msgstr "コンパクト(_M)"
+
+#~ msgid "Panel"
+#~ msgstr "パネル"
+
+#~ msgid "Popup"
+#~ msgstr "ポップアップ"
+
+#~ msgid "Behavior"
+#~ msgstr "動作"
+
+#~ msgid "A_ppearance"
+#~ msgstr "外観(_P)"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "コンパクトなボタン (アイコンの大きさだけ)(_M)"

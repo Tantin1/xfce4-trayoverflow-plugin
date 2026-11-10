@@ -900,7 +900,7 @@ static void
 plugin_about (XfcePanelPlugin *panel_plugin,
               TrayPlugin      *p)
 {
-  static const gchar *authors[] = { "Juan Pérez <juanchiperez97@gmail.com>", NULL };
+  static const gchar *authors[] = { "Juan Pérez (Tantin1) <juanperez33840@gmail.com>", NULL };
 
   gtk_show_about_dialog (NULL,
                          "program-name", _("Tray Overflow"),

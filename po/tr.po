@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Panel"
-msgstr "Panel"
 
 msgid "_Automatic"
 msgstr "Otomat_ik"
@@ -45,9 +42,6 @@ msgstr "_Okun konumu:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Görünür simgelere göre. Dikey panellerde sol üst, sağ ise alt anlamına gelir."
 
-msgid "Popup"
-msgstr "Açılır pencere"
-
 msgid "Icon si_ze (px):"
 msgstr "Simge b_oyutu (px):"
 
@@ -71,9 +65,6 @@ msgstr "K_öşeler:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Birleştirici (compositor) olmadan köşeler her zaman köşelidir."
-
-msgid "Behavior"
-msgstr "Davranış"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Etkin _olmayan simgeleri açılır pencereye taşı"
@@ -188,9 +179,6 @@ msgstr "Taşma alanlı tepsi"
 msgid "_Close"
 msgstr "_Kapat"
 
-msgid "A_ppearance"
-msgstr "_Görünüm"
-
 msgid "_Items"
 msgstr "Ö_ğeler"
 
@@ -231,9 +219,6 @@ msgstr "Panelde birden fazla satır olsa bile tüm simgeler tek satırda (dikey 
 msgid "Mi_nimum button size (px):"
 msgstr "En küçük _düğme boyutu (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "Ko_mpakt düğmeler (yalnızca simge boyutunda)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Düğmeler, panelde ve açılır pencerede en az bu boyutta bir simgeyle olacakları kadar büyüktür; daha küçük simgeler ortalanır. Panelde her düğme kendi satırının tüm yüksekliğini kaplar."
 
@@ -248,3 +233,18 @@ msgstr "A_çılır pencere"
 
 msgid "Co_mpact"
 msgstr "Ko_mpakt"
+
+#~ msgid "Panel"
+#~ msgstr "Panel"
+
+#~ msgid "Popup"
+#~ msgstr "Açılır pencere"
+
+#~ msgid "Behavior"
+#~ msgstr "Davranış"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Görünüm"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "Ko_mpakt düğmeler (yalnızca simge boyutunda)"

@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Panel"
-msgstr "Leiste"
 
 msgid "_Automatic"
 msgstr "Au_tomatisch"
@@ -45,9 +42,6 @@ msgstr "Position des _Pfeils:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Relativ zu den sichtbaren Symbolen. In senkrechten Leisten bedeutet links oben und rechts unten."
 
-msgid "Popup"
-msgstr "Aufklappfenster"
-
 msgid "Icon si_ze (px):"
 msgstr "Symbolgr_öße (px):"
 
@@ -71,9 +65,6 @@ msgstr "E_cken:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Ohne Compositor sind die Ecken immer eckig."
-
-msgid "Behavior"
-msgstr "Verhalten"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Inaktive Symbole in _das Aufklappfenster verschieben"
@@ -188,9 +179,6 @@ msgstr "Infobereich mit Überlauf"
 msgid "_Close"
 msgstr "_Schließen"
 
-msgid "A_ppearance"
-msgstr "_Darstellung"
-
 msgid "_Items"
 msgstr "_Elemente"
 
@@ -231,9 +219,6 @@ msgstr "Alle Symbole in einer Zeile (einer Spalte in einem senkrechten Panel), a
 msgid "Mi_nimum button size (px):"
 msgstr "_Mindestgröße der Knöpfe (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "_Kompakte Knöpfe (nur so groß wie das Symbol)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Die Knöpfe sind mindestens so groß wie mit einem Symbol dieser Größe, im Panel und im Aufklappfenster; kleinere Symbole bleiben zentriert. Im Panel nimmt jeder Knopf die ganze Höhe seiner Zeile ein."
 
@@ -248,3 +233,18 @@ msgstr "A_ufklappfenster"
 
 msgid "Co_mpact"
 msgstr "_Kompakt"
+
+#~ msgid "Panel"
+#~ msgstr "Leiste"
+
+#~ msgid "Popup"
+#~ msgstr "Aufklappfenster"
+
+#~ msgid "Behavior"
+#~ msgstr "Verhalten"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Darstellung"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "_Kompakte Knöpfe (nur so groß wie das Symbol)"

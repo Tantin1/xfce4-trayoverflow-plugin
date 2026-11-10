@@ -4,7 +4,7 @@
 #
 #   Cada push / pull request → compilar, empaquetar y probar (los paquetes
 #                              quedan como "artifacts" en la pestaña Actions)
-#   git tag v0.2.27 && git push --tags → además, Release con los paquetes
+#   git tag vX.Y.Z && git push --tags → además, Release con los paquetes
 name: Compilar y empaquetar
 
 on:

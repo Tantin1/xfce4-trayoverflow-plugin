@@ -1,0 +1,298 @@
+# Translation template for xfce4-trayoverflow-plugin.
+# Source identifiers validated against po/POTFILES on 2026-11-10.
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-10 16:32-0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/to-dialog.c:540
+msgid "(not running)"
+msgstr ""
+
+#: src/to-dialog.c:366
+msgid "All the icons in one row (one column in a vertical panel), even if the panel has several rows. With the automatic size, the icons use the whole height of the panel."
+msgstr ""
+
+#: src/to-dialog.c:1077
+msgid "Also show o_lder apps (classic XEmbed tray)"
+msgstr ""
+
+#: src/to-dialog.c:992
+msgid "Another classic tray is active (for example the native Status Tray plugin), so older apps are shown there. They will move here as soon as you remove it."
+msgstr ""
+
+#: src/to-dialog.c:1231
+msgid "App"
+msgstr ""
+
+#: src/to-dialog.c:1278
+msgid "Apps that appear for the first time start hidden. Apps already in the list are not changed."
+msgstr ""
+
+#: src/to-dialog.c:351
+msgid "Arrow p_osition:"
+msgstr ""
+
+#: src/to-plugin.c:227
+msgid "Asking for attention: %s"
+msgstr ""
+
+#: src/to-dialog.c:333
+msgid "Buttons as small as their icon, without a minimum size, like in earlier versions."
+msgstr ""
+
+#: src/to-dialog.c:396
+msgid "C_olumns:"
+msgstr ""
+
+#: src/to-dialog.c:1186
+msgid "C_opy"
+msgstr ""
+
+#: src/to-dialog.c:903
+msgid "Choose _File…"
+msgstr ""
+
+#: src/to-dialog.c:1270
+msgid "Choose a different icon for the selected app"
+msgstr ""
+
+#: src/to-dialog.c:770
+msgid "Choose an icon file"
+msgstr ""
+
+#: src/to-dialog.c:331
+msgid "Co_mpact"
+msgstr ""
+
+#: src/to-dialog.c:408
+msgid "Co_rners:"
+msgstr ""
+
+#: src/to-dialog.c:1132
+msgid "Copied to the clipboard."
+msgstr ""
+
+#: src/to-dialog.c:1210
+msgid "Drag icons between the panel and the popup, or choose here which ones are hidden. Apps that are not running are remembered, so you can hide them in advance."
+msgstr ""
+
+#: src/to-popup.c:1492
+msgid "Drop icons here to hide them"
+msgstr ""
+
+#: src/to-dialog.c:400
+msgid "From theme"
+msgstr ""
+
+#: src/to-dialog.c:1226
+msgid "Hidden"
+msgstr ""
+
+#: src/to-dialog.c:1268
+msgid "Ic_on…"
+msgstr ""
+
+#: src/to-dialog.c:887
+msgid "Icon _name or file:"
+msgstr ""
+
+#: src/to-dialog.c:317
+msgid "Icon _size (px):"
+msgstr ""
+
+#: src/to-dialog.c:829
+msgid "Icon for %s"
+msgstr ""
+
+#: src/to-dialog.c:320
+msgid "Icon s_pacing (px):"
+msgstr ""
+
+#: src/to-dialog.c:390
+msgid "Icon si_ze (px):"
+msgstr ""
+
+#: src/to-dialog.c:393
+msgid "Icon spacin_g (px):"
+msgstr ""
+
+#: src/to-dialog.c:1157
+msgid "If something does not work, copy this information and include it in your report. It contains no personal data besides the names of the apps in the tray."
+msgstr ""
+
+#: src/to-dialog.c:773
+msgid "Images"
+msgstr ""
+
+#: src/to-dialog.c:343
+msgid "Left"
+msgstr ""
+
+#: src/to-dialog.c:339
+msgid "Mi_nimum button size (px):"
+msgstr ""
+
+#: src/to-dialog.c:356
+msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
+msgstr ""
+
+#: src/to-dialog.c:1259
+msgid "Move down"
+msgstr ""
+
+#: src/to-dialog.c:1285
+msgid "Move inac_tive icons to the popup"
+msgstr ""
+
+#: src/to-dialog.c:1256
+msgid "Move up"
+msgstr ""
+
+#: src/to-dialog.c:1020
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Add the native Status Tray plugin to the panel to see them."
+msgstr ""
+
+#: src/to-dialog.c:1017
+msgid "No classic tray is running: older apps that use XEmbed will not show an icon. Enable the option above to show them here."
+msgstr ""
+
+#: src/to-dialog.c:850
+msgid "No matching icons in your theme."
+msgstr ""
+
+#: src/to-dialog.c:1006
+msgid "Older apps need XWayland, which is not available in this session."
+msgstr ""
+
+#: src/to-dialog.c:1026
+msgid "Older apps that use the classic tray (XEmbed) are shown by another tray, such as the native Status Tray plugin. It also shows modern apps: to avoid seeing them twice, hide them in its properties."
+msgstr ""
+
+#: src/to-dialog.c:987
+msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
+msgstr ""
+
+#: src/to-dialog.c:1419
+msgid "Pan_el button"
+msgstr ""
+
+#: src/to-dialog.c:1421
+msgid "Popup _window"
+msgstr ""
+
+#: src/to-dialog.c:1276
+msgid "Put _new apps in the popup"
+msgstr ""
+
+#: src/to-dialog.c:348
+msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
+msgstr ""
+
+#: src/to-dialog.c:1263
+msgid "Remove an app that is not running from the list"
+msgstr ""
+
+#: src/to-dialog.c:344
+msgid "Right"
+msgstr ""
+
+#: src/to-dialog.c:401
+msgid "Rounded"
+msgstr ""
+
+#: src/to-plugin.c:228 src/to-plugin.c:233 src/to-plugin.c:1077
+msgid "Show hidden icons"
+msgstr ""
+
+#: src/to-dialog.c:1287
+msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
+msgstr ""
+
+#: src/to-dialog.c:402
+msgid "Square"
+msgstr ""
+
+#: src/to-plugin.c:909
+msgid "Status notifier area with a popup for hidden icons"
+msgstr ""
+
+#: src/to-dialog.c:849
+msgid "Suggested icons from your theme:"
+msgstr ""
+
+#: src/to-dialog.c:999
+msgid "Support for older apps could not start. To see why, run %s --verbose in a terminal."
+msgstr ""
+
+#: src/to-dialog.c:327
+msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
+msgstr ""
+
+#: src/to-dialog.c:1083
+msgid "This build does not include support for older apps"
+msgstr ""
+
+#: src/to-dialog.c:1405 src/to-plugin.c:906
+msgid "Tray Overflow"
+msgstr ""
+
+#: src/to-dialog.c:364
+msgid "Use a sin_gle row of icons in the panel"
+msgstr ""
+
+#: src/to-dialog.c:354
+msgid "Use sym_bolic icons (if available)"
+msgstr ""
+
+#: src/to-dialog.c:832
+msgid "Use the app's _own icon"
+msgstr ""
+
+#: src/to-dialog.c:908
+msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgstr ""
+
+#: src/to-dialog.c:406
+msgid "Without a compositor, corners are always square."
+msgstr ""
+
+#: src/to-dialog.c:314
+msgid "_Automatic"
+msgstr ""
+
+#: src/to-dialog.c:771 src/to-dialog.c:833
+msgid "_Cancel"
+msgstr ""
+
+#: src/to-dialog.c:1408
+msgid "_Close"
+msgstr ""
+
+#: src/to-dialog.c:1425
+msgid "_Diagnostics"
+msgstr ""
+
+#: src/to-dialog.c:1261
+msgid "_Forget"
+msgstr ""
+
+#: src/to-dialog.c:1423
+msgid "_Items"
+msgstr ""
+
+#: src/to-dialog.c:834
+msgid "_OK"
+msgstr ""
+
+#: src/to-dialog.c:771
+msgid "_Open"
+msgstr ""
+
+#: src/to-dialog.c:1182
+msgid "_Update"
+msgstr ""

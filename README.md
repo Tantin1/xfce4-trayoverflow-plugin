@@ -1,73 +1,75 @@
-# Tray Overflow — Bandeja con desborde para xfce4-panel
+# Tray Overflow — overflow tray for xfce4-panel
 
-Plugin para el panel de XFCE que muestra los íconos de las aplicaciones
-(StatusNotifierItem / AppIndicator) y permite **ocultar los que no usás a
-diario en una ventana emergente**, como el área de notificación de
-Windows 10/11.
+Tray Overflow is an Xfce panel plugin that displays application status icons
+(StatusNotifierItem / AppIndicator) and lets you **move less frequently used
+icons into a popup**, similar to the notification area in Windows 10/11.
 
-```
-  [▲][✉][📁][■]          ← panel: íconos visibles
+```text
+  [▲][✉][📁][■]          ← panel: visible icons
    │
    └─► ┌───────────┐
-       │ ⚙  💬  ■  │      ← ventana emergente: íconos ocultos
+       │ ⚙  💬  ■  │      ← popup: hidden icons
        └───────────┘
 ```
 
-## Funciones
+## Features
 
-- **Ocultar y mostrar** íconos arrastrándolos entre el panel y la ventana
-  emergente, o desde la lista de la configuración.
-- **Reordenar** arrastrando, en el panel o en la ventana emergente. Una
-  línea marca dónde va a quedar el ícono antes de soltarlo.
-- Quedarse con un ícono sobre la flecha mientras se arrastra **abre la
-  ventana emergente**, como en Windows.
-- **Apps cerradas recordadas**: se pueden ocultar de antemano; al abrirse
-  van directo a la ventana emergente.
-- **Menú contextual** de cada app, también desde la ventana emergente.
-- **Punto de aviso** en la flecha cuando una app oculta pide atención; su
-  tooltip dice cuáles son.
-- Íconos **inactivos** (estado *Passive*) a la ventana emergente, opcional.
-- Tamaño de ícono y separación **independientes** para el panel y la
-  ventana emergente; columnas de la ventana emergente configurables (si
-  los íconos no entran en el alto de la pantalla, se agregan columnas).
-- Paneles horizontales, verticales y de varias filas; HiDPI. Si el tamaño
-  de ícono elegido a mano no entra en las filas del panel, se usa el más
-  grande que entra (lo elegido se conserva). Opción **una sola fila**: los
-  íconos van en una fila aunque el panel tenga varias.
-- **Botones en franja**, como en Windows: en el panel, cada ícono es un
-  botón de todo el alto de su fila y un ancho mínimo (como un ícono de
-  22 px, configurable), así es fácil de clickear aunque el ícono sea de
-  16 px. En la ventana emergente, el mismo tamaño mínimo. La casilla
-  **Botones compactos** vuelve a los botones del tamaño del ícono. Las
-  esquinas de los botones son las del tema, como en el resto del panel.
-- La ventana emergente usa los **colores de los menús del tema** (fondo,
-  borde y texto), igual que los plugins de XFCE.
-- X11 y **Wayland** (sesión Wayland de XFCE 4.20).
-- Varias instancias (p. ej. una por panel), cada una con su configuración.
-- **Apps antiguas (bandeja clásica XEmbed)**, opcional: se muestran junto a
-  las demás, con ventana emergente y arrastre incluidos. Incluye apps Java
-  y Wine.
-- **Otro ícono para cualquier app**: del tema de íconos o de un archivo.
-- **Arreglos incluidos** para apps cuyo ícono se ve mal (por ejemplo
-  JDownloader o Clipman): se usa el de tu tema sin hacer nada.
-- Traducido a alemán, chino (simplificado), coreano, español, francés, holandés, italiano, japonés, polaco, portugués (Brasil), ruso y turco; en inglés por defecto. Las traducciones (salvo el español) son automáticas: correcciones bienvenidas en `po/`.
+- **Hide and show** icons by dragging them between the panel and the popup,
+  or through the list in the settings dialog.
+- **Reorder** icons by dragging them within the panel or popup. An insertion
+  indicator shows their new position before you release the mouse button.
+- **Drag-to-open**: hovering over the arrow while dragging an icon opens the
+  popup, as in Windows.
+- **Remember closed applications**: hide an application before it starts;
+  its icon will go straight into the popup when it launches.
+- Application **context menus**, including inside the popup.
+- An **attention dot** on the arrow when a hidden application requests
+  attention, with a tooltip listing the relevant applications.
+- Optionally send **inactive** icons (the *Passive* status) to the popup.
+- Independent icon size and spacing for the panel and popup, configurable
+  popup columns, and additional columns when icons would not fit vertically.
+- Horizontal, vertical, and multi-row panels; HiDPI support. If a manually
+  selected icon size will not fit in the available panel rows, the largest
+  fitting size is used without changing the saved preference. A **single-row**
+  option keeps icons on one row even when the panel has several.
+- **Full-row buttons**, similar to Windows: each panel icon has a button as
+  tall as its panel row, with a configurable minimum width (equivalent to a
+  22 px icon by default), even when the icon itself is smaller. The popup has
+  the same minimum button sizing. **Compact buttons** make each button as
+  small as its icon. Button corners follow the current theme.
+- The popup uses the **theme's menu colors** for its background, border,
+  and text, consistently with other Xfce plugins.
+- **X11 and Wayland** support, including the Xfce 4.20 Wayland session,
+  subject to the limitations below.
+- Multiple instances, such as one per panel, with separate settings.
+- Optional support for **legacy XEmbed tray applications**, including Java
+  and Wine applications, with the same popup and drag-and-drop controls.
+- **Custom application icons**, selected from the icon theme or a file.
+- Built-in icon replacements for applications with problematic tray icons,
+  such as JDownloader and Clipman, using your icon theme when available.
+- Interface translations: German, Simplified Chinese, Korean, Spanish,
+  French, Dutch, Italian, Japanese, Polish, Brazilian Portuguese, Russian,
+  and Turkish, with English as the default. All translations except Spanish
+  are machine-generated and welcome human review in `po/`.
 
-## Requisitos
+## Requirements
 
-- xfce4-panel 4.16 o superior (probado con 4.18; pensado para 4.20).
-- Paquetes de desarrollo para compilar:
+- `xfce4-panel` 4.16 or later (tested with 4.18; designed with 4.20 in mind).
+- Development packages to build the plugin:
 
-| Distribución | Comando |
+| Distribution | Command |
 |---|---|
 | Debian / Ubuntu / Mint | `sudo apt install build-essential meson ninja-build gettext libgtk-3-dev libxfce4panel-2.0-dev libxfce4ui-2-dev libxfconf-0-dev libdbusmenu-gtk3-dev libgtk-layer-shell-dev libxcomposite-dev libxdamage-dev libxfixes-dev libxtst-dev libxext-dev` |
 | Arch / Manjaro / CachyOS | `sudo pacman -S base-devel meson gettext gtk3 xfce4-panel libxfce4ui xfconf libdbusmenu-gtk3 gtk-layer-shell libxcomposite libxdamage libxfixes libxtst libxext` |
 | Fedora | `sudo dnf install gcc meson gettext gtk3-devel xfce4-panel-devel libxfce4ui-devel xfconf-devel libdbusmenu-gtk3-devel gtk-layer-shell-devel libXcomposite-devel libXdamage-devel libXfixes-devel libXtst-devel libXext-devel` |
 
-Las bibliotecas `libX*` son solo para el soporte de apps antiguas, y
-gtk-layer-shell solo para Wayland. Si faltan, el plugin se compila igual,
-sin esa opción.
+The `libX*` development libraries are needed only for legacy XEmbed
+support, and `gtk-layer-shell` is needed only for the Wayland popup. If
+optional libraries are missing, Meson can build without those features.
 
-## Instalación
+## Installation
+
+For a source installation:
 
 ```bash
 tar xzf xfce4-trayoverflow-plugin.tar.gz
@@ -75,24 +77,25 @@ cd xfce4-trayoverflow-plugin
 bash install.sh
 ```
 
-Después: clic derecho en el panel → **Panel → Agregar nuevos elementos** →
-**Bandeja con desborde** (en inglés, *Tray Overflow*).
+Then right-click the panel → **Panel → Add New Items** → **Tray Overflow**.
 
-`install.sh` instala con prefijo `/usr`, que es donde el panel busca los
-plugins. Con `/usr/local` el panel no lo encuentra en muchas distribuciones.
+`install.sh` installs under `/usr`, which is where the panel typically looks
+for plugins. On many distributions, installing to `/usr/local` will not make
+the plugin visible. **Do not mix manual and package-managed installations.**
+If you use a `.deb` or Arch package, prefer that installation method instead.
 
-### Paquete .deb (Debian, Ubuntu, Mint)
+### Debian package (Debian, Ubuntu, Mint)
 
-En la página de **Releases** del repositorio hay paquetes listos para
-**Debian 12**, **Debian 13** y **Ubuntu 24.04** (también Linux Mint 22 y
-Xubuntu 24.04). Bajá el de tu distro y:
+The repository's **Releases** page provides packages for **Debian 12**,
+**Debian 13**, and **Ubuntu 24.04** (also suitable for Linux Mint 22 and
+Xubuntu 24.04). Download the package for your distribution and run:
 
 ```bash
-sudo apt install ./xfce4-trayoverflow-plugin_*_debian12.deb   # o el que corresponda
+sudo apt install ./xfce4-trayoverflow-plugin_*_debian12.deb   # choose the correct file
 xfce4-panel -r
 ```
 
-Para armarlo vos (queda con el nombre de tu distro al final):
+To build a package locally (the filename includes your distribution):
 
 ```bash
 bash packaging/build-deb.sh
@@ -100,10 +103,10 @@ sudo apt install ./xfce4-trayoverflow-plugin_*.deb
 xfce4-panel -r
 ```
 
-### Paquete para Arch (Arch, Manjaro, CachyOS, EndeavourOS)
+### Arch package (Arch, Manjaro, CachyOS, EndeavourOS)
 
-En **Releases** también hay un paquete `.pkg.tar.zst`. Para armarlo vos
-(como usuario normal, no root):
+The **Releases** page also provides a `.pkg.tar.zst` package. To build one
+yourself, run the following commands as a regular user, **not root**:
 
 ```bash
 bash packaging/build-arch.sh
@@ -111,285 +114,306 @@ sudo pacman -U ./xfce4-trayoverflow-plugin-*.pkg.tar.zst
 xfce4-panel -r
 ```
 
-Así pacman sabe que está instalado y lo puede desinstalar con
+Pacman will track the installation, which you can remove with
 `sudo pacman -R xfce4-trayoverflow-plugin`.
 
-Cada cambio que se sube a GitHub se compila y se prueba automáticamente en
-Debian 12, Debian 13 y Ubuntu 24.04. En Arch se compila y se arma el
-paquete, sin pruebas automáticas (ver `.github/workflows/build.yml`).
+Each push to GitHub triggers builds and automated tests on Debian 12,
+Debian 13, and Ubuntu 24.04. Arch is built and packaged, but has no
+automated runtime tests in the workflow; see `.github/workflows/build.yml`.
+This describes the workflow configuration, not a guarantee that any
+particular run passed.
 
-### Desinstalar
+### Uninstallation
 
 ```bash
-bash uninstall.sh          # si se instaló con install.sh
-sudo apt remove xfce4-trayoverflow-plugin   # si se instaló el .deb
-sudo pacman -R xfce4-trayoverflow-plugin    # si se instaló el paquete de Arch
+bash uninstall.sh                        # only for an install.sh installation
+sudo apt remove xfce4-trayoverflow-plugin # only for a Debian package
+sudo pacman -R xfce4-trayoverflow-plugin # only for an Arch package
 ```
 
-No mezcle formas de instalar: antes de instalar el paquete de Arch o el
-.deb, quite lo instalado con `install.sh` (`bash uninstall.sh`), y al revés.
+Do not mix installation methods. Before installing a distribution package,
+remove a previous manual installation with `bash uninstall.sh`; do the
+reverse when switching back to manual installation. Check which method is
+currently in use before removing anything.
 
-## Uso
+## Usage
 
-| Acción | Resultado |
+| Action | Result |
 |---|---|
-| Clic en la flecha | Abre o cierra la ventana emergente |
-| Clic izquierdo en un ícono | Activa la app (normalmente abre su ventana) |
-| Clic central | Acción secundaria de la app |
-| Clic derecho | Menú de la app |
-| Rueda del ratón | Scroll en la app (p. ej. volumen) |
-| Arrastrar un ícono a la flecha o a la ventana emergente | Lo oculta |
-| Arrastrar desde la ventana emergente al panel | Lo vuelve a mostrar |
-| Clic derecho en la flecha | Menú del plugin (Propiedades, Acerca de...) |
-| Atajo de teclado (ver abajo) | Abre o cierra la ventana emergente |
-| Flechas, Inicio, Fin, Tab (en la ventana emergente) | Eligen un ícono |
-| Enter o espacio | Activa el ícono elegido, como un clic |
-| Tecla de menú o Mayús+F10 | Menú del ícono elegido, como el clic derecho |
+| Click the arrow | Open or close the popup |
+| Left-click an icon | Activate the application (usually its window) |
+| Middle-click an icon | Invoke the application's secondary action |
+| Right-click an icon | Show the application's menu |
+| Scroll over an icon | Send scroll events to the application (e.g. volume) |
+| Drag an icon onto the arrow or into the popup | Hide it |
+| Drag an icon from the popup to the panel | Show it |
+| Right-click the arrow | Open the plugin menu (Properties, About, etc.) |
+| Use the keyboard shortcut below | Open or close the popup |
+| Arrow keys, Home, End, Tab inside the popup | Select an icon |
+| Enter or Space | Activate the selected icon, like a click |
+| Menu key or Shift+F10 | Open the selected icon's context menu |
 
-La ventana emergente se cierra con un clic fuera o con Escape. Al hacer
-clic en uno de sus íconos, se cierra solo si la app abre o activa una
-ventana, o muestra su menú; si la app no hace nada, queda abierta. Las apps
-que solo tienen menú (muchas que usan AppIndicator) abren su menú también
-con el clic izquierdo.
+The popup closes on an outside click or Escape, with the Wayland exceptions
+below. Clicking a popup icon closes it only if the application opens or
+activates a window or opens its menu; otherwise the popup stays visible.
+Applications that expose only a menu (including many AppIndicators) also
+open that menu on a left-click.
 
-### Atajo de teclado
+### Keyboard shortcut
 
-Como Win+B en Windows. En **Configuración → Teclado → Atajos de
-aplicaciones**, agregá un atajo con el comando:
+To get behavior similar to Win+B on Windows, open **Settings → Keyboard →
+Application Shortcuts** and assign a shortcut to:
 
-```
+```text
 xfce4-panel --plugin-event=trayoverflow:popup
 ```
 
-Abre la ventana emergente con el primer ícono elegido (seguí con las
-flechas y Enter) o la cierra si ya está abierta. Con
-`trayoverflow:popup:bool:true` solo abre y con `:bool:false` solo cierra.
-Si tenés varias instancias del plugin, responde la primera que tenga íconos
-ocultos.
+This opens the popup with the first icon selected (navigate with the arrow
+keys and Enter), or closes it if already open. Use
+`trayoverflow:popup:bool:true` to open only, and `:bool:false` to close only.
+If there are multiple plugin instances, the first with hidden icons responds.
 
-## Configuración
+## Settings
 
-**Botón del panel**: tamaño de ícono del panel (automático o fijo),
-separación entre íconos, tamaño mínimo del botón (o **Compactos**),
-posición de la flecha, **íconos simbólicos** (monocromos, del color del
-texto del panel; solo en apps cuyo ícono viene del tema, como en la
-bandeja de XFCE) y una sola fila de íconos en el panel.
+**Panel button:** icon size (automatic or fixed), icon spacing, minimum
+button size (or **Compact**), arrow position, **symbolic icons**
+(monochrome icons using the panel text color, only for applications whose
+icons come from the theme), and single-row layout.
 
-**Ventana emergente**: tamaño y separación de los íconos, número de
-columnas y esquinas.
+**Popup:** icon size and spacing, number of columns, and corner style.
 
-**Elementos**: lista de todas las apps vistas alguna vez, con una casilla
-para ocultarlas, botones para reordenar, **Ícono…** para elegir otro ícono
-y **Olvidar** para quitar apps que ya no usás. Con **Poner las apps nuevas en la
-ventana emergente**, cada app que aparece por primera vez empieza oculta,
-como en Windows 11; las que ya estaban en la lista no cambian. **Mover
-los íconos inactivos a la ventana emergente** también está acá.
+**Items:** all applications previously seen, with a checkbox to hide each
+one, reorder controls, an **Icon…** button to choose a replacement, and
+**Forget** to remove an unused application from the list. **Put new
+applications in the popup** starts newly discovered icons hidden, like
+Windows 11; already known applications are not changed. **Move inactive
+icons to the popup** is also configured here.
 
-Las explicaciones de cada opción aparecen al dejar el mouse encima. Si
-la pantalla es muy baja, las pestañas se pueden desplazar.
+Hover over a setting to see its explanation. On shorter displays, the
+settings tabs can be scrolled.
 
-### Elegir otro ícono
+### Choose a different icon
 
-Seleccioná una app en **Elementos** y tocá **Ícono…**. Se sugieren los
-íconos de tu tema con un nombre parecido; también podés escribir otro
-nombre o elegir un archivo PNG o SVG. **Usar el ícono propio de la
-aplicación** vuelve al original.
+Select an application under **Items** and click **Icon…**. Icon names from
+your theme are suggested based on similarity; you can also enter another
+name or select a PNG or SVG file. **Use the application's own icon**
+restores the original.
 
-Mientras una app tenga otro ícono, no se ven los cambios de su ícono propio
-(por ejemplo, un aviso). El tooltip sí sigue siendo el de la app.
+When a custom icon is selected, changes to the application's original icon
+(such as an alert overlay) will no longer be shown. Its tooltip continues
+to come from the application.
 
-### Apps cuyo ícono se ve mal
+### Applications with problematic icons
 
-Algunas apps mandan un ícono roto, borroso o que falla en ciertos tamaños.
-Para esas, el plugin usa por defecto el ícono de tu tema o, si el tema no
-lo tiene, el que instaló el paquete de la app. Si no existe ninguno, se ve
-el de la app, como siempre. Lo que elijas con **Ícono…** tiene prioridad.
+Some applications provide blurry, broken, or incorrectly sized tray icons.
+For known applications, the plugin first tries an icon from your theme or
+from the application's installed files, and falls back to the original icon
+if none is available. A custom icon chosen in the settings has priority.
 
-La lista se instala con el plugin, en
-`/usr/share/xfce4-trayoverflow-plugin/icon-defaults.conf`. Tiene una línea
-por app:
+The plugin installs its defaults at:
 
+```text
+/usr/share/xfce4-trayoverflow-plugin/icon-defaults.conf
 ```
+
+Each application has one line:
+
+```ini
 xfce4-clipman=clipman;xfce4-clipman-plugin;org.xfce.clipman
 org-jdownloader-*=jdownloader
 ```
 
-- A la izquierda, la clave de la app. Para verla:
-  `xfconf-query -c xfce4-panel -lv | grep -A20 known-items`. Con `*` al
-  final vale para todas las claves que empiezan así.
-- A la derecha, uno o más íconos (nombre del tema o ruta de archivo),
-  separados por `;`. Se usa el primero que exista.
+The left side is the application's key. You can inspect known keys with:
 
-Para sumar apps sin esperar una versión nueva, creá
-`~/.config/xfce4/trayoverflow/icon-defaults.conf` con el mismo formato:
-tiene prioridad sobre la lista del plugin. Reiniciá el panel para
-aplicarlo. Si encontrás una app que se ve mal, avisá para sumarla a la
-lista.
+```bash
+xfconf-query -c xfce4-panel -lv | grep -A20 known-items
+```
 
-La configuración se guarda en xfconf, en el canal `xfce4-panel`, bajo
-`/plugins/plugin-N/`. Los íconos de apps cerradas se guardan en
-`~/.cache/xfce4/trayoverflow/`. Al quitar el plugin del panel, el panel
-borra su configuración y el plugin borra esas copias (salvo las de apps
-que recuerde otra instancia).
+An ending `*` matches all keys with that prefix. The right side lists one
+or more icon names from the theme or file paths, separated by `;`, with the
+first available icon taking precedence.
 
-## Limitaciones conocidas
+To add a replacement without changing the installed defaults, create:
 
-### Apps antiguas (XEmbed)
+```text
+~/.config/xfce4/trayoverflow/icon-defaults.conf
+```
 
-Casi todas las apps actuales (Qt, Electron, Telegram, Discord, Steam,
-AppIndicator...) usan el protocolo moderno StatusNotifier y se ven sin
-hacer nada. Algunas apps antiguas (GTK con `GtkStatusIcon`, Java, Wine)
-solo usan la bandeja clásica de X11 (XEmbed). Para verlas:
+Use the same format; this user file takes priority. Restart the panel for
+changes to take effect. Reports of other problematic application icons are
+welcome.
 
-**Propiedades → Elementos → "Mostrar también las aplicaciones antiguas"**.
+Settings are stored in xfconf, under the `xfce4-panel` channel and
+`/plugins/plugin-N/`. Cached icons for closed applications are under
+`~/.cache/xfce4/trayoverflow/`. Removing the plugin from the panel removes
+its settings and cached icons, except where another instance still needs
+those icons.
 
-Eso arranca un pequeño programa aparte, `xembed-proxy`, que hace de bandeja
-clásica y convierte cada ícono antiguo en uno moderno. El plugin lo inicia
-y lo detiene solo, y lo cierra si el panel se cae. En reposo no usa CPU y
-ocupa unos 7 MB de RAM.
+## Known limitations
 
-- Solo puede haber **una bandeja clásica** a la vez. Si la bandeja nativa
-  ("Bandeja de estado") está en el panel, las apps antiguas siguen allí y
-  el proxy espera; al quitarla, pasan aquí solas.
-- Si usás la bandeja nativa para las apps antiguas, también muestra las
-  modernas, que aparecerían **dos veces**: ocultalas en sus propiedades.
-- El ícono es una captura de la ventana de la app y los clics se simulan.
-  Funciona con la gran mayoría de las apps, pero alguna muy particular
-  podría no responder bien. Para diagnosticar:
-  `/usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy --verbose` (con la
-  opción desactivada y sin otra bandeja clásica activa).
-- Las apps antiguas no informan su tooltip; se muestra su nombre. En las
-  apps Java, el nombre sale de su línea de comandos (por ejemplo
-  `java -jar JDownloader.jar` → *JDownloader*). Las apps que dibujan su
-  propio tooltip al pasar el ratón (como el resumen de descargas de
-  JDownloader) no lo muestran aquí.
-- Cada app antigua se redibuja al tamaño exacto en que se muestra (panel o
-  ventana emergente), así que se ve nítida como en la bandeja nativa. Las
-  apps GTK dibujan a tamaños estándar: con **16, 24, 32 o 48 px** ocupan
-  todo el espacio; con otros valores (por ejemplo 22) usan el tamaño
-  estándar inmediatamente menor, nítido pero algo más chico.
+### Legacy applications (XEmbed)
 
-El proxy también sirve con otros escritorios que muestren StatusNotifier
-(por ejemplo, otros paneles): basta con ejecutarlo al iniciar sesión.
+Most modern applications (Qt, Electron, Telegram, Discord, Steam,
+AppIndicator, and others) use StatusNotifier and need no special setup.
+Some older applications (GTK `GtkStatusIcon`, Java, Wine) use only the
+classic X11 tray protocol, XEmbed. Enable them under:
 
-La pestaña **Elementos** indica en cada momento qué bandeja clásica está
-activa.
+**Properties → Items → Show legacy applications too**.
+
+This starts a separate helper program, `xembed-proxy`, that exposes classic
+tray icons as modern StatusNotifier items. The plugin starts and stops it
+as needed and closes it if the panel crashes. The helper is described as
+using approximately 7 MB of RAM at idle, with negligible idle CPU use;
+actual resource usage depends on the system.
+
+- Only **one classic tray** can be active at a time. If the native Xfce
+  **Status Tray Plugin** owns it, legacy applications remain there and the
+  proxy waits. Removing that tray allows their icons to appear here.
+- If the native tray is kept for legacy icons, it may also display modern
+  icons **twice**. Hide duplicates in that tray's properties.
+- A legacy application's icon comes from its tray window, and clicks are
+  simulated. This works for most applications, but unusual ones may behave
+  differently. For diagnostics, with the option disabled and no competing
+  classic tray, run:
+
+  ```bash
+  /usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy --verbose
+  ```
+
+- Legacy applications do not expose tooltip text through this mechanism;
+  the plugin displays the application name. For Java applications the name
+  is derived from the command line (for example,
+  `java -jar JDownloader.jar` → *JDownloader*). Custom application-drawn
+  tooltip windows are not reproduced.
+- Legacy icons are drawn at the displayed size for the panel or popup.
+  GTK applications typically draw at standard sizes: **16, 24, 32, or
+  48 px** fill the available space, while other sizes (for example, 22 px)
+  may use the next smaller standard size.
+
+The proxy can also be started independently in other desktop environments
+that support StatusNotifier. The **Items** tab reports the current
+classic-tray status.
 
 ### Wayland
 
-Funciona en la sesión Wayland de XFCE 4.20 con compositores que tengan
-*layer-shell* (labwc, Wayfire, xfwl4…). Hace falta compilar con
-**gtk-layer-shell** (la misma biblioteca que usa el panel); `meson` indica
-al final si quedó incluido. El mismo plugin sirve para X11 y Wayland: elige
-solo al arrancar.
+The plugin supports the Xfce 4.20 Wayland session with compositors offering
+*layer-shell* (such as labwc, Wayfire, and xfwl4). Build with
+**gtk-layer-shell**; the Meson summary reports whether support is enabled.
+The same plugin binary selects X11 or Wayland behavior at runtime.
 
-Diferencias con X11:
+Differences from X11:
 
-- La ventana emergente se cierra cuando otra app pasa a primer plano (al
-  hacer clic en ella o al abrir una ventana). Un clic sobre el **escritorio
-  vacío** puede no cerrarla, según el compositor: usá Escape o la flecha.
-  En xfwl4 (todavía en desarrollo) tampoco la cierra un clic en otra
-  ventana; lo mismo pasa con el calendario del reloj del panel.
-- Las apps antiguas (XEmbed) funcionan a través de **XWayland**, que el
-  compositor tiene que ofrecer (labwc lo hace). Al hacer clic en una de
-  ellas dentro de la ventana emergente, esta se cierra siempre, para no
-  tapar el menú de la app. Sus menús se cierran con Escape o eligiendo una
-  opción: un clic fuera de ellos no los cierra (es una limitación de
-  XWayland).
+- The popup closes when another application gains focus (for example, by
+  clicking or opening a window). Clicking an **empty desktop** may not
+  close it, depending on the compositor; use Escape or the arrow instead.
+  On the still-developing xfwl4 compositor, clicking another window also
+  may not close it, similarly to the panel clock's calendar popup.
+- Legacy XEmbed applications need the compositor to provide **XWayland**
+  (labwc does). Clicking a legacy icon inside the popup always closes the
+  popup so it will not cover the application's menu. Such menus close on
+  Escape or by choosing an item; an outside click does not close them,
+  which is an XWayland limitation.
 
-### Apps Flatpak con ID genérico
+### Flatpak applications with generic IDs
 
-Para reconocer una app entre reinicios se usa su ID; si es genérico (como
-el de las apps Electron), el nombre de su ejecutable. En apps Flatpak el
-ejecutable no es accesible y se usa el App ID de Flatpak (por ejemplo
-`com.discordapp.Discord`). Si tampoco se puede leer, se usa el título; si
-la app cambia de título, puede aparecer como una app nueva en la lista.
+To recognize an application after a restart, the plugin uses its ID, or
+its executable name if the ID is generic (as with some Electron apps).
+A Flatpak application's executable may be inaccessible, in which case
+its Flatpak App ID is used (for example, `com.discordapp.Discord`). If
+that also cannot be determined, the title is used; a changing title may
+make the application look new to the plugin.
 
-Desde la versión 0.2.34, las apps Flatpak que antes se reconocían por el
-título pasan a reconocerse por el App ID: la primera vez aparecen como
-nuevas y hay que volver a ocultarlas si estaban ocultas.
+Since version 0.2.34, some Flatpak applications previously identified by
+their title are identified by App ID. They appear as new on their first
+run after the change and may need to be hidden again.
 
-## Diagnóstico
+## Diagnostics
 
-Si algo no funciona, abra **Propiedades → Diagnóstico** y toque **Copiar**:
-copia un resumen (versiones, sesión, estado de las bandejas y de cada app,
-y de dónde sale cada ícono) para pegarlo en el reporte. No incluye datos
-personales, salvo los nombres de las apps de la bandeja.
+If something is not working, open **Properties → Diagnostics → Copy** to
+copy a summary of versions, session type, tray state, each application's
+state, and the origin of each icon. It does not intentionally include
+personal information beyond the names of tray applications.
 
-Si el plugin ni siquiera aparece:
+If the plugin does not appear in the panel's plugin list:
 
 ```bash
-# ¿El panel ve el plugin?
+# Does the panel see the plugin?
 ls /usr/share/xfce4/panel/plugins/trayoverflow.desktop
 xfce4-panel -q; PANEL_DEBUG=1 xfce4-panel 2>&1 | grep -i trayoverflow
 
-# Mensajes del plugin
+# Plugin logging
 xfce4-panel -q; G_MESSAGES_DEBUG=trayoverflow xfce4-panel
 
-# ¿Qué apps están registradas por StatusNotifier?
+# Which applications are registered with StatusNotifier?
 busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher \
   org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems
 
-# Ver la configuración guardada
+# Inspect saved configuration
 xfconf-query -c xfce4-panel -lv | grep -A1 trayoverflow
 ```
 
-Los cambios hechos con `xfconf-query` (o desde otro programa) se aplican
-al instante, también en la ventana de propiedades si está abierta. Si
-algo no se refleja, `xfce4-panel -r` reinicia el panel sin cerrar la
-sesión.
+These commands can stop or start a panel; run them deliberately, not as
+part of a documentation-only update.
 
-## Aplicar parches
+Changes made through `xfconf-query` (or another application) are applied
+immediately, including in an open settings window. If a change is not
+reflected, `xfce4-panel -r` restarts the panel without ending the session.
 
-Las modificaciones se distribuyen como archivos `.patch`. Desde la carpeta
-del proyecto:
+## Applying patches
+
+Some changes may be distributed as `.patch` files. In the project root:
 
 ```bash
-patch -p1 --dry-run < cambio.patch   # comprobar que aplica
-patch -p1 < cambio.patch
-bash install.sh
+patch -p1 --dry-run < change.patch   # check first
+patch -p1 < change.patch
 ```
 
-## Pruebas automáticas
+Rebuild using your existing installation or packaging method. Do not run
+`bash install.sh` over a Pacman- or Dpkg-managed installation.
 
-Después de instalar con `install.sh`:
+## Automated tests
+
+After a **manual** source installation, the X11 test suite can be run with:
 
 ```bash
-bash tests/run.sh           # todas (alrededor de un minuto)
-bash tests/run.sh --lista   # ver los nombres
+bash tests/run.sh          # all tests (about a minute)
+bash tests/run.sh --lista  # list test names
 bash tests/run.sh popup_rueda
 ```
 
-Cada prueba levanta su propia pantalla virtual (Xvfb), con su propio panel,
-D-Bus y configuración en una carpeta temporal: no toca tu panel ni tu
-configuración. Usan apps de prueba (una antigua y una moderna) y prueban el
-popup, la rueda, los menús de apps antiguas y el proxy. Solo cubren X11;
-Wayland se prueba a mano.
+Each test starts an isolated Xvfb display with its own panel, D-Bus, and
+temporary configuration; it does not access your regular panel or its
+settings. Test applications include a classic tray app and a modern one.
+The suite exercises popup behavior, scrolling, legacy application menus,
+and the proxy. Only X11 is covered; Wayland needs separate manual testing.
 
-Necesitan `Xvfb`, `xfwm4`, `xdotool`, ImageMagick y PyGObject (la cabecera
-de `tests/run.sh` dice qué paquetes instalar). Si una prueba falla, se
-indica la carpeta con sus registros y la última captura de pantalla.
+Tests require `Xvfb`, `xfwm4`, `xdotool`, ImageMagick, and PyGObject;
+see the header of `tests/run.sh` for the packages. A failed test leaves
+its log directory and the last screenshot for troubleshooting.
 
-## Estructura del código
+## Source layout
 
-| Archivo | Contenido |
+| File | Purpose |
 |---|---|
-| `src/to-item.[ch]` | Ícono genérico, independiente del protocolo |
-| `src/to-sni.[ch]` | Backend StatusNotifier: host y watcher de respaldo |
-| `src/to-model.[ch]` | Lista compartida de íconos (una por proceso) |
-| `src/to-settings.[ch]` | Configuración y registro de apps (xfconf) |
-| `src/to-button.[ch]` | Botón de cada ícono: clics, scroll, tooltip |
-| `src/to-plugin.[ch]` | Panel, flecha, distribución de los íconos, construcción |
-| `src/to-popup.[ch]` | Ventana emergente: mostrar, ubicar, cerrar (X11 y Wayland), menús, esquinas |
-| `src/to-dnd.[ch]` | Arrastrar y soltar entre el panel y la ventana emergente |
-| `src/to-dialog.[ch]` | Diálogo de configuración |
-| `src/to-legacy.[ch]` | Arranque y parada del proxy de apps antiguas |
-| `proxy/xembed-proxy.c` | Proxy XEmbed → StatusNotifier (programa aparte) |
-| `tests/` | Pruebas automáticas (`run.sh`) y apps de prueba (`apps/`) |
+| `src/to-item.[ch]` | Protocol-independent icon representation |
+| `src/to-sni.[ch]` | StatusNotifier host and fallback watcher backend |
+| `src/to-model.[ch]` | Shared application icon list (one per process) |
+| `src/to-settings.[ch]` | Configuration and remembered apps (xfconf) |
+| `src/to-button.[ch]` | Icon buttons, clicks, scrolling, and tooltips |
+| `src/to-plugin.[ch]` | Panel integration, arrow, layout, construction |
+| `src/to-popup.[ch]` | Popup positioning, display, closing, menus, and corners (X11/Wayland) |
+| `src/to-dnd.[ch]` | Drag-and-drop between the panel and popup |
+| `src/to-dialog.[ch]` | Settings dialog |
+| `src/to-legacy.[ch]` | Legacy proxy lifecycle |
+| `proxy/xembed-proxy.c` | Standalone XEmbed → StatusNotifier proxy |
+| `tests/` | Automated test runner and test applications |
 
-El proxy es un programa independiente a propósito: si una app antigua
-hace algo inesperado y el proxy falla, el panel no se ve afectado.
+The proxy is a separate process by design: an unexpected legacy
+application or a proxy crash should not crash the panel itself.
 
-## Licencia
+## Maintainer and license
 
-GPL-2.0 o posterior. Ver `COPYING`.
+Maintainer: **Tantin1** — `juanperez33840@gmail.com`.
+
+Copyright notices remain with their respective source files. Licensed
+under **GPL-2.0-or-later**; see `COPYING`.

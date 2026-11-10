@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Panel"
-msgstr "Pannello"
 
 msgid "_Automatic"
 msgstr "_Automatica"
@@ -45,9 +42,6 @@ msgstr "Posizione della _freccia:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Rispetto alle icone visibili. Nei pannelli verticali, sinistra significa in alto e destra in basso."
 
-msgid "Popup"
-msgstr "Finestra a comparsa"
-
 msgid "Icon si_ze (px):"
 msgstr "Dimensi_one icone (px):"
 
@@ -71,9 +65,6 @@ msgstr "_Angoli:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Senza compositor, gli angoli sono sempre squadrati."
-
-msgid "Behavior"
-msgstr "Comportamento"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Sposta le icone _inattive nella finestra a comparsa"
@@ -188,9 +179,6 @@ msgstr "Area di notifica con overflow"
 msgid "_Close"
 msgstr "_Chiudi"
 
-msgid "A_ppearance"
-msgstr "_Aspetto"
-
 msgid "_Items"
 msgstr "_Elementi"
 
@@ -231,9 +219,6 @@ msgstr "Tutte le icone su una riga (una colonna in un pannello verticale), anche
 msgid "Mi_nimum button size (px):"
 msgstr "Dime_nsione minima dei pulsanti (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "P_ulsanti compatti (grandi solo quanto l'icona)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "I pulsanti sono grandi almeno come con un'icona di questa dimensione, nel pannello e nella finestra a comparsa; le icone più piccole restano centrate. Nel pannello, ogni pulsante occupa tutta l'altezza della sua riga."
 
@@ -248,3 +233,18 @@ msgstr "Fines_tra a comparsa"
 
 msgid "Co_mpact"
 msgstr "Co_mpatti"
+
+#~ msgid "Panel"
+#~ msgstr "Pannello"
+
+#~ msgid "Popup"
+#~ msgstr "Finestra a comparsa"
+
+#~ msgid "Behavior"
+#~ msgstr "Comportamento"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Aspetto"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "P_ulsanti compatti (grandi solo quanto l'icona)"

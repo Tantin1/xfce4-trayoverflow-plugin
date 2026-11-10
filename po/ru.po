@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-
-msgid "Panel"
-msgstr "Панель"
 
 msgid "_Automatic"
 msgstr "_Автоматически"
@@ -45,9 +42,6 @@ msgstr "Положение _стрелки:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Относительно видимых значков. На вертикальных панелях «слева» означает сверху, а «справа» — снизу."
 
-msgid "Popup"
-msgstr "Всплывающее окно"
-
 msgid "Icon si_ze (px):"
 msgstr "_Размер значков (пикс.):"
 
@@ -71,9 +65,6 @@ msgstr "_Углы:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Без композитора углы всегда прямые."
-
-msgid "Behavior"
-msgstr "Поведение"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Перемещать _неактивные значки во всплывающее окно"
@@ -188,9 +179,6 @@ msgstr "Лоток со скрытыми значками"
 msgid "_Close"
 msgstr "_Закрыть"
 
-msgid "A_ppearance"
-msgstr "_Внешний вид"
-
 msgid "_Items"
 msgstr "_Элементы"
 
@@ -231,9 +219,6 @@ msgstr "Все значки в один ряд (в один столбец на 
 msgid "Mi_nimum button size (px):"
 msgstr "_Минимальный размер кнопок (пикс.):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "_Компактные кнопки (только по размеру значка)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Кнопки не меньше, чем со значком этого размера, на панели и во всплывающем окне; меньшие значки располагаются по центру. На панели каждая кнопка занимает всю высоту своего ряда."
 
@@ -248,3 +233,18 @@ msgstr "_Всплывающее окно"
 
 msgid "Co_mpact"
 msgstr "_Компактные"
+
+#~ msgid "Panel"
+#~ msgstr "Панель"
+
+#~ msgid "Popup"
+#~ msgstr "Всплывающее окно"
+
+#~ msgid "Behavior"
+#~ msgstr "Поведение"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Внешний вид"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "_Компактные кнопки (только по размеру значка)"

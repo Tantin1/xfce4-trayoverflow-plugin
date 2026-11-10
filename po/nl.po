@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Panel"
-msgstr "Paneel"
 
 msgid "_Automatic"
 msgstr "_Automatisch"
@@ -45,9 +42,6 @@ msgstr "Positie van de _pijl:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Ten opzichte van de zichtbare pictogrammen. In verticale panelen betekent links boven en rechts onder."
 
-msgid "Popup"
-msgstr "Pop-upvenster"
-
 msgid "Icon si_ze (px):"
 msgstr "Pictogram_grootte (px):"
 
@@ -71,9 +65,6 @@ msgstr "_Hoeken:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Zonder compositor zijn de hoeken altijd recht."
-
-msgid "Behavior"
-msgstr "Gedrag"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Inactieve _pictogrammen naar het pop-upvenster verplaatsen"
@@ -188,9 +179,6 @@ msgstr "Systeemvak met overloop"
 msgid "_Close"
 msgstr "_Sluiten"
 
-msgid "A_ppearance"
-msgstr "_Uiterlijk"
-
 msgid "_Items"
 msgstr "_Items"
 
@@ -231,9 +219,6 @@ msgstr "Alle pictogrammen in één rij (één kolom in een verticaal paneel), oo
 msgid "Mi_nimum button size (px):"
 msgstr "_Minimale knopgrootte (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "_Compacte knoppen (alleen zo groot als het pictogram)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "De knoppen zijn minstens zo groot als met een pictogram van deze grootte, in het paneel en in het pop-upvenster; kleinere pictogrammen blijven gecentreerd. In het paneel neemt elke knop de hele hoogte van zijn rij in."
 
@@ -248,3 +233,18 @@ msgstr "Pop-upv_enster"
 
 msgid "Co_mpact"
 msgstr "_Compact"
+
+#~ msgid "Panel"
+#~ msgstr "Paneel"
+
+#~ msgid "Popup"
+#~ msgstr "Pop-upvenster"
+
+#~ msgid "Behavior"
+#~ msgstr "Gedrag"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Uiterlijk"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "_Compacte knoppen (alleen zo groot als het pictogram)"

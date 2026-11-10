@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-msgid "Panel"
-msgstr "패널"
 
 msgid "_Automatic"
 msgstr "자동(_A)"
@@ -45,9 +42,6 @@ msgstr "화살표 위치(_O):"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "보이는 아이콘을 기준으로 합니다. 세로 패널에서는 왼쪽이 위, 오른쪽이 아래를 뜻합니다."
 
-msgid "Popup"
-msgstr "팝업"
-
 msgid "Icon si_ze (px):"
 msgstr "아이콘 크기(px)(_Z):"
 
@@ -71,9 +65,6 @@ msgstr "모서리(_R):"
 
 msgid "Without a compositor, corners are always square."
 msgstr "컴포지터가 없으면 모서리는 항상 각집니다."
-
-msgid "Behavior"
-msgstr "동작"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "비활성 아이콘을 팝업으로 이동(_T)"
@@ -188,9 +179,6 @@ msgstr "오버플로 트레이"
 msgid "_Close"
 msgstr "닫기(_C)"
 
-msgid "A_ppearance"
-msgstr "모양(_P)"
-
 msgid "_Items"
 msgstr "항목(_I)"
 
@@ -231,9 +219,6 @@ msgstr "패널이 여러 줄이어도 모든 아이콘을 한 줄(세로 패널�
 msgid "Mi_nimum button size (px):"
 msgstr "버튼 최소 크기 (px)(_N):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "작은 버튼 (아이콘 크기만큼)(_M)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "패널과 팝업의 버튼은 이 크기의 아이콘일 때만큼은 커집니다. 더 작은 아이콘은 가운데에 놓입니다. 패널에서는 각 버튼이 줄의 높이 전체를 차지합니다."
 
@@ -248,3 +233,18 @@ msgstr "팝업 창(_W)"
 
 msgid "Co_mpact"
 msgstr "작게(_M)"
+
+#~ msgid "Panel"
+#~ msgstr "패널"
+
+#~ msgid "Popup"
+#~ msgstr "팝업"
+
+#~ msgid "Behavior"
+#~ msgstr "동작"
+
+#~ msgid "A_ppearance"
+#~ msgstr "모양(_P)"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "작은 버튼 (아이콘 크기만큼)(_M)"

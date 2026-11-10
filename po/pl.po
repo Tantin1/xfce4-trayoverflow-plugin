@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-
-msgid "Panel"
-msgstr "Panel"
 
 msgid "_Automatic"
 msgstr "_Automatycznie"
@@ -45,9 +42,6 @@ msgstr "Położenie _strzałki:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Względem widocznych ikon. W panelach pionowych lewo oznacza górę, a prawo dół."
 
-msgid "Popup"
-msgstr "Okienko"
-
 msgid "Icon si_ze (px):"
 msgstr "Ro_zmiar ikon (px):"
 
@@ -71,9 +65,6 @@ msgstr "Ro_gi:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Bez menedżera kompozycji rogi są zawsze proste."
-
-msgid "Behavior"
-msgstr "Zachowanie"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Przenoś _nieaktywne ikony do okienka"
@@ -188,9 +179,6 @@ msgstr "Zasobnik z przepełnieniem"
 msgid "_Close"
 msgstr "Za_mknij"
 
-msgid "A_ppearance"
-msgstr "_Wygląd"
-
 msgid "_Items"
 msgstr "_Elementy"
 
@@ -231,9 +219,6 @@ msgstr "Wszystkie ikony w jednym wierszu (w jednej kolumnie na panelu pionowym),
 msgid "Mi_nimum button size (px):"
 msgstr "Minimalny rozmiar przy_cisków (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "Kompaktowe przyciski (tylko wie_lkości ikony)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Przyciski są co najmniej tak duże jak z ikoną tego rozmiaru, na panelu i w okienku; mniejsze ikony pozostają wyśrodkowane. Na panelu każdy przycisk zajmuje całą wysokość swojego wiersza."
 
@@ -248,3 +233,18 @@ msgstr "Ok_ienko"
 
 msgid "Co_mpact"
 msgstr "_Kompaktowe"
+
+#~ msgid "Panel"
+#~ msgstr "Panel"
+
+#~ msgid "Popup"
+#~ msgstr "Okienko"
+
+#~ msgid "Behavior"
+#~ msgstr "Zachowanie"
+
+#~ msgid "A_ppearance"
+#~ msgstr "_Wygląd"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "Kompaktowe przyciski (tylko wie_lkości ikony)"

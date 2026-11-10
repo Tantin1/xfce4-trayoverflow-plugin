@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-
-msgid "Panel"
-msgstr "Tableau de bord"
 
 msgid "_Automatic"
 msgstr "_Automatique"
@@ -45,9 +42,6 @@ msgstr "P_osition de la flèche :"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Par rapport aux icônes visibles. Dans les tableaux de bord verticaux, gauche signifie haut et droite signifie bas."
 
-msgid "Popup"
-msgstr "Fenêtre surgissante"
-
 msgid "Icon si_ze (px):"
 msgstr "Ta_ille des icônes (px) :"
 
@@ -71,9 +65,6 @@ msgstr "Coi_ns :"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Sans compositeur, les coins sont toujours carrés."
-
-msgid "Behavior"
-msgstr "Comportement"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Déplacer _les icônes inactives dans la fenêtre surgissante"
@@ -188,9 +179,6 @@ msgstr "Zone de notification avec débordement"
 msgid "_Close"
 msgstr "_Fermer"
 
-msgid "A_ppearance"
-msgstr "A_pparence"
-
 msgid "_Items"
 msgstr "_Éléments"
 
@@ -231,9 +219,6 @@ msgstr "Toutes les icônes sur une rangée (une colonne dans un panneau vertical
 msgid "Mi_nimum button size (px):"
 msgstr "Taille _minimale des boutons (px) :"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "Boutons compacts (_uniquement de la taille de l'icône)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Les boutons sont au moins aussi grands qu'avec une icône de cette taille, dans le panneau et dans la fenêtre surgissante ; les icônes plus petites restent centrées. Dans le panneau, chaque bouton occupe toute la hauteur de sa rangée."
 
@@ -248,3 +233,18 @@ msgstr "Fenêtre _surgissante"
 
 msgid "Co_mpact"
 msgstr "_Compacts"
+
+#~ msgid "Panel"
+#~ msgstr "Tableau de bord"
+
+#~ msgid "Popup"
+#~ msgstr "Fenêtre surgissante"
+
+#~ msgid "Behavior"
+#~ msgstr "Comportement"
+
+#~ msgid "A_ppearance"
+#~ msgstr "A_pparence"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "Boutons compacts (_uniquement de la taille de l'icône)"

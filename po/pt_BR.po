@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.30\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -14,9 +14,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-
-msgid "Panel"
-msgstr "Painel"
 
 msgid "_Automatic"
 msgstr "_Automático"
@@ -45,9 +42,6 @@ msgstr "Posição da _seta:"
 msgid "Relative to the visible icons. In vertical panels, left means top and right means bottom."
 msgstr "Em relação aos ícones visíveis. Em painéis verticais, esquerda significa em cima e direita, embaixo."
 
-msgid "Popup"
-msgstr "Janela suspensa"
-
 msgid "Icon si_ze (px):"
 msgstr "Taman_ho dos ícones (px):"
 
@@ -71,9 +65,6 @@ msgstr "Can_tos:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Sem compositor, os cantos são sempre retos."
-
-msgid "Behavior"
-msgstr "Comportamento"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "_Mover ícones inativos para a janela suspensa"
@@ -188,9 +179,6 @@ msgstr "Bandeja com transbordamento"
 msgid "_Close"
 msgstr "_Fechar"
 
-msgid "A_ppearance"
-msgstr "A_parência"
-
 msgid "_Items"
 msgstr "_Itens"
 
@@ -231,9 +219,6 @@ msgstr "Todos os ícones em uma linha (uma coluna em um painel vertical), mesmo 
 msgid "Mi_nimum button size (px):"
 msgstr "Tama_nho mínimo dos botões (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "Botões _compactos (só do tamanho do ícone)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Os botões são pelo menos tão grandes quanto com um ícone deste tamanho, no painel e na janela suspensa; ícones menores ficam centralizados. No painel, cada botão ocupa toda a altura da sua linha."
 
@@ -248,3 +233,18 @@ msgstr "_Janela suspensa"
 
 msgid "Co_mpact"
 msgstr "Co_mpactos"
+
+#~ msgid "Panel"
+#~ msgstr "Painel"
+
+#~ msgid "Popup"
+#~ msgstr "Janela suspensa"
+
+#~ msgid "Behavior"
+#~ msgstr "Comportamento"
+
+#~ msgid "A_ppearance"
+#~ msgstr "A_parência"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "Botões _compactos (só do tamanho do ícone)"

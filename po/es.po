@@ -7,16 +7,13 @@ msgstr ""
 "Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
-"Last-Translator: Juan Pérez <juanchiperez97@gmail.com>\n"
+"Last-Translator: Juan Pérez <juanperez33840@gmail.com>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Panel"
-msgstr "Panel"
 
 msgid "_Automatic"
 msgstr "_Automático"
@@ -26,9 +23,6 @@ msgstr "_Tamaño de ícono (px):"
 
 msgid "Icon s_pacing (px):"
 msgstr "_Separación (px):"
-
-msgid "Popup"
-msgstr "Ventana emergente"
 
 msgid "Icon si_ze (px):"
 msgstr "Tama_ño de ícono (px):"
@@ -65,9 +59,6 @@ msgstr "Es_quinas:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Sin compositor, las esquinas siempre son rectas."
-
-msgid "Behavior"
-msgstr "Comportamiento"
 
 msgid "Move inac_tive icons to the popup"
 msgstr "Mover los íconos _inactivos a la ventana emergente"
@@ -196,9 +187,6 @@ msgstr "Bandeja con desborde"
 msgid "_Close"
 msgstr "_Cerrar"
 
-msgid "A_ppearance"
-msgstr "A_pariencia"
-
 msgid "_Items"
 msgstr "_Elementos"
 
@@ -285,9 +273,6 @@ msgstr "Todos los íconos en una fila (una columna en un panel vertical), aunque
 msgid "Mi_nimum button size (px):"
 msgstr "Tama_ño mínimo del botón (px):"
 
-msgid "Co_mpact buttons (only as big as the icon)"
-msgstr "Botones c_ompactos (solo del tamaño del ícono)"
-
 msgid "The buttons are at least as big as with an icon of this size, in the panel and in the popup; smaller icons stay centered. In the panel, each button takes the whole height of its row."
 msgstr "Los botones son por lo menos tan grandes como con un ícono de este tamaño, en el panel y en la ventana emergente; los íconos más chicos quedan centrados. En el panel, cada botón ocupa todo el alto de su fila."
 
@@ -302,3 +287,18 @@ msgstr "_Ventana emergente"
 
 msgid "Co_mpact"
 msgstr "Co_mpactos"
+
+#~ msgid "Panel"
+#~ msgstr "Panel"
+
+#~ msgid "Popup"
+#~ msgstr "Ventana emergente"
+
+#~ msgid "Behavior"
+#~ msgstr "Comportamiento"
+
+#~ msgid "A_ppearance"
+#~ msgstr "A_pariencia"
+
+#~ msgid "Co_mpact buttons (only as big as the icon)"
+#~ msgstr "Botones c_ompactos (solo del tamaño del ícono)"
