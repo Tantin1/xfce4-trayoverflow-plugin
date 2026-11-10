@@ -4,3 +4,5 @@ build-*/
 *.pkg.tar.*
 *.orig
 *.rej
+# Historial de parches: queda en la computadora, no se sube
+parches/
