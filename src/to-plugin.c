@@ -165,12 +165,27 @@ item_is_hidden (TrayPlugin *p, TrayItem *item)
  * Flecha
  * ════════════════════════════════════════════════════════════════════════ */
 
+/* La flecha apunta hacia donde se abre el popup; con el popup abierto,
+ * al revés (como en Windows: indica que un clic lo cierra) */
 static void
 arrow_update_icon (TrayPlugin *p)
 {
+  GtkArrowType type = xfce_panel_plugin_arrow_type (p->panel_plugin);
   const gchar *icon;
 
-  switch (xfce_panel_plugin_arrow_type (p->panel_plugin))
+  if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (p->arrow)))
+    {
+      switch (type)
+        {
+        case GTK_ARROW_DOWN:  type = GTK_ARROW_UP;    break;
+        case GTK_ARROW_LEFT:  type = GTK_ARROW_RIGHT; break;
+        case GTK_ARROW_RIGHT: type = GTK_ARROW_LEFT;  break;
+        case GTK_ARROW_UP:
+        default:              type = GTK_ARROW_DOWN;  break;
+        }
+    }
+
+  switch (type)
     {
     case GTK_ARROW_DOWN:  icon = "pan-down-symbolic";  break;
     case GTK_ARROW_LEFT:  icon = "pan-start-symbolic"; break;
@@ -262,6 +277,7 @@ tray_plugin_arrow_set_active (TrayPlugin *p, gboolean active)
   p->updating_arrow = TRUE;
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (p->arrow), active);
   p->updating_arrow = FALSE;
+  arrow_update_icon (p);
 
   /* Con el popup abierto, el tooltip de la flecha solo estorba */
   gtk_widget_set_has_tooltip (p->arrow, !active);
