@@ -154,11 +154,11 @@ arrow_position_changed (GtkComboBox *combo,
 
 
 static void
-passive_toggled (GtkToggleButton *toggle,
-                 DialogData      *d)
+passive_changed (GtkComboBox *combo,
+                 DialogData  *d)
 {
   if (!d->syncing)
-    tray_settings_set_passive_in_popup (d->p->settings, gtk_toggle_button_get_active (toggle));
+    tray_settings_set_passive_mode (d->p->settings, gtk_combo_box_get_active (combo));
 }
 
 
@@ -533,7 +533,10 @@ rebuild_list (DialogData *d)
           hidden = tray_settings_is_hidden (d->p->settings, k->key, FALSE);
         }
 
-      if (item != NULL)
+      if (item != NULL && tray_item_get_status (item) == TRAY_ITEM_STATUS_PASSIVE)
+        markup = g_markup_printf_escaped ("%s <span alpha=\"60%%\"><small>%s</small></span>",
+                                          title, _("(inactive)"));
+      else if (item != NULL)
         markup = g_markup_printf_escaped ("%s", title);
       else
         markup = g_markup_printf_escaped ("%s <span alpha=\"60%%\"><small>%s</small></span>",
@@ -1282,14 +1285,28 @@ items_page (DialogData *d)
   g_signal_connect (d->new_in_popup, "toggled", G_CALLBACK (new_in_popup_toggled), d);
   gtk_box_pack_start (GTK_BOX (vbox), d->new_in_popup, FALSE, FALSE, 0);
 
-  d->passive = gtk_check_button_new_with_mnemonic (_("Move inac_tive icons to the popup"));
-  gtk_widget_set_tooltip_text (d->passive,
-                               _("Some apps mark their icon as inactive when there is nothing "
-                                 "to report. Icons you place in the panel yourself stay there."));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
-                                tray_settings_get_passive_in_popup (d->p->settings));
-  g_signal_connect (d->passive, "toggled", G_CALLBACK (passive_toggled), d);
-  gtk_box_pack_start (GTK_BOX (vbox), d->passive, FALSE, FALSE, 0);
+  /* Mismo orden que TrayPassiveMode */
+  {
+    GtkWidget *row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *label = gtk_label_new_with_mnemonic (_("Inac_tive icons:"));
+
+    d->passive = gtk_combo_box_text_new ();
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->passive), _("Hide"));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->passive), _("In the popup"));
+    gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (d->passive), _("Like the others"));
+    gtk_combo_box_set_active (GTK_COMBO_BOX (d->passive),
+                              tray_settings_get_passive_mode (d->p->settings));
+    gtk_widget_set_tooltip_text (d->passive,
+                                 _("Some apps mark their icon as inactive when there is nothing "
+                                   "to report. Hide: not shown anywhere until the app becomes "
+                                   "active again, like the XFCE tray. In the popup: icons you "
+                                   "place in the panel yourself stay there."));
+    gtk_label_set_mnemonic_widget (GTK_LABEL (label), d->passive);
+    g_signal_connect (d->passive, "changed", G_CALLBACK (passive_changed), d);
+    gtk_box_pack_start (GTK_BOX (row), label, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (row), d->passive, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), row, FALSE, FALSE, 0);
+  }
 
   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
 
@@ -1301,9 +1318,40 @@ items_page (DialogData *d)
 
 /* ── Ciclo de vida ───────────────────────────────────────────────────── */
 
+/* Una app pasó a inactiva o volvió: la marca "(inactiva)" de la lista */
+static void
+item_status_changed (TrayItem  *item,
+                     GtkWidget *tree)
+{
+  DialogData *d = g_object_get_data (G_OBJECT (tree), "trayoverflow-dialog");
+
+  if (d != NULL && (tray_item_get_changes (item) & TRAY_ITEM_CHANGE_STATUS))
+    rebuild_list (d);
+}
+
+
+
+/* Atado a la lista: se desconecta solo al cerrar el diálogo */
+static void
+watch_item (DialogData *d, TrayItem *item)
+{
+  g_signal_connect_object (item, "changed", G_CALLBACK (item_status_changed), d->tree, 0);
+}
+
+
+
 static void
 model_changed (TrayModel *model, TrayItem *item, DialogData *d)
 {
+  rebuild_list (d);
+}
+
+
+
+static void
+model_item_added (TrayModel *model, TrayItem *item, DialogData *d)
+{
+  watch_item (d, item);
   rebuild_list (d);
 }
 
@@ -1340,8 +1388,8 @@ sync_from_settings (DialogData *d)
                              tray_settings_get_button_min_size (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->compact),
                                 tray_settings_get_compact_buttons (s));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->passive),
-                                tray_settings_get_passive_in_popup (s));
+  gtk_combo_box_set_active (GTK_COMBO_BOX (d->passive),
+                            tray_settings_get_passive_mode (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->new_in_popup),
                                 tray_settings_get_new_in_popup (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
@@ -1361,6 +1409,8 @@ dialog_destroyed (GtkWidget *dialog, DialogData *d)
 {
   g_signal_handlers_disconnect_by_data (d->p->settings, d);
   g_signal_handlers_disconnect_by_data (d->p->model, d);
+  /* La lista puede vivir un poco más que @d: que sus avisos lo ignoren */
+  g_object_set_data (G_OBJECT (d->tree), "trayoverflow-dialog", NULL);
   if (d->legacy_refresh_id != 0)
     g_source_remove (d->legacy_refresh_id);
 
@@ -1430,7 +1480,15 @@ tray_dialog_show (TrayPlugin *p)
 
   g_signal_connect_swapped (p->settings, "known-changed", G_CALLBACK (rebuild_list), d);
   g_signal_connect_swapped (p->settings, "changed", G_CALLBACK (sync_from_settings), d);
-  g_signal_connect (p->model, "item-added", G_CALLBACK (model_changed), d);
+  g_signal_connect (p->model, "item-added", G_CALLBACK (model_item_added), d);
+  g_object_set_data (G_OBJECT (d->tree), "trayoverflow-dialog", d);
+  {
+    GPtrArray *items = tray_model_get_items (p->model);
+    guint i;
+
+    for (i = 0; i < items->len; i++)
+      watch_item (d, g_ptr_array_index (items, i));
+  }
   g_signal_connect (p->model, "item-removed", G_CALLBACK (model_changed), d);
   g_signal_connect (d->dialog, "response", G_CALLBACK (dialog_response), d);
   g_signal_connect (d->dialog, "destroy", G_CALLBACK (dialog_destroyed), d);

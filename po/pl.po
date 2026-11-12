@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "Ro_gi:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Bez menedżera kompozycji rogi są zawsze proste."
-
-msgid "Move inac_tive icons to the popup"
-msgstr "Przenoś _nieaktywne ikony do okienka"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "Niektóre programy oznaczają swoją ikonę jako nieaktywną, gdy nie mają nic do zgłoszenia. Ikony, które sam umieścisz w panelu, zostają tam."
 
 msgid "(not running)"
 msgstr "(nie działa)"
@@ -233,6 +227,24 @@ msgstr "Ok_ienko"
 
 msgid "Co_mpact"
 msgstr "_Kompaktowe"
+
+msgid "Inac_tive icons:"
+msgstr "_Nieaktywne ikony:"
+
+msgid "Hide"
+msgstr "Ukryj"
+
+msgid "In the popup"
+msgstr "W okienku"
+
+msgid "Like the others"
+msgstr "Jak pozostałe"
+
+msgid "(inactive)"
+msgstr "(nieaktywny)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "Niektóre programy oznaczają swoją ikonę jako nieaktywną, gdy nie mają nic do zgłoszenia. Ukryj: ikona nie jest nigdzie pokazywana, dopóki program znów nie stanie się aktywny, jak w zasobniku XFCE. W okienku: ikony, które sam umieścisz w panelu, zostają tam."
 
 #~ msgid "Panel"
 #~ msgstr "Panel"

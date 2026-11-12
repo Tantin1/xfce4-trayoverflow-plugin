@@ -17,7 +17,7 @@
 #define DEFAULT_POPUP_COLUMNS    4
 #define DEFAULT_POPUP_CORNERS    TRAY_CORNERS_THEME
 #define DEFAULT_ARROW_POSITION   TRAY_ARROW_START
-#define DEFAULT_PASSIVE_IN_POPUP TRUE
+#define DEFAULT_PASSIVE_MODE     TRAY_PASSIVE_HIDE
 #define DEFAULT_NEW_IN_POPUP     FALSE
 #define DEFAULT_SYMBOLIC_ICONS   FALSE
 #define DEFAULT_SINGLE_ROW       FALSE
@@ -41,7 +41,7 @@ struct _TraySettings
   gint           popup_columns;
   gint           popup_corners;
   gint           arrow_position;
-  gboolean       passive_in_popup;
+  gint           passive_mode;      /* TrayPassiveMode */
   gboolean       new_in_popup;      /* apps nuevas: directo al popup */
   gboolean       symbolic_icons;    /* preferir íconos -symbolic del tema */
   gboolean       single_row;        /* una sola fila en el panel, aunque tenga varias */
@@ -281,10 +281,13 @@ save_all (TraySettings *s)
   write_int (s, "popup-columns", s->popup_columns);
   write_int (s, "popup-corners", s->popup_corners);
   write_int (s, "arrow-position", s->arrow_position);
+  write_int (s, "passive-mode", s->passive_mode);
 
   {
+    /* Opción vieja (hasta 0.2.54), reemplazada por passive-mode */
     gchar *p = prop (s, "passive-in-popup");
-    xfconf_channel_set_bool (s->channel, p, s->passive_in_popup);
+    if (xfconf_channel_has_property (s->channel, p))
+      xfconf_channel_reset_property (s->channel, p, FALSE);
     g_free (p);
     p = prop (s, "new-in-popup");
     xfconf_channel_set_bool (s->channel, p, s->new_in_popup);
@@ -355,9 +358,10 @@ load_all (TraySettings *s)
   s->arrow_position = read_int (s, "arrow-position", DEFAULT_ARROW_POSITION,
                                 TRAY_ARROW_START, TRAY_ARROW_END);
 
-  p = prop (s, "passive-in-popup");
-  s->passive_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_PASSIVE_IN_POPUP);
-  g_free (p);
+  /* La opción vieja passive-in-popup no se lee: "Esconder" es el nuevo
+   * valor por defecto también en instalaciones existentes */
+  s->passive_mode = read_int (s, "passive-mode", DEFAULT_PASSIVE_MODE,
+                              TRAY_PASSIVE_HIDE, TRAY_PASSIVE_SHOW);
 
   p = prop (s, "new-in-popup");
   s->new_in_popup = xfconf_channel_get_bool (s->channel, p, DEFAULT_NEW_IN_POPUP);
@@ -628,7 +632,7 @@ snapshot (TraySettings *s)
                           s->popup_spacing, s->popup_columns, s->popup_corners,
                           s->arrow_position, s->symbolic_icons, s->single_row,
                           s->compact_buttons, s->button_min_size,
-                          s->passive_in_popup, s->new_in_popup, s->legacy_tray);
+                          s->passive_mode, s->new_in_popup, s->legacy_tray);
   snapshot_set (out, "hidden", s->hidden, FALSE);
   snapshot_set (out, "visible", s->visible, FALSE);
   snapshot_set (out, "icons", s->icons, TRUE);
@@ -850,23 +854,24 @@ tray_settings_set_legacy_tray (TraySettings *s, gboolean value)
 
 
 
-gboolean
-tray_settings_get_passive_in_popup (TraySettings *s)
+gint
+tray_settings_get_passive_mode (TraySettings *s)
 {
-  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
-  return s->passive_in_popup;
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), DEFAULT_PASSIVE_MODE);
+  return s->passive_mode;
 }
 
 
 
 void
-tray_settings_set_passive_in_popup (TraySettings *s, gboolean value)
+tray_settings_set_passive_mode (TraySettings *s, gint value)
 {
   g_return_if_fail (TRAY_IS_SETTINGS (s));
 
-  if (s->passive_in_popup != !!value)
+  value = CLAMP (value, TRAY_PASSIVE_HIDE, TRAY_PASSIVE_SHOW);
+  if (s->passive_mode != value)
     {
-      s->passive_in_popup = !!value;
+      s->passive_mode = value;
       notify (s, TRUE);
     }
 }
@@ -1026,7 +1031,8 @@ tray_settings_is_hidden (TraySettings *s,
   if (g_hash_table_contains (s->hidden, key))
     return TRUE;
 
-  if (passive && s->passive_in_popup && !g_hash_table_contains (s->visible, key))
+  if (passive && s->passive_mode == TRAY_PASSIVE_POPUP
+      && !g_hash_table_contains (s->visible, key))
     return TRUE;
 
   return FALSE;

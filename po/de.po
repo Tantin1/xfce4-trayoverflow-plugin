@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "E_cken:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Ohne Compositor sind die Ecken immer eckig."
-
-msgid "Move inac_tive icons to the popup"
-msgstr "Inaktive Symbole in _das Aufklappfenster verschieben"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "Manche Anwendungen markieren ihr Symbol als inaktiv, wenn es nichts zu melden gibt. Symbole, die Sie selbst in die Leiste legen, bleiben dort."
 
 msgid "(not running)"
 msgstr "(läuft nicht)"
@@ -233,6 +227,24 @@ msgstr "A_ufklappfenster"
 
 msgid "Co_mpact"
 msgstr "_Kompakt"
+
+msgid "Inac_tive icons:"
+msgstr "Inak_tive Symbole:"
+
+msgid "Hide"
+msgstr "Ausblenden"
+
+msgid "In the popup"
+msgstr "Im Aufklappfenster"
+
+msgid "Like the others"
+msgstr "Wie die anderen"
+
+msgid "(inactive)"
+msgstr "(inaktiv)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "Manche Anwendungen markieren ihr Symbol als inaktiv, wenn es nichts zu melden gibt. Ausblenden: wird nirgends angezeigt, bis die Anwendung wieder aktiv ist, wie im Benachrichtigungsbereich von XFCE. Im Aufklappfenster: Symbole, die Sie selbst in die Leiste legen, bleiben dort."
 
 #~ msgid "Panel"
 #~ msgstr "Leiste"

@@ -161,6 +161,17 @@ item_is_hidden (TrayPlugin *p, TrayItem *item)
 
 
 
+/* Inactivo con "Esconder": ni en el panel ni en el popup, como en la
+ * bandeja de XFCE. Vuelve solo cuando la app deja el estado Passive. */
+gboolean
+tray_plugin_item_is_concealed (TrayPlugin *p, TrayItem *item)
+{
+  return tray_item_get_status (item) == TRAY_ITEM_STATUS_PASSIVE
+         && tray_settings_get_passive_mode (p->settings) == TRAY_PASSIVE_HIDE;
+}
+
+
+
 /* ════════════════════════════════════════════════════════════════════════
  * Flecha
  * ════════════════════════════════════════════════════════════════════════ */
@@ -430,6 +441,9 @@ tray_plugin_relayout (TrayPlugin *p)
     {
       SortEntry *entry = &g_array_index (entries, SortEntry, i);
       GtkWidget *button = g_hash_table_lookup (p->buttons, entry->item);
+
+      if (tray_plugin_item_is_concealed (p, entry->item))
+        continue;
 
       if (item_is_hidden (p, entry->item))
         {

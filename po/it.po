@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "_Angoli:"
 
 msgid "Without a compositor, corners are always square."
 msgstr "Senza compositor, gli angoli sono sempre squadrati."
-
-msgid "Move inac_tive icons to the popup"
-msgstr "Sposta le icone _inattive nella finestra a comparsa"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "Alcune applicazioni segnano la propria icona come inattiva quando non hanno nulla da segnalare. Le icone che metti tu nel pannello restano lì."
 
 msgid "(not running)"
 msgstr "(non in esecuzione)"
@@ -233,6 +227,24 @@ msgstr "Fines_tra a comparsa"
 
 msgid "Co_mpact"
 msgstr "Co_mpatti"
+
+msgid "Inac_tive icons:"
+msgstr "Icone _inattive:"
+
+msgid "Hide"
+msgstr "Nascondi"
+
+msgid "In the popup"
+msgstr "Nella finestra a comparsa"
+
+msgid "Like the others"
+msgstr "Come le altre"
+
+msgid "(inactive)"
+msgstr "(inattiva)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "Alcune applicazioni segnano la propria icona come inattiva quando non hanno nulla da segnalare. Nascondi: non appare da nessuna parte finché l'applicazione non torna attiva, come nell'area di notifica di XFCE. Nella finestra a comparsa: le icone che metti tu nel pannello restano lì."
 
 #~ msgid "Panel"
 #~ msgstr "Pannello"

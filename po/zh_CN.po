@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "边角(_R)："
 
 msgid "Without a compositor, corners are always square."
 msgstr "没有混成器时，边角始终为直角。"
-
-msgid "Move inac_tive icons to the popup"
-msgstr "将非活动图标移到弹出窗口(_T)"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "有些应用在没有消息时会把图标标记为非活动。您自己放到面板上的图标会留在那里。"
 
 msgid "(not running)"
 msgstr "（未运行）"
@@ -233,6 +227,24 @@ msgstr "弹出窗口(_W)"
 
 msgid "Co_mpact"
 msgstr "紧凑(_M)"
+
+msgid "Inac_tive icons:"
+msgstr "非活动图标(_T)："
+
+msgid "Hide"
+msgstr "隐藏"
+
+msgid "In the popup"
+msgstr "在弹出窗口中"
+
+msgid "Like the others"
+msgstr "与其他图标相同"
+
+msgid "(inactive)"
+msgstr "（非活动）"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "有些应用在没有消息时会把图标标记为非活动。隐藏：在应用重新变为活动之前不在任何地方显示，与 XFCE 系统托盘相同。在弹出窗口中：您自己放到面板上的图标会留在那里。"
 
 #~ msgid "Panel"
 #~ msgstr "面板"

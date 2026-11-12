@@ -39,6 +39,14 @@ typedef enum
   TRAY_ARROW_END,           /* derecha (abajo) */
 } TrayArrowPosition;
 
+/* Íconos inactivos (estado Passive). Mismo orden que el desplegable */
+typedef enum
+{
+  TRAY_PASSIVE_HIDE = 0,    /* no se muestran en ningún lado (como la bandeja de XFCE) */
+  TRAY_PASSIVE_POPUP,       /* a la ventana emergente, salvo los puestos a mano en el panel */
+  TRAY_PASSIVE_SHOW,        /* como los demás */
+} TrayPassiveMode;
+
 typedef struct
 {
   gchar *key;
@@ -57,7 +65,7 @@ gint     tray_settings_get_popup_icon_size   (TraySettings *s);
 gint     tray_settings_get_panel_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_columns     (TraySettings *s);
-gboolean tray_settings_get_passive_in_popup  (TraySettings *s);
+gint     tray_settings_get_passive_mode      (TraySettings *s);
 gboolean tray_settings_get_new_in_popup      (TraySettings *s);
 gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
 gboolean tray_settings_get_single_row        (TraySettings *s);
@@ -71,7 +79,7 @@ void     tray_settings_set_popup_icon_size   (TraySettings *s, gint value);
 void     tray_settings_set_panel_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
-void     tray_settings_set_passive_in_popup  (TraySettings *s, gboolean value);
+void     tray_settings_set_passive_mode      (TraySettings *s, gint value);
 void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
 void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
 void     tray_settings_set_single_row        (TraySettings *s, gboolean value);
@@ -84,7 +92,8 @@ void     tray_settings_set_arrow_position    (TraySettings *s, gint value);
 gboolean tray_settings_get_legacy_tray       (TraySettings *s);
 void     tray_settings_set_legacy_tray       (TraySettings *s, gboolean value);
 
-/* Visibilidad. @passive indica si la app está en estado Passive */
+/* Visibilidad. @passive indica si la app está en estado Passive.
+ * Con TRAY_PASSIVE_HIDE dice dónde iría si se activara */
 gboolean tray_settings_is_hidden             (TraySettings *s, const gchar *key, gboolean passive);
 gchar   *tray_settings_get_hidden_csv        (TraySettings *s);
 /* Ocultar/mostrar explícitamente (anula la regla de los pasivos) */

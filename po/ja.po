@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "角(_R):"
 
 msgid "Without a compositor, corners are always square."
 msgstr "コンポジターがない場合、角は常に四角になります。"
-
-msgid "Move inac_tive icons to the popup"
-msgstr "非アクティブなアイコンをポップアップに移動する(_T)"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。自分でパネルに置いたアイコンはそのまま残ります。"
 
 msgid "(not running)"
 msgstr "(実行されていません)"
@@ -233,6 +227,24 @@ msgstr "ポップアップ(_W)"
 
 msgid "Co_mpact"
 msgstr "コンパクト(_M)"
+
+msgid "Inac_tive icons:"
+msgstr "非アクティブなアイコン(_T):"
+
+msgid "Hide"
+msgstr "隠す"
+
+msgid "In the popup"
+msgstr "ポップアップ内"
+
+msgid "Like the others"
+msgstr "ほかと同じ"
+
+msgid "(inactive)"
+msgstr "(非アクティブ)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。隠す: アプリが再びアクティブになるまでどこにも表示しません (XFCE のシステムトレイと同じ)。ポップアップ内: 自分でパネルに置いたアイコンはそのまま残ります。"
 
 #~ msgid "Panel"
 #~ msgstr "パネル"

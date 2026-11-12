@@ -73,6 +73,20 @@ status_name (TrayItemStatus status)
 
 
 static const gchar *
+passive_mode_name (gint mode)
+{
+  switch (mode)
+    {
+    case TRAY_PASSIVE_POPUP: return "in popup";
+    case TRAY_PASSIVE_SHOW:  return "shown";
+    case TRAY_PASSIVE_HIDE:
+    default:                 return "hidden";
+    }
+}
+
+
+
+static const gchar *
 mode_name (XfcePanelPluginMode mode)
 {
   switch (mode)
@@ -214,10 +228,10 @@ tray_diag_report (TrayPlugin *p)
                           tray_settings_get_popup_corners (p->settings),
                           tray_settings_get_arrow_position (p->settings));
   g_string_append_printf (out,
-                          "Options: passive in popup %s, new in popup %s, "
+                          "Options: inactive icons %s, new in popup %s, "
                           "symbolic %s, single row %s, compact buttons %s, "
                           "minimum button %d, older apps %s\n",
-                          yes_no (tray_settings_get_passive_in_popup (p->settings)),
+                          passive_mode_name (tray_settings_get_passive_mode (p->settings)),
                           yes_no (tray_settings_get_new_in_popup (p->settings)),
                           yes_no (tray_settings_get_symbolic_icons (p->settings)),
                           yes_no (tray_settings_get_single_row (p->settings)),
@@ -246,6 +260,8 @@ tray_diag_report (TrayPlugin *p)
         where = "popup";
       else if (button != NULL && in_order (p->panel_order, button))
         where = "panel";
+      else if (tray_plugin_item_is_concealed (p, item))
+        where = "hidden (inactive)";
       else
         where = "not placed";
 

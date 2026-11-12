@@ -114,6 +114,8 @@ struct _TrayPlugin
 gint tray_plugin_get_panel_icon_size (TrayPlugin *plugin);
 /* Filas de íconos en el panel: las del panel, o 1 con "una sola fila" */
 gint tray_plugin_get_panel_rows (TrayPlugin *plugin);
+/* Inactivo y con "Esconder": no se muestra en ningún lado */
+gboolean tray_plugin_item_is_concealed (TrayPlugin *p, TrayItem *item);
 
 /* Compartido entre to-plugin.c, to-popup.c y to-dnd.c */
 gboolean tray_plugin_is_horizontal       (TrayPlugin *p);

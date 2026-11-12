@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -65,12 +65,6 @@ msgstr "모서리(_R):"
 
 msgid "Without a compositor, corners are always square."
 msgstr "컴포지터가 없으면 모서리는 항상 각집니다."
-
-msgid "Move inac_tive icons to the popup"
-msgstr "비활성 아이콘을 팝업으로 이동(_T)"
-
-msgid "Some apps mark their icon as inactive when there is nothing to report. Icons you place in the panel yourself stay there."
-msgstr "일부 앱은 알릴 것이 없을 때 아이콘을 비활성으로 표시합니다. 직접 패널에 둔 아이콘은 그대로 남습니다."
 
 msgid "(not running)"
 msgstr "(실행 중 아님)"
@@ -233,6 +227,24 @@ msgstr "팝업 창(_W)"
 
 msgid "Co_mpact"
 msgstr "작게(_M)"
+
+msgid "Inac_tive icons:"
+msgstr "비활성 아이콘(_T):"
+
+msgid "Hide"
+msgstr "숨기기"
+
+msgid "In the popup"
+msgstr "팝업 안에"
+
+msgid "Like the others"
+msgstr "다른 아이콘과 같이"
+
+msgid "(inactive)"
+msgstr "(비활성)"
+
+msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
+msgstr "일부 앱은 알릴 것이 없을 때 아이콘을 비활성으로 표시합니다. 숨기기: 앱이 다시 활성화될 때까지 어디에도 표시하지 않습니다(XFCE 시스템 트레이와 같음). 팝업 안에: 직접 패널에 둔 아이콘은 그대로 남습니다."
 
 #~ msgid "Panel"
 #~ msgstr "패널"

@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.54\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanperez33840@gmail.com>\n"
@@ -60,9 +60,6 @@ msgstr "Es_quinas:"
 msgid "Without a compositor, corners are always square."
 msgstr "Sin compositor, las esquinas siempre son rectas."
 
-msgid "Move inac_tive icons to the popup"
-msgstr "Mover los íconos _inactivos a la ventana emergente"
-
 msgid "Use sym_bolic icons (if available)"
 msgstr "Usar íconos sim_bólicos (si están disponibles)"
 
@@ -84,13 +81,6 @@ msgid ""
 msgstr ""
 "Las apps que aparecen por primera vez empiezan ocultas. Las que ya están en "
 "la lista no cambian."
-
-msgid ""
-"Some apps mark their icon as inactive when there is nothing to report. Icons "
-"you place in the panel yourself stay there."
-msgstr ""
-"Algunas aplicaciones marcan su ícono como inactivo cuando no tienen nada que "
-"informar. Los íconos que ubique usted mismo en el panel se quedan ahí."
 
 msgid "(not running)"
 msgstr "(no está abierta)"
@@ -287,6 +277,31 @@ msgstr "_Ventana emergente"
 
 msgid "Co_mpact"
 msgstr "Co_mpactos"
+
+msgid "Inac_tive icons:"
+msgstr "Íconos _inactivos:"
+
+msgid "Hide"
+msgstr "Esconder"
+
+msgid "In the popup"
+msgstr "En la ventana emergente"
+
+msgid "Like the others"
+msgstr "Como los demás"
+
+msgid "(inactive)"
+msgstr "(inactiva)"
+
+msgid ""
+"Some apps mark their icon as inactive when there is nothing to report. Hide: "
+"not shown anywhere until the app becomes active again, like the XFCE tray. "
+"In the popup: icons you place in the panel yourself stay there."
+msgstr ""
+"Algunas aplicaciones marcan su ícono como inactivo cuando no tienen nada que "
+"informar. Esconder: no se muestra en ningún lado hasta que la aplicación "
+"vuelva a estar activa, como en la bandeja de XFCE. En la ventana emergente: "
+"los íconos que ubique usted mismo en el panel se quedan ahí."
 
 #~ msgid "Panel"
 #~ msgstr "Panel"
