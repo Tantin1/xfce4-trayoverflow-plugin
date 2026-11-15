@@ -2,7 +2,7 @@
 # Source identifiers validated against po/POTFILES on 2026-11-10.
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.55\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.57\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-11-12 13:40-0300\n"
 "MIME-Version: 1.0\n"

@@ -350,17 +350,6 @@ panel_page (DialogData *d)
   g_signal_connect (d->arrow_position, "changed", G_CALLBACK (arrow_position_changed), d);
   add_row (grid, &row, _("Arrow p_osition:"), d->arrow_position, NULL);
 
-  /* También vale para el popup, como en la bandeja de XFCE */
-  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
-  gtk_widget_set_tooltip_text (d->symbolic,
-                               _("Monochrome icons in the color of the panel text, in the "
-                                 "panel and in the popup. Only for apps whose icon comes "
-                                 "from the icon theme; the rest keep their own icon."));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
-                                tray_settings_get_symbolic_icons (s));
-  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
-  add_check (grid, &row, d->symbolic);
-
   d->single_row = gtk_check_button_new_with_mnemonic (_("Use a sin_gle row of icons in the panel"));
   gtk_widget_set_tooltip_text (d->single_row,
                                _("All the icons in one row (one column in a vertical panel), "
@@ -1308,6 +1297,17 @@ items_page (DialogData *d)
     gtk_box_pack_start (GTK_BOX (vbox), row, FALSE, FALSE, 0);
   }
 
+  /* Vale para el panel y el popup; junto a Ícono… porque se combinan */
+  d->symbolic = gtk_check_button_new_with_mnemonic (_("Use sym_bolic icons (if available)"));
+  gtk_widget_set_tooltip_text (d->symbolic,
+                               _("Monochrome icons in the color of the panel text, in the "
+                                 "panel and in the popup. Only for apps whose icon comes "
+                                 "from the icon theme; the rest keep their own icon."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
+                                tray_settings_get_symbolic_icons (d->p->settings));
+  g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
+  gtk_box_pack_start (GTK_BOX (vbox), d->symbolic, FALSE, FALSE, 0);
+
   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
 
   rebuild_list (d);
@@ -1465,12 +1465,13 @@ tray_dialog_show (TrayPlugin *p)
   xfce_panel_plugin_block_menu (p->panel_plugin);
 
   notebook = gtk_notebook_new ();
+  /* Elementos primero: es la que más se usa */
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
+                            gtk_label_new_with_mnemonic (_("_Items")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, panel_page (d)),
                             gtk_label_new_with_mnemonic (_("Pan_el button")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), scrollable_page (d, popup_page (d)),
                             gtk_label_new_with_mnemonic (_("Popup _window")));
-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook), items_page (d),
-                            gtk_label_new_with_mnemonic (_("_Items")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook), diag_page (d),
                             gtk_label_new_with_mnemonic (_("_Diagnostics")));
   g_signal_connect (notebook, "switch-page", G_CALLBACK (diag_page_switched), d);

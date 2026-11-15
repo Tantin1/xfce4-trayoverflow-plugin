@@ -10,8 +10,8 @@
 #include <string.h>
 #include <xfconf/xfconf.h>
 
-#define DEFAULT_PANEL_ICON_SIZE  0    /* automático */
-#define DEFAULT_POPUP_ICON_SIZE  24
+#define DEFAULT_PANEL_ICON_SIZE  22
+#define DEFAULT_POPUP_ICON_SIZE  22
 #define DEFAULT_PANEL_SPACING    2
 #define DEFAULT_POPUP_SPACING    6
 #define DEFAULT_POPUP_COLUMNS    4
@@ -19,10 +19,10 @@
 #define DEFAULT_ARROW_POSITION   TRAY_ARROW_START
 #define DEFAULT_PASSIVE_MODE     TRAY_PASSIVE_HIDE
 #define DEFAULT_NEW_IN_POPUP     FALSE
-#define DEFAULT_SYMBOLIC_ICONS   FALSE
+#define DEFAULT_SYMBOLIC_ICONS   TRUE
 #define DEFAULT_SINGLE_ROW       FALSE
 #define DEFAULT_COMPACT_BUTTONS  FALSE
-#define DEFAULT_LEGACY_TRAY      FALSE
+#define DEFAULT_LEGACY_TRAY      TRUE
 #define MAX_KNOWN                200
 #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
 #define RELOAD_DELAY_MS          250  /* agrupar cambios hechos desde afuera */
