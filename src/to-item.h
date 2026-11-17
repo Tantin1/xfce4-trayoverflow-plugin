@@ -61,6 +61,10 @@ TrayItemStatus  tray_item_get_status         (TrayItem *item);
 gboolean        tray_item_get_is_menu        (TrayItem *item);
 /* App antigua (XEmbed) mostrada por nuestro proxy */
 gboolean        tray_item_get_is_legacy      (TrayItem *item);
+/* Texto corto que la app quiere junto a su ícono ("42 °C", "es"), o NULL.
+ * La guía es el texto más ancho que piensa mostrar (para reservar lugar) */
+const gchar    *tray_item_get_label          (TrayItem *item);
+const gchar    *tray_item_get_label_guide    (TrayItem *item);
 gchar          *tray_item_get_tooltip_markup (TrayItem *item);
 
 /* Devuelve un pixbuf de (size * scale) píxeles, o NULL.
@@ -103,6 +107,7 @@ void tray_item_set_icon            (TrayItem         *item,
                                     const gchar      *icon_name,
                                     GPtrArray        *pixmaps);
 void tray_item_set_icon_theme_path (TrayItem *item, const gchar *path);
+void tray_item_set_label           (TrayItem *item, const gchar *label, const gchar *guide);
 void tray_item_set_tooltip         (TrayItem    *item,
                                     const gchar *title,
                                     const gchar *text);
@@ -112,6 +117,7 @@ typedef enum
   TRAY_ITEM_CHANGE_ICON   = 1 << 0,  /* ícono, píxeles, carpeta de íconos */
   TRAY_ITEM_CHANGE_TEXT   = 1 << 1,  /* título o tooltip */
   TRAY_ITEM_CHANGE_STATUS = 1 << 2,  /* activo / pasivo / pide atención */
+  TRAY_ITEM_CHANGE_LABEL  = 1 << 3,  /* texto junto al ícono */
 } TrayItemChanges;
 
 /* Emite "changed" una vez tras una tanda de setters, solo si algo cambió */

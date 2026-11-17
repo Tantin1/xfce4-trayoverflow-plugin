@@ -27,6 +27,8 @@ void       tray_button_set_icon_override (TrayButton *button, const gchar *icon)
  * el botón no se achica aunque el ícono sea chico */
 void tray_button_set_min_size (TrayButton *button, gint width, gint height);
 void       tray_button_set_symbolic      (TrayButton *button, gboolean symbolic);
+/* Mostrar el texto que la app pone junto a su ícono (si tiene) */
+void       tray_button_set_show_label    (TrayButton *button, gboolean show);
 void       tray_button_set_panel_anchor  (TrayButton *button, GtkWidget *anchor);
 void       tray_button_activate_from_keyboard (TrayButton *button, gboolean menu);
 

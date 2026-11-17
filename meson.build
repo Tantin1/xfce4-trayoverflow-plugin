@@ -1,7 +1,7 @@
 project(
   'xfce4-trayoverflow-plugin',
   'c',
-  version: '0.2.57',
+  version: '0.2.69',
   license: 'GPL-2.0-or-later',
   meson_version: '>= 0.56.0',
   default_options: [
@@ -110,7 +110,7 @@ shared_module(
 if have_proxy
   executable(
     'xembed-proxy',
-    files('proxy/xembed-proxy.c'),
+    files('proxy/xembed-proxy.c', 'proxy/xp-logic.c'),
     include_directories: include_directories('.'),
     dependencies: [gio_dep, gio_unix_dep, x11_proxy_dep, xcomposite_dep,
                    xdamage_dep, xfixes_dep, xext_dep, xtst_dep],
@@ -133,6 +133,9 @@ configure_file(
 
 # ── Íconos por defecto para apps que se ven mal ───────────────────────────
 install_data('data/icon-defaults.conf', install_dir: pkg_datadir)
+
+# ── Pruebas rápidas (meson test) ──────────────────────────────────────────
+subdir('tests/unit')
 
 # ── Traducciones ──────────────────────────────────────────────────────────
 subdir('po')

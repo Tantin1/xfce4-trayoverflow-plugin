@@ -19,6 +19,8 @@ struct _TrayButton
 
   TrayItem  *item;
   GtkWidget *image;
+  GtkWidget *label;            /* texto de la app junto al ícono (oculto si no hay) */
+  gboolean   show_label;
   gint       icon_size;
   gboolean   sized;            /* ya recibió su tamaño real */
   gint       min_width;        /* espacio mínimo para la imagen (0 = el del ícono) */
@@ -27,6 +29,8 @@ struct _TrayButton
   guint      pressed_button;   /* botón presionado sobre nosotros, 0 si ninguno */
   gdouble    scroll_x;         /* acumuladores de scroll suave */
   gdouble    scroll_y;
+
+  gchar     *a11y_name;        /* nombre para lectores de pantalla */
 
   gulong     changed_id;
   gulong     fallback_id;
@@ -42,6 +46,9 @@ struct _TrayButton
   gboolean   symbolic;         /* preferir la variante simbólica del tema */
   GtkWidget *panel_anchor;     /* el plugin en el panel (referencia débil) */
 };
+
+/* Separación entre el ícono y el texto de la app */
+#define LABEL_GAP 4
 
 G_DEFINE_TYPE (TrayButton, tray_button, GTK_TYPE_BUTTON)
 
@@ -421,6 +428,7 @@ tray_button_dispose (GObject *object)
       g_clear_object (&button->item);
     }
   g_clear_pointer (&button->tooltip, g_free);
+  g_clear_pointer (&button->a11y_name, g_free);
   g_clear_pointer (&button->icon_override, g_free);
   g_clear_pointer (&button->activate_event, gdk_event_free);
   g_clear_weak_pointer (&button->panel_anchor);
@@ -470,6 +478,7 @@ static void
 tray_button_init (TrayButton *button)
 {
   GtkWidget *widget = GTK_WIDGET (button);
+  GtkWidget *box;
 
   button->icon_size = 16;
 
@@ -480,14 +489,90 @@ tray_button_init (TrayButton *button)
   gtk_style_context_add_class (gtk_widget_get_style_context (widget),
                                TO_CSS_PREFIX "-button");
 
+  /* Ícono y, si la app lo manda, un texto corto a su derecha. Sin
+   * texto la caja mide lo que el ícono: nada cambia */
+  box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, LABEL_GAP);
+  gtk_widget_set_halign (box, GTK_ALIGN_CENTER);
+  gtk_container_add (GTK_CONTAINER (button), box);
+  gtk_widget_show (box);
+
   button->image = gtk_image_new ();
-  gtk_container_add (GTK_CONTAINER (button), button->image);
+  gtk_box_pack_start (GTK_BOX (box), button->image, FALSE, FALSE, 0);
   gtk_widget_show (button->image);
+
+  button->show_label = TRUE;
+  button->label = gtk_label_new (NULL);
+  gtk_label_set_single_line_mode (GTK_LABEL (button->label), TRUE);
+  gtk_label_set_xalign (GTK_LABEL (button->label), 0.0);   /* pegado al ícono */
+  gtk_style_context_add_class (gtk_widget_get_style_context (button->label),
+                               TO_CSS_PREFIX "-label");
+  gtk_widget_set_no_show_all (button->label, TRUE);
+  gtk_box_pack_start (GTK_BOX (box), button->label, FALSE, FALSE, 0);
 }
 
 
 
 static void update_tooltip (TrayButton *button);
+
+/* Nombre para lectores de pantalla (Orca): el de la app y, si se ve, su
+ * texto ("Sensores 42 °C"). Sin esto el botón, que solo tiene una imagen,
+ * no tiene nombre. La descripción la pone GTK sola con el tooltip. */
+static void
+update_accessible (TrayButton *button)
+{
+  const gchar *name = NULL, *label = NULL;
+  gchar *full;
+
+  if (button->item != NULL)
+    {
+      name = tray_item_get_display_name (button->item);
+      if (button->show_label)
+        label = tray_item_get_label (button->item);
+    }
+
+  if (label == NULL)
+    full = g_strdup (name != NULL ? name : "");
+  else if (name == NULL || *name == '\0')
+    full = g_strdup (label);
+  else
+    full = g_strdup_printf ("%s %s", name, label);
+
+  if (g_strcmp0 (full, button->a11y_name) != 0)
+    {
+      atk_object_set_name (gtk_widget_get_accessible (GTK_WIDGET (button)), full);
+      g_free (button->a11y_name);
+      button->a11y_name = full;
+    }
+  else
+    {
+      g_free (full);
+    }
+}
+
+/* Texto de la app junto al ícono. El ancho se reserva según la guía (el
+ * texto más ancho que la app piensa mostrar), para que el panel no se
+ * mueva cuando cambia de "9 °C" a "10 °C" */
+static void
+update_label (TrayButton *button)
+{
+  const gchar *text = button->item != NULL ? tray_item_get_label (button->item) : NULL;
+  const gchar *guide = button->item != NULL ? tray_item_get_label_guide (button->item) : NULL;
+
+  if (text == NULL || !button->show_label)
+    {
+      gtk_widget_hide (button->label);
+    }
+  else
+    {
+      gtk_label_set_text (GTK_LABEL (button->label), text);
+      gtk_label_set_width_chars (GTK_LABEL (button->label),
+                                 guide != NULL ? (gint) g_utf8_strlen (guide, -1) : -1);
+      gtk_widget_show (button->label);
+    }
+
+  update_accessible (button);
+}
+
 
 /* La app cambió algo: si fue solo el texto (p. ej. "Descargando: 42 %"),
  * no hace falta volver a dibujar el ícono */
@@ -495,6 +580,11 @@ static void
 item_changed (TrayButton *button)
 {
   guint changes = tray_item_get_changes (button->item);
+
+  if (changes & TRAY_ITEM_CHANGE_LABEL)
+    update_label (button);
+  else if (changes & TRAY_ITEM_CHANGE_TEXT)
+    update_accessible (button);
 
   if (changes & (TRAY_ITEM_CHANGE_ICON | TRAY_ITEM_CHANGE_STATUS))
     tray_button_update (button);
@@ -520,6 +610,7 @@ tray_button_new (TrayItem *item)
                                                   G_CALLBACK (tray_button_activate_fallback),
                                                   button);
 
+  update_label (button);
   tray_button_update (button);
   return GTK_WIDGET (button);
 }
@@ -602,6 +693,21 @@ tray_button_set_symbolic (TrayButton *button,
     {
       button->symbolic = !!symbolic;
       tray_button_update (button);
+    }
+}
+
+
+
+void
+tray_button_set_show_label (TrayButton *button,
+                            gboolean    show)
+{
+  g_return_if_fail (TRAY_IS_BUTTON (button));
+
+  if (button->show_label != !!show)
+    {
+      button->show_label = !!show;
+      update_label (button);
     }
 }
 

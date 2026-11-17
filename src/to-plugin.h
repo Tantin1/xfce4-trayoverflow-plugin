@@ -26,6 +26,7 @@ typedef struct
   gint     panel_spacing;
   gint     popup_spacing;
   gint     button_min;   /* botón mínimo (como un ícono de N px); 0 = compactos */
+  gboolean labels;       /* mostrar el texto que la app pone junto a su ícono */
 } TrayLayoutParams;
 
 struct _TrayPlugin

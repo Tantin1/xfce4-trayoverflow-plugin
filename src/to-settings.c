@@ -23,9 +23,22 @@
 #define DEFAULT_SINGLE_ROW       FALSE
 #define DEFAULT_COMPACT_BUTTONS  FALSE
 #define DEFAULT_LEGACY_TRAY      TRUE
+#define DEFAULT_SHOW_LABELS      TRUE
 #define MAX_KNOWN                200
 #define SAVE_DELAY_SECONDS       2    /* agrupar escrituras en xfconf */
 #define RELOAD_DELAY_MS          250  /* agrupar cambios hechos desde afuera */
+
+/* Listas que se guardan juntas */
+enum
+{
+  LIST_HIDDEN,
+  LIST_VISIBLE,
+  LIST_KNOWN,
+  LIST_ICONS,
+  N_LISTS
+};
+
+#define N_SCALARS 15
 
 struct _TraySettings
 {
@@ -48,6 +61,7 @@ struct _TraySettings
   gboolean       compact_buttons;   /* botones del tamaño del ícono (sin mínimo) */
   gint           button_min_size;   /* botón mínimo: como un ícono de N px */
   gboolean       legacy_tray;
+  gboolean       show_labels;       /* texto que la app pone junto a su ícono */
 
   GHashTable    *hidden;   /* claves ocultas explícitamente */
   GHashTable    *visible;  /* claves mostradas explícitamente */
@@ -59,6 +73,11 @@ struct _TraySettings
   gboolean       pending_known;
 
   guint          save_id;     /* guardado diferido pendiente */
+
+  /* Lo que hay en xfconf (lo último leído o escrito): al guardar solo se
+   * escribe lo que quedó distinto */
+  gint           saved_scalars[N_SCALARS];
+  gchar         *saved_lists[N_LISTS];
   gboolean       discarded;   /* el plugin fue quitado: no volver a escribir */
 
   gulong         property_changed_id;
@@ -155,17 +174,6 @@ read_int (TraySettings *s, const gchar *name, gint def, gint min, gint max)
 
   g_free (p);
   return CLAMP (value, min, max);
-}
-
-
-
-static void
-write_int (TraySettings *s, const gchar *name, gint value)
-{
-  gchar *p = prop (s, name);
-
-  xfconf_channel_set_int (s->channel, p, value);
-  g_free (p);
 }
 
 
@@ -271,49 +279,7 @@ write_icons (TraySettings *s)
 
 
 
-static void
-save_all (TraySettings *s)
-{
-  write_int (s, "panel-icon-size", s->panel_icon_size);
-  write_int (s, "popup-icon-size", s->popup_icon_size);
-  write_int (s, "panel-spacing", s->panel_spacing);
-  write_int (s, "popup-spacing", s->popup_spacing);
-  write_int (s, "popup-columns", s->popup_columns);
-  write_int (s, "popup-corners", s->popup_corners);
-  write_int (s, "arrow-position", s->arrow_position);
-  write_int (s, "passive-mode", s->passive_mode);
-
-  {
-    /* Opción vieja (hasta 0.2.54), reemplazada por passive-mode */
-    gchar *p = prop (s, "passive-in-popup");
-    if (xfconf_channel_has_property (s->channel, p))
-      xfconf_channel_reset_property (s->channel, p, FALSE);
-    g_free (p);
-    p = prop (s, "new-in-popup");
-    xfconf_channel_set_bool (s->channel, p, s->new_in_popup);
-    g_free (p);
-    p = prop (s, "symbolic-icons");
-    xfconf_channel_set_bool (s->channel, p, s->symbolic_icons);
-    g_free (p);
-    p = prop (s, "single-row");
-    xfconf_channel_set_bool (s->channel, p, s->single_row);
-    g_free (p);
-    p = prop (s, "compact-buttons");
-    xfconf_channel_set_bool (s->channel, p, s->compact_buttons);
-    g_free (p);
-    p = prop (s, "button-min-size");
-    xfconf_channel_set_int (s->channel, p, s->button_min_size);
-    g_free (p);
-    p = prop (s, "legacy-tray");
-    xfconf_channel_set_bool (s->channel, p, s->legacy_tray);
-    g_free (p);
-  }
-
-  write_set (s, "hidden-items", s->hidden);
-  write_set (s, "visible-items", s->visible);
-  write_known (s);
-  write_icons (s);
-}
+static void save_changed (TraySettings *s);
 
 
 
@@ -389,6 +355,11 @@ load_all (TraySettings *s)
   s->legacy_tray = xfconf_channel_get_bool (s->channel, p, DEFAULT_LEGACY_TRAY);
   g_free (p);
 
+  /* Sin casilla en el diálogo: se cambia con xfconf-query */
+  p = prop (s, "show-labels");
+  s->show_labels = xfconf_channel_get_bool (s->channel, p, DEFAULT_SHOW_LABELS);
+  g_free (p);
+
   load_set (s, "hidden-items", s->hidden);
   load_set (s, "visible-items", s->visible);
 
@@ -433,7 +404,7 @@ save_timeout (gpointer user_data)
   TraySettings *s = user_data;
 
   s->save_id = 0;
-  save_all (s);
+  save_changed (s);
   return G_SOURCE_REMOVE;
 }
 
@@ -460,7 +431,7 @@ tray_settings_flush (TraySettings *s)
     {
       g_source_remove (s->save_id);
       s->save_id = 0;
-      save_all (s);
+      save_changed (s);
     }
 }
 
@@ -627,7 +598,8 @@ snapshot (TraySettings *s)
   GString *out = g_string_new (NULL);
   guint i;
 
-  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+  g_string_append_printf (out, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+                          s->show_labels,
                           s->panel_icon_size, s->popup_icon_size, s->panel_spacing,
                           s->popup_spacing, s->popup_columns, s->popup_corners,
                           s->arrow_position, s->symbolic_icons, s->single_row,
@@ -650,6 +622,167 @@ snapshot (TraySettings *s)
 }
 
 
+/* ── Guardar solo lo modificado ──────────────────────────────────────────
+ * Cada opción se escribe en xfconf solo si quedó distinta de lo último
+ * leído o escrito. Así un guardado nuestro no pisa lo que otro programa
+ * cambió en otra opción, y una opción que el usuario nunca tocó no queda
+ * escrita: sigue el valor por defecto, también si cambia en otra versión. */
+
+typedef struct
+{
+  const gchar *name;
+  goffset      offset;
+  gboolean     is_bool;
+} ScalarInfo;
+
+#define SCALAR(name, field, is_bool) { name, G_STRUCT_OFFSET (TraySettings, field), is_bool }
+
+static const ScalarInfo scalars[N_SCALARS] = {
+  SCALAR ("panel-icon-size", panel_icon_size, FALSE),
+  SCALAR ("popup-icon-size", popup_icon_size, FALSE),
+  SCALAR ("panel-spacing",   panel_spacing,   FALSE),
+  SCALAR ("popup-spacing",   popup_spacing,   FALSE),
+  SCALAR ("popup-columns",   popup_columns,   FALSE),
+  SCALAR ("popup-corners",   popup_corners,   FALSE),
+  SCALAR ("arrow-position",  arrow_position,  FALSE),
+  SCALAR ("passive-mode",    passive_mode,    FALSE),
+  SCALAR ("button-min-size", button_min_size, FALSE),
+  SCALAR ("new-in-popup",    new_in_popup,    TRUE),
+  SCALAR ("symbolic-icons",  symbolic_icons,  TRUE),
+  SCALAR ("single-row",      single_row,      TRUE),
+  SCALAR ("compact-buttons", compact_buttons, TRUE),
+  SCALAR ("legacy-tray",     legacy_tray,     TRUE),
+  SCALAR ("show-labels",     show_labels,     TRUE),
+};
+
+
+
+static gint
+scalar_value (TraySettings *s, guint i)
+{
+  return G_STRUCT_MEMBER (gint, s, scalars[i].offset);
+}
+
+
+
+/* El contenido de una lista, en texto, para comparar */
+static gchar *
+list_digest (TraySettings *s, guint list)
+{
+  GString *out = g_string_new (NULL);
+  guint i;
+
+  switch (list)
+    {
+    case LIST_HIDDEN:
+      snapshot_set (out, "hidden", s->hidden, FALSE);
+      break;
+
+    case LIST_VISIBLE:
+      snapshot_set (out, "visible", s->visible, FALSE);
+      break;
+
+    case LIST_ICONS:
+      snapshot_set (out, "icons", s->icons, TRUE);
+      break;
+
+    case LIST_KNOWN:
+    default:
+      for (i = 0; i < s->known->len; i++)
+        {
+          TrayKnown *k = g_ptr_array_index (s->known, i);
+
+          g_string_append_printf (out, "%s\x1f%s\x1f%s\n", k->key,
+                                  k->title != NULL ? k->title : "",
+                                  k->icon_name != NULL ? k->icon_name : "");
+        }
+      break;
+    }
+
+  return g_string_free (out, FALSE);
+}
+
+
+
+/* Lo que hay en memoria es lo que hay en xfconf (recién leído) */
+static void
+mark_saved (TraySettings *s)
+{
+  guint i;
+
+  for (i = 0; i < N_SCALARS; i++)
+    s->saved_scalars[i] = scalar_value (s, i);
+
+  for (i = 0; i < N_LISTS; i++)
+    {
+      g_free (s->saved_lists[i]);
+      s->saved_lists[i] = list_digest (s, i);
+    }
+}
+
+
+
+static void
+save_changed (TraySettings *s)
+{
+  gchar *p;
+  guint i;
+
+  for (i = 0; i < N_SCALARS; i++)
+    {
+      gint value = scalar_value (s, i);
+
+      if (value == s->saved_scalars[i])
+        continue;
+
+      p = prop (s, scalars[i].name);
+      if (scalars[i].is_bool)
+        xfconf_channel_set_bool (s->channel, p, value);
+      else
+        xfconf_channel_set_int (s->channel, p, value);
+      g_free (p);
+      s->saved_scalars[i] = value;
+    }
+
+  for (i = 0; i < N_LISTS; i++)
+    {
+      gchar *digest = list_digest (s, i);
+
+      if (g_strcmp0 (digest, s->saved_lists[i]) == 0)
+        {
+          g_free (digest);
+          continue;
+        }
+
+      switch (i)
+        {
+        case LIST_HIDDEN:
+          write_set (s, "hidden-items", s->hidden);
+          break;
+        case LIST_VISIBLE:
+          write_set (s, "visible-items", s->visible);
+          break;
+        case LIST_ICONS:
+          write_icons (s);
+          break;
+        case LIST_KNOWN:
+        default:
+          write_known (s);
+          break;
+        }
+
+      g_free (s->saved_lists[i]);
+      s->saved_lists[i] = digest;
+    }
+
+  /* Opción vieja (hasta 0.2.54), reemplazada por passive-mode */
+  p = prop (s, "passive-in-popup");
+  if (xfconf_channel_has_property (s->channel, p))
+    xfconf_channel_reset_property (s->channel, p, FALSE);
+  g_free (p);
+}
+
+
 
 static gboolean
 reload_timeout (gpointer user_data)
@@ -657,12 +790,19 @@ reload_timeout (gpointer user_data)
   TraySettings *s = user_data;
   gchar *before, *after;
 
+  /* En medio de un cambio agrupado: se relee al terminar */
+  if (s->freeze_count > 0 && !s->discarded)
+    return G_SOURCE_CONTINUE;
+
   s->reload_id = 0;
 
-  /* Hay cambios nuestros sin escribir: ganan ellos (se escriben enseguida
-   * y su aviso de vuelta ya coincidirá) */
-  if (s->save_id != 0 || s->freeze_count > 0 || s->discarded)
+  if (s->discarded)
     return G_SOURCE_REMOVE;
+
+  /* Hay cambios nuestros sin escribir: se escriben ahora. Como solo se
+   * escribe lo que cambiamos, lo que vino de afuera en otras opciones
+   * queda y se lee enseguida; en la misma opción ganamos nosotros */
+  tray_settings_flush (s);
 
   before = snapshot (s);
 
@@ -671,6 +811,7 @@ reload_timeout (gpointer user_data)
   g_hash_table_remove_all (s->icons);
   g_ptr_array_set_size (s->known, 0);
   load_all (s);
+  mark_saved (s);
 
   after = snapshot (s);
 
@@ -713,6 +854,7 @@ static void
 tray_settings_finalize (GObject *object)
 {
   TraySettings *s = TRAY_SETTINGS (object);
+  guint i;
 
   /* Escribir lo pendiente antes de cerrar (salvo que el plugin se haya
    * quitado del panel: ahí su configuración ya no debe existir) */
@@ -728,6 +870,8 @@ tray_settings_finalize (GObject *object)
   g_hash_table_unref (s->visible);
   g_hash_table_unref (s->icons);
   g_ptr_array_unref (s->known);
+  for (i = 0; i < N_LISTS; i++)
+    g_free (s->saved_lists[i]);
   g_free (s->base);
   xfconf_shutdown ();
 
@@ -790,6 +934,7 @@ tray_settings_new (XfcePanelPlugin *plugin)
   s->base = g_strdup (xfce_panel_plugin_get_property_base (plugin));
 
   load_all (s);
+  mark_saved (s);
 
   s->property_changed_id = g_signal_connect (s->channel, "property-changed",
                                              G_CALLBACK (property_changed), s);
@@ -988,6 +1133,29 @@ tray_settings_set_new_in_popup (TraySettings *s, gboolean value)
   if (s->new_in_popup != !!value)
     {
       s->new_in_popup = !!value;
+      notify (s, TRUE);
+    }
+}
+
+
+
+gboolean
+tray_settings_get_show_labels (TraySettings *s)
+{
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), DEFAULT_SHOW_LABELS);
+  return s->show_labels;
+}
+
+
+
+void
+tray_settings_set_show_labels (TraySettings *s, gboolean value)
+{
+  g_return_if_fail (TRAY_IS_SETTINGS (s));
+
+  if (s->show_labels != !!value)
+    {
+      s->show_labels = !!value;
       notify (s, TRUE);
     }
 }

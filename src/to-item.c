@@ -25,6 +25,9 @@ typedef struct
   gchar          *tooltip_title;
   gchar          *tooltip_text;
 
+  gchar          *label;           /* texto junto al ícono, o NULL */
+  gchar          *label_guide;
+
   GHashTable     *size_requests;   /* requester → píxeles */
   gint            size_sent;       /* último tamaño pasado al backend */
 
@@ -64,6 +67,8 @@ tray_item_finalize (GObject *object)
   g_clear_object (&priv->path_theme);
   g_free (priv->tooltip_title);
   g_free (priv->tooltip_text);
+  g_free (priv->label);
+  g_free (priv->label_guide);
   g_clear_pointer (&priv->size_requests, g_hash_table_unref);
 
   G_OBJECT_CLASS (tray_item_parent_class)->finalize (object);
@@ -166,6 +171,24 @@ tray_item_get_is_legacy (TrayItem *item)
 {
   g_return_val_if_fail (TRAY_IS_ITEM (item), FALSE);
   return PRIV (item)->is_legacy;
+}
+
+
+
+const gchar *
+tray_item_get_label (TrayItem *item)
+{
+  g_return_val_if_fail (TRAY_IS_ITEM (item), NULL);
+  return PRIV (item)->label;
+}
+
+
+
+const gchar *
+tray_item_get_label_guide (TrayItem *item)
+{
+  g_return_val_if_fail (TRAY_IS_ITEM (item), NULL);
+  return PRIV (item)->label_guide;
 }
 
 
@@ -781,6 +804,60 @@ tray_item_set_icon (TrayItem         *item,
     g_ptr_array_unref (priv->pixmaps[role]);
   priv->pixmaps[role] = pixmaps;
   priv->changes |= TRAY_ITEM_CHANGE_ICON;
+}
+
+
+
+/* Largo máximo del texto junto al ícono (caracteres) */
+#define TRAY_LABEL_MAX 32
+
+/* Una sola línea, sin espacios sobrantes y de largo acotado; NULL si no
+ * queda nada. El texto lo manda la app: no hay que confiar en él */
+static gchar *
+clean_label (const gchar *text)
+{
+  gchar *clean, *p;
+
+  if (text == NULL)
+    return NULL;
+
+  clean = g_utf8_make_valid (text, -1);
+  for (p = clean; *p != '\0'; p++)
+    if (g_ascii_iscntrl (*p))
+      *p = ' ';
+  g_strstrip (clean);
+
+  if (g_utf8_strlen (clean, -1) > TRAY_LABEL_MAX)
+    {
+      *g_utf8_offset_to_pointer (clean, TRAY_LABEL_MAX) = '\0';
+      g_strchomp (clean);
+    }
+
+  if (*clean == '\0')
+    g_clear_pointer (&clean, g_free);
+  return clean;
+}
+
+
+
+void
+tray_item_set_label (TrayItem *item, const gchar *label, const gchar *guide)
+{
+  TrayItemPrivate *priv;
+  gchar *clean_text, *clean_guide;
+
+  g_return_if_fail (TRAY_IS_ITEM (item));
+  priv = PRIV (item);
+
+  clean_text = clean_label (label);
+  clean_guide = clean_text != NULL ? clean_label (guide) : NULL;
+
+  if (replace_string (&priv->label, clean_text)
+      | replace_string (&priv->label_guide, clean_guide))
+    priv->changes |= TRAY_ITEM_CHANGE_LABEL;
+
+  g_free (clean_text);
+  g_free (clean_guide);
 }
 
 

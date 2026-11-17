@@ -4,6 +4,8 @@
 # Uso:  bash tests/run.sh              (todas las pruebas)
 #       bash tests/run.sh popup_rueda  (solo las nombradas)
 #       bash tests/run.sh --lista      (ver los nombres)
+#       TRAYOVERFLOW_TEST_KEEP=1 bash tests/run.sh …   (no borrar las
+#                                       carpetas con registros y capturas)
 #
 # Prueba el plugin INSTALADO (el que deja install.sh). Cada prueba corre en
 # su propia pantalla virtual (Xvfb), con su propio D-Bus y su propia
@@ -30,7 +32,10 @@ TESTS=(proxy_rueda proxy_wayland_rueda proxy_baja
        panel_app_moderna popup_cierre popup_rueda popup_menu_app_antigua
        arrastre_ocultar arrastre_mostrar atajo teclado apps_nuevas
        iconos_simbolicos un_menu_por_clic un_menu_tras_reiniciar
-       un_menu_en_popup un_menu_al_reiniciar_app)
+       un_menu_en_popup un_menu_al_reiniciar_app
+       registro_repetido registro_temprano avisos_vacios guardado_minimo
+       texto_junto_al_icono nombres_accesibles icono_sin_alfa icono_con_forma
+       proxy_wayland_wine proxy_wayland_menu)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -271,6 +276,111 @@ t_proxy_wayland_rueda() {
     || fail "rueda sin clic previo: $(count 'SCROLL down' "$WORK/app.log") pasos (esperado 2)"
 }
 
+# Proxy en modo Wayland con una app de Wine (0068): antes ningún clic le
+# llegaba. Necesita wine y x86_64-w64-mingw32-gcc; sin ellos, se saltea
+t_proxy_wayland_wine() {
+  local exe="$WORK/wine_tray.exe" item svc i
+  if ! command -v wine >/dev/null 2>&1 \
+     || ! x86_64-w64-mingw32-gcc "$APPS/wine_tray.c" -o "$exe" -mwindows 2>>"$WORK/apps.err"; then
+    ok "sin wine o sin mingw: prueba salteada"
+    return
+  fi
+  export WINEPREFIX="$WORK/wine" WINEDEBUG=-all
+  wineboot -i >>"$WORK/apps.err" 2>&1
+  start_app watcher.py "$WORK/watcher.log"
+  sleep 0.5
+  "$PROXY" --verbose --wayland >"$WORK/proxy.log" 2>&1 & PIDS+=($!)
+  sleep 0.5
+  wine "$exe" "Z:$(printf '%s' "$WORK/app.log" | tr / '\\')" >>"$WORK/apps.err" 2>&1 & PIDS+=($!)
+  wait_for "grep -q ITEM '$WORK/watcher.log'" 40 || { fail "el proxy no publicó la app de Wine"; wineserver -k; return; }
+  sleep 2
+  svc=$(awk '/ITEM/{print $2; exit}' "$WORK/watcher.log")
+  item="--session --dest $svc --object-path /StatusNotifierItem"
+  gdbus call $item --method org.xfce.TrayOverflow.XEmbedItem.SetPointer \
+    $((SCREEN_W / 2)) $((SCREEN_H - 30)) >/dev/null
+  gdbus call $item --method org.kde.StatusNotifierItem.Activate \
+    $((SCREEN_W / 2)) $((SCREEN_H - 30)) >/dev/null
+  sleep 1.5
+  gdbus call $item --method org.kde.StatusNotifierItem.ContextMenu \
+    $((SCREEN_W / 2)) $((SCREEN_H - 30)) >/dev/null
+  sleep 1.5
+  grep -q LUP "$WORK/app.log" && ok "clic izquierdo a la app de Wine" \
+    || fail "la app de Wine no recibió el clic izquierdo"
+  grep -q RUP "$WORK/app.log" && ok "clic derecho a la app de Wine" \
+    || fail "la app de Wine no recibió el clic derecho"
+  # El clic derecho abrió su menú (0069). El puntero, fuera de las
+  # ventanas X: sin usarlo, se cierra solo a los 5 s
+  xdotool mousemove 5 5
+  wait_for "grep -q MENU-CERRADO '$WORK/app.log'" 8 \
+    && ok "el menú de Wine sin usar se cierra solo" \
+    || fail "el menú de Wine quedó abierto"
+  wineserver -k 2>/dev/null
+}
+
+# Proxy en modo Wayland: menús de apps antiguas (0069). En Wayland un
+# menú X no ve los clics fuera de X; el proxy lo cierra si el puntero no
+# está en él (Xvfb hace de XWayland: con el puntero fuera de las ventanas
+# X, X no informa ninguna ventana debajo, igual que con Wayland)
+legacy_menu_window() {   # la ventana visible de la app (el menú)
+  local w
+  for w in $(xwininfo -root -children 2>/dev/null \
+               | awk '/legacy-app/ && !/1x1/ && !/-512/ {print $1}'); do
+    xwininfo -id "$w" 2>/dev/null | grep -q IsViewable && { echo "$w"; return; }
+  done
+}
+
+t_proxy_wayland_menu() {
+  local item svc menu mx my n
+  start_app watcher.py "$WORK/watcher.log"
+  sleep 0.5
+  "$PROXY" --verbose --wayland >"$WORK/proxy.log" 2>&1 & PIDS+=($!)
+  sleep 0.5
+  start_app legacy_app.py "$WORK/app.log"
+  wait_for "grep -q ITEM '$WORK/watcher.log'" 10 || { fail "el proxy no publicó la app"; return; }
+  sleep 1
+  svc=$(awk '/ITEM/{print $2; exit}' "$WORK/watcher.log")
+  item="--session --dest $svc --object-path /StatusNotifierItem"
+  open_menu() {
+    gdbus call $item --method org.xfce.TrayOverflow.XEmbedItem.SetPointer \
+      $((SCREEN_W / 2)) $((SCREEN_H - 30)) >/dev/null
+    gdbus call $item --method org.kde.StatusNotifierItem.ContextMenu \
+      $((SCREEN_W / 2)) $((SCREEN_H - 30)) >/dev/null
+    sleep 1
+    xdotool mousemove 5 5
+  }
+
+  # 1. Sin usar: se cierra a los 5 s
+  open_menu
+  [ "$(count MENU-ABIERTO "$WORK/app.log")" = 1 ] || { fail "no se abrió el menú"; return; }
+  sleep 2.5
+  [ "$(count MENU-CERRADO "$WORK/app.log")" = 0 ] && ok "no se cierra enseguida" \
+    || fail "el menú se cerró antes de tiempo"
+  wait_for "[ \$(grep -c MENU-CERRADO '$WORK/app.log') = 1 ]" 5 \
+    && ok "el menú sin usar se cierra solo" || fail "el menú sin usar quedó abierto"
+
+  # 2. Con el puntero encima no se cierra; al salir, sí
+  open_menu
+  menu=$(legacy_menu_window)
+  [ -n "$menu" ] || { fail "no encuentro la ventana del menú"; return; }
+  read -r mx my < <(xwininfo -id "$menu" | awk '/Absolute upper-left X/{x=$4} /Absolute upper-left Y/{y=$4} END{print x, y}')
+  xdotool mousemove $((mx + 10)) $((my + 10))
+  sleep 7
+  n=$(count MENU-CERRADO "$WORK/app.log")
+  [ "$n" = 1 ] && ok "con el puntero encima sigue abierto" \
+    || fail "se cerró con el puntero encima ($n cierres)"
+  xdotool mousemove 5 5
+  wait_for "[ \$(grep -c MENU-CERRADO '$WORK/app.log') = 2 ]" 3 \
+    && ok "al salir el puntero se cierra" || fail "al salir el puntero quedó abierto"
+
+  # 3. Elegir una opción sigue andando
+  open_menu
+  menu=$(legacy_menu_window)
+  read -r mx my < <(xwininfo -id "$menu" | awk '/Absolute upper-left X/{x=$4} /Absolute upper-left Y/{y=$4} END{print x, y}')
+  xdotool mousemove $((mx + 15)) $((my + 12)) sleep 0.5 click 1
+  wait_for "grep -q ELEGIDA '$WORK/app.log'" 3 && ok "elegir una opción" \
+    || fail "no se pudo elegir la opción"
+}
+
 # Proxy: no gasta CPU en reposo y nota enseguida que una app se cerró
 t_proxy_baja() {
   local proxy_pid app_pid a b t0 ms
@@ -311,6 +421,9 @@ t_panel_app_moderna() {
   done
   grep -q ACTIVATE "$WORK/app.log" && ok "clic en el panel activa la app" \
     || fail "la app no recibió Activate"
+  # El permiso de activación es solo para Wayland
+  grep -q PROVIDEXDG "$WORK/app.log" && fail "en X11 se mandó un token de activación" \
+    || ok "en X11 no se manda token de activación"
 }
 
 # El popup se abre con la flecha y se cierra con Esc, con la flecha y con
@@ -465,11 +578,13 @@ saturation() {
 # activar la opción, sin reiniciar el panel
 t_iconos_simbolicos() {
   local before after
+  # Desde 0058 la opción viene activada: la prueba parte de apagada
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/symbolic-icons -n -t bool -s false
   start_panel
   start_app sni_app.py "$WORK/sni.log" prueba-moderna
   sleep 3
   shot; before=$(saturation 15 "$PANEL_Y")
-  xfconf-query -c xfce4-panel -p /plugins/plugin-1/symbolic-icons -n -t bool -s true
+  xfconf-query -c xfce4-panel -p /plugins/plugin-1/symbolic-icons -s true
   sleep 1.5
   shot; after=$(saturation 15 "$PANEL_Y")
   if awk -v b="$before" -v a="$after" 'BEGIN { exit !(b > 0.3 && a < 0.2) }'; then
@@ -566,6 +681,188 @@ t_un_menu_al_reiniciar_app() {
     || fail "un clic abrió $(count MENU "$WORK/app.log") menús (esperado 1)"
 }
 
+# Un clic en el primer ícono del panel (sin flecha) activa la app
+click_first_icon() {   # archivo-log
+  local x
+  for x in 15 25 35 45; do
+    click "$x" "$PANEL_Y" 1
+    sleep 0.5
+    grep -q ACTIVATE "$1" && return 0
+  done
+  return 1
+}
+
+# App "rebelde" que se vuelve a registrar cada vez que el watcher avisa de
+# un registro (0051): antes eran miles de vueltas por segundo
+t_registro_repetido() {
+  local n
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna reregistra
+  sleep 4
+  n=$(count REGISTER "$WORK/app.log")
+  [ "$n" -lt 10 ] && ok "sin bucle de registros ($n en 4 s)" \
+    || fail "la app se registró $n veces en 4 s (bucle)"
+  click_first_icon "$WORK/app.log" && ok "y su ícono funciona" \
+    || fail "la app no recibió Activate"
+}
+
+# App que se registra antes de poder responder (0052): se reintenta y
+# aparece igual
+t_registro_temprano() {
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna tarde
+  sleep 5
+  click_first_icon "$WORK/app.log" && ok "aparece aunque se registró antes de estar lista" \
+    || fail "la app que se registró temprano no apareció"
+}
+
+# App que avisa sin parar sin cambiar nada (0054): tras unas lecturas, el
+# plugin pasa a leerla una vez por segundo
+t_avisos_vacios() {
+  local a b
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna ruidosa
+  sleep 4
+  a=$(count GETALL "$WORK/app.log")
+  sleep 4
+  b=$(count GETALL "$WORK/app.log")
+  [ "$a" -gt 0 ] || fail "el plugin nunca leyó la app"
+  [ $((b - a)) -le 8 ] && ok "lecturas frenadas ($((b - a)) en 4 s)" \
+    || fail "$((b - a)) lecturas en 4 s con avisos vacíos (esperado: unas 4)"
+  click_first_icon "$WORK/app.log" && ok "y su ícono funciona" \
+    || fail "la app no recibió Activate"
+}
+
+# Guardar solo lo modificado (0060): lo que nadie tocó no queda escrito y
+# un cambio hecho desde afuera no se pisa
+t_guardado_minimo() {
+  local q="xfconf-query -c xfce4-panel -p /plugins/plugin-1"
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna
+  sleep 5   # registro de la app + guardado agrupado (hasta 2 s)
+  $q/known-items 2>/dev/null | grep -qx prueba-moderna && ok "la app nueva se guardó" \
+    || fail "la app nueva no se guardó"
+  if $q/popup-columns >/dev/null 2>&1 || $q/popup-icon-size >/dev/null 2>&1; then
+    fail "se escribieron opciones que nadie tocó"
+  else
+    ok "lo que nadie tocó no queda escrito"
+  fi
+  # Una app nueva deja un guardado pendiente; mientras, un cambio de afuera
+  start_app sni_app.py "$WORK/app2.log" prueba-otra
+  sleep 1
+  $q/popup-spacing -n -t int -s 9
+  sleep 4
+  [ "$($q/popup-spacing 2>/dev/null)" = 9 ] && ok "el cambio de afuera no se pisó" \
+    || fail "el cambio de afuera se perdió (popup-spacing: $($q/popup-spacing 2>&1))"
+  $q/known-items 2>/dev/null | grep -qx prueba-otra && ok "y lo nuestro también se guardó" \
+    || fail "la segunda app no se guardó"
+}
+
+# Ancho (en píxeles) de lo que el plugin ocupa en el panel: columnas del
+# panel que cambian entre la captura $1 y la última
+changed_width() {   # captura-de-referencia
+  shot
+  convert "$1" "$WORK/s.png" -crop "${SCREEN_W}x${PANEL_SIZE}+0+$((SCREEN_H - PANEL_SIZE))" \
+          +repage -compose difference -composite -threshold 5% -trim \
+          -format '%w' info: 2>/dev/null
+}
+
+# Texto junto al ícono (XAyatanaLabel, 0065): aparece cuando la app lo
+# pone, se va al apagar la opción y el ícono sigue respondiendo
+t_texto_junto_al_icono() {
+  local q="xfconf-query -c xfce4-panel -p /plugins/plugin-1" w
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna etiqueta
+  sleep 2.5
+  xdotool mousemove 500 300
+  sleep 0.5
+  shot; cp "$WORK/s.png" "$WORK/antes.png"
+  wait_for 'grep -q LABEL "$WORK/app.log"' 6 || fail "la app no puso su texto"
+  sleep 1.5
+  w=$(changed_width "$WORK/antes.png")
+  cp "$WORK/s.png" "$WORK/con-texto.png"
+  [ "${w:-0}" -ge 15 ] && ok "aparece el texto junto al ícono (${w} px)" \
+    || fail "no apareció el texto (cambiaron ${w:-0} px)"
+  click_first_icon "$WORK/app.log" && ok "el ícono sigue respondiendo" \
+    || fail "la app no recibió Activate"
+  $q/show-labels -n -t bool -s false
+  xdotool mousemove 500 300   # fuera del ícono: sin resaltado
+  sleep 1.5
+  w=$(changed_width "$WORK/antes.png")
+  [ "${w:-0}" -le 2 ] && ok "con la opción apagada no se muestra" \
+    || fail "con la opción apagada sigue el texto (cambiaron ${w} px)"
+}
+
+# Nombres para lectores de pantalla (0066): la flecha y cada ícono tienen
+# un nombre, y el texto de la app se suma al nombre. Necesita AT-SPI
+# (at-spi2-core y el puente de GTK); sin eso, se saltea
+t_nombres_accesibles() {
+  local names rc
+  unset NO_AT_BRIDGE
+  start_panel
+  start_app sni_app.py "$WORK/app.log" prueba-moderna etiqueta
+  sleep 7   # registro + el texto que la app pone a los 4 s
+  names=$("$PYTHON" "$APPS/a11y_names.py" 2>>"$WORK/apps.err"); rc=$?
+  if [ "$rc" = 77 ]; then
+    ok "sin AT-SPI en esta máquina: prueba salteada"
+    return
+  fi
+  [ "$rc" = 0 ] || fail "el panel no aparece para los lectores de pantalla"
+  printf '%s\n' "$names" >"$WORK/a11y.txt"
+  grep -qx $'interruptor\tShow hidden icons' "$WORK/a11y.txt" \
+    && ok "la flecha tiene nombre" || fail "la flecha no tiene nombre"
+  grep -q $'^boton\tprueba-moderna 42 °C$' "$WORK/a11y.txt" \
+    && ok "el ícono tiene nombre, con su texto" \
+    || fail "el ícono no tiene el nombre esperado ($(grep -c . "$WORK/a11y.txt") botones)"
+}
+
+# Íconos antiguos sin alfa (0067). La app pinta un fondo blanco y un
+# cuadro negro con un "ojo" blanco. Antes todo el blanco se volvía
+# transparente (el ojo quedaba agujereado); con forma (Wine), el negro.
+# Se mira el ícono en la captura: tiene que haber negro y el centro del
+# negro tiene que ser blanco puro
+legacy_noalpha() {   # [shape]
+  local bin="$WORK/xembed_noalpha" box cx cy center left
+  if ! cc "$APPS/xembed_noalpha.c" -o "$bin" -lX11 -lXext 2>>"$WORK/apps.err"; then
+    ok "no se pudo compilar la app de prueba (falta cc o libX11): prueba salteada"
+    return
+  fi
+  start_panel
+  sleep 1
+  "$bin" "$@" & PIDS+=($!)
+  sleep 5
+  xdotool mousemove 500 300
+  sleep 1
+  shot
+  # Caja de los píxeles negros dentro del panel: "ancho alto x y"
+  box=$(convert "$WORK/s.png" -crop "${SCREEN_W}x${PANEL_SIZE}+0+$((SCREEN_H - PANEL_SIZE))" \
+          +repage -fill white +opaque black -negate -trim -format '%w %h %X %Y' info: 2>/dev/null)
+  set -- $box
+  if [ "${1:-0}" -lt 4 ] || [ "${2:-0}" -lt 4 ] || [ "${1:-0}" -gt 60 ]; then
+    fail "no se ve el cuadro negro del ícono (${box:-nada})"
+    return
+  fi
+  cx=$(( ${3#+} + $1 / 2 )); cy=$(( SCREEN_H - PANEL_SIZE + ${4#+} + $2 / 2 ))
+  center=$(convert "$WORK/s.png" -format '%[hex:u.p{'"$cx,$cy"'}]' info: 2>/dev/null)
+  left=$(convert "$WORK/s.png" -format '%[hex:u.p{'"$(( ${3#+} - 2 )),$cy"'}]' info: 2>/dev/null)
+  echo "caja $box centro $center izquierda $left" >>"$WORK/apps.err"
+  case "$center" in FFFFFF*) ok "el interior blanco del ícono se conserva" ;;
+    *) fail "el interior del ícono quedó transparente (centro: $center)" ;; esac
+  LEGACY_LEFT=$left
+}
+
+t_icono_sin_alfa() {
+  LEGACY_LEFT=
+  legacy_noalpha
+  [ -n "$LEGACY_LEFT" ] || return 0
+  case "$LEGACY_LEFT" in FFFFFF*) fail "el fondo blanco del ícono no se quitó" ;;
+    *) ok "el fondo del ícono se quitó" ;; esac
+}
+
+t_icono_con_forma() {
+  legacy_noalpha shape
+}
+
 # ════════════════════════════════════════════════════════════════════════
 # Principal
 # ════════════════════════════════════════════════════════════════════════
@@ -611,7 +908,7 @@ for t in "${TESTS[@]}"; do
     BAD=$((BAD + 1))
     say "    (registros en $work)"
   else
-    rm -rf "$work"
+    [ -n "${TRAYOVERFLOW_TEST_KEEP:-}" ] || rm -rf "$work"
   fi
 done
 

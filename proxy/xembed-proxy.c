@@ -29,6 +29,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
 #include <X11/extensions/XTest.h>
 #include <X11/extensions/Xcomposite.h>
 #include <X11/extensions/Xdamage.h>
@@ -40,6 +41,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "xp-logic.h"
 
 #define PROXY_NAME                "trayoverflow-xembed-proxy"
 /* Tamaño de cada ícono: el host puede pedir otro con SetIconSize (la app
@@ -64,6 +67,14 @@
 #define SETTLE_FALLBACK_MS        700
 /* --wayland: tras un clic, cuándo sacar el contenedor de la pantalla */
 #define PARK_DELAY_MS             1500
+/* --wayland: menús de las apps (ver "Menús en Wayland"). Tras un clic,
+ * por cuánto se toma como menú una ventana nueva; cuánto se espera a que
+ * el puntero vuelva tras salir del menú, y a que entre si nunca entró */
+#define MENU_WATCH_MS             2000
+#define MENU_LEAVE_MS             1500
+#define MENU_IDLE_MS              5000
+#define MENU_POLL_MS              250
+#define MENU_CLOSE_TRIES          4      /* Esc de nuevo si el menú sigue */
 
 #define SYSTEM_TRAY_REQUEST_DOCK  0
 #define XEMBED_EMBEDDED_NOTIFY    0
@@ -198,6 +209,16 @@ static struct
   GHashTable     *popup_ids;     /* --popup-ids: apps ocultas en el popup */
   GHashTable     *sizes;         /* id → último tamaño pedido por el host */
   gint            x_error;
+
+  /* --wayland: menús abiertos por las apps tras nuestros clics */
+  GArray         *menus;         /* Window */
+  gint64          menu_watch_until;
+  guint           menu_poll_id;
+  gint64          menu_since;    /* desde cuándo hay un menú abierto */
+  gint64          menu_out_since;/* desde cuándo el puntero no está en él (0: está) */
+  gboolean        menu_entered;  /* el puntero pasó alguna vez por el menú */
+  gboolean        menu_direct;   /* la app recibe eventos directos (si no, XTest) */
+  gint            menu_closing;  /* Esc mandados al cerrar (0: no se está cerrando) */
 } P;
 
 static void icon_publish   (Icon *icon);
@@ -346,131 +367,23 @@ exe_from_pid (gulong pid)
 
 
 
-/* Títulos que ponen los toolkits y no dicen nada de la app */
-static gboolean
-title_is_generic (const gchar *title)
-{
-  /* Java (AWT) usa este nombre en el ícono de todas sus apps */
-  return g_strcmp0 (title, "JavaEmbeddedFrame") == 0;
-}
-
-
-
-/* Opciones de java que llevan su valor en el argumento siguiente */
-static gboolean
-java_option_takes_value (const gchar *option)
-{
-  static const gchar *const options[] = {
-    "-cp", "-classpath", "--class-path", "-p", "--module-path",
-    "--upgrade-module-path", "--add-modules", "--limit-modules",
-    "--add-reads", "--add-exports", "--add-opens", "--patch-module", NULL
-  };
-
-  return g_strv_contains (options, option);
-}
-
-
-
-/* "com.frostwire.gui.Main" → "Frostwire": el primer tramo del paquete
- * que no sea un dominio genérico; si no hay paquete, la clase */
-static gchar *
-java_name_from_class (const gchar *klass)
-{
-  static const gchar *const skip[] = {
-    "com", "org", "net", "io", "de", "me", "edu", "gov", "fr", "uk", "it", "nl", NULL
-  };
-  gchar **parts = g_strsplit (klass, ".", -1);
-  guint n = g_strv_length (parts), i;
-  gchar *name = NULL;
-
-  for (i = 0; i + 1 < n && name == NULL; i++)
-    if (*parts[i] != '\0' && !g_strv_contains (skip, parts[i]))
-      name = g_strdup (parts[i]);
-
-  if (name == NULL && n > 0 && *parts[n - 1] != '\0')
-    name = g_strdup (parts[n - 1]);
-  g_strfreev (parts);
-
-  if (name != NULL)
-    name[0] = g_ascii_toupper (name[0]);
-  return name;
-}
-
-
-
 /* Nombre de una app Java a partir de su línea de comandos:
  * "java -jar JDownloader.jar" → "JDownloader". NULL si no es Java. */
 static gchar *
 java_app_name (gulong pid)
 {
-  gchar *path, *contents = NULL, *name = NULL, *argv0;
-  const gchar *arg, *end;
+  gchar *path, *contents = NULL, *name = NULL;
   gsize length = 0;
-  gboolean is_java;
 
   if (pid == 0)
     return NULL;
 
   path = g_strdup_printf ("/proc/%lu/cmdline", pid);
-  if (!g_file_get_contents (path, &contents, &length, NULL) || length == 0)
-    {
-      g_free (path);
-      g_free (contents);
-      return NULL;
-    }
+  if (g_file_get_contents (path, &contents, &length, NULL))
+    name = xp_java_app_name (contents, length);
   g_free (path);
-
-  end = contents + length;
-  argv0 = g_path_get_basename (contents);
-  is_java = g_str_has_prefix (argv0, "java");
-  g_free (argv0);
-
-  for (arg = contents + strlen (contents) + 1; is_java && arg < end && name == NULL;
-       arg += strlen (arg) + 1)
-    {
-      const gchar *next = arg + strlen (arg) + 1;
-      gboolean has_next = next < end && *next != '\0';
-
-      if (strcmp (arg, "-jar") == 0)
-        {
-          if (has_next)
-            {
-              name = g_path_get_basename (next);
-              if (g_str_has_suffix (name, ".jar"))
-                name[strlen (name) - 4] = '\0';
-            }
-          break;
-        }
-
-      if (strcmp (arg, "-m") == 0 || strcmp (arg, "--module") == 0)
-        {
-          /* "módulo/clase" o solo "módulo" */
-          if (has_next)
-            {
-              const gchar *slash = strchr (next, '/');
-              name = java_name_from_class (slash != NULL ? slash + 1 : next);
-            }
-          break;
-        }
-
-      if (java_option_takes_value (arg))
-        {
-          if (has_next)
-            arg = next;
-          continue;
-        }
-
-      if (*arg == '-' || *arg == '\0')
-        continue;
-
-      /* Primer argumento que no es opción: la clase principal */
-      name = java_name_from_class (arg);
-    }
-
   g_free (contents);
 
-  if (name != NULL && *name == '\0')
-    g_clear_pointer (&name, g_free);
   return name;
 }
 
@@ -511,7 +424,7 @@ icon_read_identity (Icon *icon)
     }
 
   title = get_window_title (icon->win);
-  if (title != NULL && *title != '\0' && !title_is_generic (title))
+  if (title != NULL && *title != '\0' && !xp_title_is_generic (title))
     {
       g_free (icon->title);
       icon->title = title;
@@ -595,52 +508,10 @@ wants_core_button_events (Window win, gint level)
  * Captura de la imagen del ícono
  * ════════════════════════════════════════════════════════════════════════ */
 
-static guint
-mask_shift (gulong mask)
+static gulong
+image_get_pixel (gpointer image, gint x, gint y)
 {
-  guint shift = 0;
-
-  if (mask == 0)
-    return 0;
-  while (!(mask & 1))
-    {
-      mask >>= 1;
-      shift++;
-    }
-  return shift;
-}
-
-
-
-static guint
-mask_bits (gulong mask)
-{
-  guint bits = 0;
-
-  mask >>= mask_shift (mask);
-  while (mask & 1)
-    {
-      mask >>= 1;
-      bits++;
-    }
-  return bits;
-}
-
-
-
-static guint8
-channel (gulong pixel, gulong mask)
-{
-  guint bits = mask_bits (mask);
-  gulong value;
-
-  if (bits == 0)
-    return 0;
-
-  value = (pixel & mask) >> mask_shift (mask);
-  if (bits >= 8)
-    return (guint8) (value >> (bits - 8));
-  return (guint8) (value * 255 / ((1u << bits) - 1));
+  return XGetPixel ((XImage *) image, x, y);
 }
 
 
@@ -649,80 +520,39 @@ channel (gulong pixel, gulong mask)
  * Devuelve NULL si la imagen es completamente transparente (pasa por un
  * instante con algunas apps, p. ej. Wine). */
 static guchar *
-convert_image (XImage *image, Visual *visual, gint depth, gint w, gint h)
+convert_image (Icon *icon, XImage *image, Visual *visual, gint depth, gint w, gint h)
 {
   gulong rmask = visual->red_mask, gmask = visual->green_mask, bmask = visual->blue_mask;
-  gulong amask = 0;
-  gboolean use_alpha = FALSE, any_opaque = FALSE;
-  guchar *out;
-  gulong key;
-  gint x, y;
+  gulong amask = depth == 32 ? 0xffffffffUL & ~(rmask | gmask | bmask) : 0;
+  XRectangle *xrects;
+  XpRect *rects = NULL;
+  guint8 *mask = NULL;
+  guchar *pixels;
+  gint count = 0, ordering, i;
 
-  if (depth == 32)
+  /* Wine (y otras) recortan su ícono con una forma (Shape): es la mejor
+   * máscara que hay, sobre todo para íconos sin alfa */
+  trap_push ();
+  xrects = XShapeGetRectangles (P.dpy, icon->win, ShapeBounding, &count, &ordering);
+  trap_pop ();
+  if (xrects != NULL)
     {
-      amask = 0xffffffffUL & ~(rmask | gmask | bmask);
-      use_alpha = amask != 0;
-
-      /* Algunas apps dibujan sin alfa en una ventana de 32 bits */
-      if (use_alpha)
+      rects = g_new (XpRect, MAX (count, 1));
+      for (i = 0; i < count; i++)
         {
-          gboolean any = FALSE;
-
-          for (y = 0; y < h && !any; y++)
-            for (x = 0; x < w && !any; x++)
-              any = (XGetPixel (image, x, y) & amask) != 0;
-          use_alpha = any;
+          rects[i].x = xrects[i].x;
+          rects[i].y = xrects[i].y;
+          rects[i].width = xrects[i].width;
+          rects[i].height = xrects[i].height;
         }
+      XFree (xrects);
+      mask = xp_shape_mask (rects, count, w, h);
+      g_free (rects);
     }
 
-  out = g_malloc ((gsize) w * h * 4);
-
-  /* Sin alfa: el color de la esquina se toma como fondo transparente
-   * (la app pinta sobre el fondo de nuestro contenedor) */
-  key = XGetPixel (image, 0, 0) & (rmask | gmask | bmask);
-
-  for (y = 0; y < h; y++)
-    for (x = 0; x < w; x++)
-      {
-        gulong pixel = XGetPixel (image, x, y);
-        guchar *o = out + ((gsize) y * w + x) * 4;
-        guint8 r = channel (pixel, rmask);
-        guint8 g = channel (pixel, gmask);
-        guint8 b = channel (pixel, bmask);
-        guint8 a;
-
-        if (use_alpha)
-          {
-            a = channel (pixel, amask);
-            if (a > 0 && a < 255)
-              {
-                /* X entrega alfa premultiplicado: deshacerlo */
-                r = (guint8) MIN (255, r * 255 / a);
-                g = (guint8) MIN (255, g * 255 / a);
-                b = (guint8) MIN (255, b * 255 / a);
-              }
-          }
-        else
-          {
-            a = (pixel & (rmask | gmask | bmask)) == key ? 0 : 255;
-          }
-
-        if (a != 0)
-          any_opaque = TRUE;
-
-        o[0] = a;
-        o[1] = r;
-        o[2] = g;
-        o[3] = b;
-      }
-
-  if (!any_opaque)
-    {
-      g_free (out);
-      return NULL;
-    }
-
-  return out;
+  pixels = xp_convert_image (image_get_pixel, image, rmask, gmask, bmask, amask, mask, w, h);
+  g_free (mask);
+  return pixels;
 }
 
 
@@ -766,7 +596,7 @@ icon_update (gpointer user_data)
       return G_SOURCE_REMOVE;
     }
 
-  pixels = convert_image (image, wa.visual, wa.depth, w, h);
+  pixels = convert_image (icon, image, wa.visual, wa.depth, w, h);
   XDestroyImage (image);
 
   if (pixels == NULL)
@@ -1025,10 +855,365 @@ wayland_container_origin (Icon *icon, gint rx, gint ry, gint *x, gint *y)
 
 
 
+/* ════════════════════════════════════════════════════════════════════════
+ * Menús en Wayland
+ *
+ * Un menú de una app X no se entera de los clics fuera de las ventanas X:
+ * XWayland no los ve, así que el menú quedaba abierto hasta elegir una
+ * opción (Wine, además, deja la app esperando). Lo que X sí sabe es si el
+ * puntero está sobre una ventana X: fuera de ellas, XQueryPointer conserva
+ * la última posición pero ya no informa ninguna ventana debajo. Entonces:
+ * - tras un clic nuestro, las ventanas "override-redirect" nuevas (menús
+ *   y submenús) se vigilan;
+ * - mientras haya alguna, se mira dónde está el puntero cada
+ *   MENU_POLL_MS: si salió del menú y no vuelve en MENU_LEAVE_MS, o nunca
+ *   entró en MENU_IDLE_MS, el menú se cierra con Esc (como el usuario);
+ * - un clic nuestro en cualquier ícono cierra el menú anterior.
+ * Los avisos de entrada y salida (Enter/LeaveNotify) no sirven: Wine toma
+ * el puntero al abrir su menú y X ya no se los manda a nadie más.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+static void
+menu_stop_poll (void)
+{
+  if (P.menu_poll_id != 0)
+    {
+      g_source_remove (P.menu_poll_id);
+      P.menu_poll_id = 0;
+    }
+}
+
+
+
+static void
+menu_forget (Window win)
+{
+  guint i;
+
+  for (i = 0; P.menus != NULL && i < P.menus->len; i++)
+    if (g_array_index (P.menus, Window, i) == win)
+      {
+        g_array_remove_index_fast (P.menus, i);
+        if (P.menus->len == 0)
+          {
+            menu_stop_poll ();
+            /* Se escondió sin que lo cerráramos: si la app lo vuelve a
+             * mostrar enseguida (Wine puede hacerlo), seguir vigilándolo */
+            if (P.menu_closing == 0)
+              P.menu_watch_until = g_get_monotonic_time () + (gint64) MENU_WATCH_MS * 1000;
+            P.menu_closing = 0;
+          }
+        return;
+      }
+}
+
+
+
+static gboolean
+menu_is_tracked (Window win)
+{
+  guint i;
+
+  for (i = 0; P.menus != NULL && i < P.menus->len; i++)
+    if (g_array_index (P.menus, Window, i) == win)
+      return TRUE;
+  return FALSE;
+}
+
+
+
+/* Manda Esc a los menús vigilados, como si lo apretara el usuario.
+ * Apps de eventos directos (Wine): el Esc va a la ventana del menú; Wine
+ * lo atiende aunque X no le dé el foco del teclado (en Wayland no lo
+ * tiene). Las demás (GTK 3) no atienden eventos simulados: Esc con XTest,
+ * que con el menú abierto llega a la app que tomó el teclado (el menú) */
+static void
+menus_send_escape (const gchar *why)
+{
+  guint i;
+
+  trap_push ();
+  if (!P.menu_direct)
+    {
+      KeyCode esc = XKeysymToKeycode (P.dpy, XK_Escape);
+
+      LOG ("cerrando %u menú(s) con XTest (%s)\n", P.menus->len, why);
+      XTestFakeKeyEvent (P.dpy, esc, True, CurrentTime);
+      XTestFakeKeyEvent (P.dpy, esc, False, CurrentTime);
+    }
+  for (i = 0; P.menu_direct && i < P.menus->len; i++)
+    {
+      Window win = g_array_index (P.menus, Window, i);
+      XEvent ev;
+
+      LOG ("cerrando el menú 0x%lx (%s)\n", win, why);
+      memset (&ev, 0, sizeof (ev));
+      ev.xkey.type = KeyPress;
+      ev.xkey.display = P.dpy;
+      ev.xkey.window = win;
+      ev.xkey.root = P.root;
+      ev.xkey.time = CurrentTime;
+      ev.xkey.keycode = XKeysymToKeycode (P.dpy, XK_Escape);
+      ev.xkey.same_screen = True;
+      XSendEvent (P.dpy, win, True, KeyPressMask, &ev);
+      ev.xkey.type = KeyRelease;
+      XSendEvent (P.dpy, win, True, KeyReleaseMask, &ev);
+    }
+  XFlush (P.dpy);
+  trap_pop ();
+}
+
+
+
+/* Clic simulado fuera del menú (Wine): lo que haría el usuario. A
+ * diferencia del Esc, no depende de qué programa tenga el teclado: Wine
+ * manda el clic al menú abierto (que tomó el mouse) y lo cierra. El
+ * punto es una esquina de la pantalla que no toque el menú */
+static void
+menus_click_outside (void)
+{
+  gint sw = DisplayWidth (P.dpy, DefaultScreen (P.dpy));
+  gint sh = DisplayHeight (P.dpy, DefaultScreen (P.dpy));
+  guint i;
+
+  trap_push ();
+  for (i = 0; i < P.menus->len; i++)
+    {
+      Window win = g_array_index (P.menus, Window, i), dummy;
+      XWindowAttributes wa;
+      gint ox = 0, oy = 0, px = 0, py = 0;
+      XEvent ev;
+
+      if (!XGetWindowAttributes (P.dpy, win, &wa)
+          || !XTranslateCoordinates (P.dpy, win, P.root, 0, 0, &ox, &oy, &dummy))
+        continue;
+      if (ox <= 0 && oy <= 0)
+        {
+          px = sw - 1;
+          py = sh - 1;
+        }
+
+      LOG ("clic fuera del menú 0x%lx en %d,%d\n", win, px, py);
+      memset (&ev, 0, sizeof (ev));
+      ev.xbutton.type = ButtonPress;
+      ev.xbutton.display = P.dpy;
+      ev.xbutton.window = win;
+      ev.xbutton.root = P.root;
+      ev.xbutton.time = CurrentTime;
+      ev.xbutton.x = px - ox;
+      ev.xbutton.y = py - oy;
+      ev.xbutton.x_root = px;
+      ev.xbutton.y_root = py;
+      ev.xbutton.button = Button1;
+      ev.xbutton.same_screen = True;
+      XSendEvent (P.dpy, win, True, ButtonPressMask, &ev);
+      ev.xbutton.type = ButtonRelease;
+      ev.xbutton.state = Button1Mask;
+      XSendEvent (P.dpy, win, True, ButtonReleaseMask, &ev);
+    }
+  XFlush (P.dpy);
+  trap_pop ();
+}
+
+
+
+static void
+menus_untrack_all (void)
+{
+  guint i;
+
+  trap_push ();
+  for (i = 0; i < P.menus->len; i++)
+    XSelectInput (P.dpy, g_array_index (P.menus, Window, i), NoEventMask);
+  trap_pop ();
+
+  g_array_set_size (P.menus, 0);
+  P.menu_closing = 0;
+  menu_stop_poll ();
+}
+
+
+
+/* Un clic en un ícono: cerrar el menú anterior y olvidarlo (lo que abra
+ * este clic se vigila desde cero) */
+static void
+menus_close_now (const gchar *why)
+{
+  if (P.menus == NULL || P.menus->len == 0)
+    return;
+
+  menus_send_escape (why);
+  menus_untrack_all ();
+}
+
+
+
+/* Cerrar el menú y seguir mirando: si sigue visible (un Esc puede cerrar
+ * solo un submenú, o perderse), menu_poll manda otro */
+static void
+menus_close (const gchar *why)
+{
+  if (P.menus == NULL || P.menus->len == 0)
+    return;
+
+  P.menu_closing = 1;
+  menus_send_escape (why);
+}
+
+
+
+/* ¿Queda alguna ventana vigilada a la vista? (las que no, se olvidan) */
+static gboolean
+menus_any_visible (void)
+{
+  guint i = 0;
+
+  trap_push ();
+  while (i < P.menus->len)
+    {
+      XWindowAttributes wa;
+      Window win = g_array_index (P.menus, Window, i);
+
+      if (XGetWindowAttributes (P.dpy, win, &wa) && wa.map_state == IsViewable)
+        i++;
+      else
+        g_array_remove_index_fast (P.menus, i);
+    }
+  trap_pop ();
+
+  return P.menus->len > 0;
+}
+
+
+
+static gboolean
+menu_poll (gpointer user_data)
+{
+  Window root_ret, child = None;
+  gint x, y, wx, wy;
+  guint mask;
+  gint64 now = g_get_monotonic_time ();
+  gboolean on_menu;
+
+  /* Cerrando: si todavía se ve, otro Esc; si ya no, listo */
+  if (P.menu_closing > 0)
+    {
+      if (!menus_any_visible ())
+        {
+          P.menu_poll_id = 0;
+          menus_untrack_all ();
+          return G_SOURCE_REMOVE;
+        }
+      if (P.menu_closing >= MENU_CLOSE_TRIES)
+        {
+          LOG ("el menú no se cerró\n");
+          P.menu_poll_id = 0;
+          menus_untrack_all ();
+          return G_SOURCE_REMOVE;
+        }
+      P.menu_closing++;
+      /* Wine puede ignorar el Esc (si su ventana no tiene el foco del
+       * teclado, como pasa con Wine 11 a partir del segundo menú): con
+       * eventos directos, de ahí en más un clic afuera */
+      if (P.menu_direct)
+        menus_click_outside ();
+      else
+        menus_send_escape ("sigue abierto");
+      return G_SOURCE_CONTINUE;
+    }
+
+  trap_push ();
+  on_menu = XQueryPointer (P.dpy, P.root, &root_ret, &child, &x, &y, &wx, &wy, &mask)
+            && child != None && menu_is_tracked (child);
+  trap_pop ();
+
+  if (on_menu)
+    {
+      P.menu_entered = TRUE;
+      P.menu_out_since = 0;
+      return G_SOURCE_CONTINUE;
+    }
+
+  if (P.menu_out_since == 0)
+    P.menu_out_since = now;
+
+  if ((P.menu_entered && now - P.menu_out_since >= (gint64) MENU_LEAVE_MS * 1000)
+      || (!P.menu_entered && now - P.menu_since >= (gint64) MENU_IDLE_MS * 1000))
+    {
+      menus_close (P.menu_entered ? "el puntero salió" : "sin usar");
+      return G_SOURCE_CONTINUE;   /* para mirar que se haya cerrado */
+    }
+
+  return G_SOURCE_CONTINUE;
+}
+
+
+
+/* Una ventana se mostró: si es un menú de la app que acabamos de
+ * clicar (o un submenú de uno vigilado), vigilarla */
+static void
+menu_mapped (Window win)
+{
+  XWindowAttributes wa;
+  GHashTableIter iter;
+  gpointer value;
+
+  if (!P.wayland || win == P.manager || menu_is_tracked (win))
+    return;
+  if (g_get_monotonic_time () > P.menu_watch_until && (P.menus == NULL || P.menus->len == 0))
+    return;
+
+  {
+    gboolean ok;
+
+    trap_push ();
+    ok = XGetWindowAttributes (P.dpy, win, &wa) != 0;
+    if (trap_pop () != 0 || !ok || !wa.override_redirect)
+      return;
+  }
+
+  /* Los contenedores del proxy no son menús */
+  g_hash_table_iter_init (&iter, P.icons);
+  while (g_hash_table_iter_next (&iter, NULL, &value))
+    if (((Icon *) value)->container == win)
+      return;
+
+  /* Para enterarse de que se cerró */
+  trap_push ();
+  XSelectInput (P.dpy, win, StructureNotifyMask);
+  if (trap_pop () != 0)
+    return;
+
+  if (P.menus == NULL)
+    P.menus = g_array_new (FALSE, FALSE, sizeof (Window));
+  g_array_append_val (P.menus, win);
+  LOG ("vigilando el menú 0x%lx\n", win);
+
+  if (P.menu_poll_id == 0)
+    {
+      P.menu_since = g_get_monotonic_time ();
+      P.menu_out_since = 0;
+      P.menu_entered = FALSE;
+      P.menu_poll_id = g_timeout_add (MENU_POLL_MS, menu_poll, NULL);
+    }
+}
+
+
+
 static void
 do_click (Icon *icon, gint button, gint rx, gint ry)
 {
   gint cx, cy, ox, oy;
+
+  /* Wayland: un clic en un ícono cierra el menú que haya quedado abierto
+   * (fuera de X no hay otra forma de enterarse) y los menús que abra
+   * este clic se vigilan */
+  if (P.wayland)
+    {
+      menus_close_now ("clic en un ícono");
+      P.menu_watch_until = g_get_monotonic_time () + (gint64) MENU_WATCH_MS * 1000;
+      P.menu_direct = icon->direct_events || !P.have_xtest;
+    }
 
   trap_push ();
   click_point (icon, &cx, &cy);
@@ -1054,8 +1239,15 @@ do_click (Icon *icon, gint button, gint rx, gint ry)
 
   if (icon->direct_events || !P.have_xtest)
     {
-      send_button_event (icon, ButtonPress, button, rx, ry, cx, cy);
-      send_button_event (icon, ButtonRelease, button, rx, ry, cx, cy);
+      /* La posición en pantalla tiene que caer dentro del ícono, como en
+       * un clic real. En X11 ya es así (el contenedor se movió bajo el
+       * puntero); en Wayland el contenedor queda al lado del punto que
+       * manda el host, y Wine manda el clic a lo que haya en ese punto:
+       * fuera del ícono, el clic se perdía */
+      gint ex = P.wayland ? ox + cx : rx, ey = P.wayland ? oy + cy : ry;
+
+      send_button_event (icon, ButtonPress, button, ex, ey, cx, cy);
+      send_button_event (icon, ButtonRelease, button, ex, ey, cx, cy);
     }
   else
     {
@@ -1899,10 +2091,17 @@ handle_event (XEvent *ev)
       break;
 
     case DestroyNotify:
+      menu_forget (ev->xdestroywindow.window);
       undock (ev->xdestroywindow.window);
       break;
 
+    case MapNotify:
+      if (ev->xmap.event == P.root)
+        menu_mapped (ev->xmap.window);
+      break;
+
     case UnmapNotify:
+      menu_forget (ev->xunmap.window);
       icon = icon_for (ev->xunmap.window);
       if (icon != NULL)
         {
@@ -1986,7 +2185,7 @@ handle_event (XEvent *ev)
         {
           gchar *title = get_window_title (icon->win);
 
-          if (title != NULL && *title != '\0' && !title_is_generic (title)
+          if (title != NULL && *title != '\0' && !xp_title_is_generic (title)
               && g_strcmp0 (title, icon->title) != 0)
             {
               g_free (icon->title);
@@ -2185,6 +2384,11 @@ init_x11 (void)
   XChangeProperty (P.dpy, P.manager, P.a_net_wm_name, P.a_utf8, 8, PropModeReplace,
                    (const guchar *) PROXY_NAME, strlen (PROXY_NAME));
   XSelectInput (P.dpy, P.manager, PropertyChangeMask | StructureNotifyMask);
+
+  /* --wayland: enterarse de los menús que abren las apps (ver "Menús en
+   * Wayland"). Solo avisos: no cambia nada para las demás ventanas */
+  if (P.wayland)
+    XSelectInput (P.dpy, P.root, SubstructureNotifyMask);
 
   /* Enterarse cuando la bandeja actual (si hay) desaparezca */
   XFixesSelectSelectionInput (P.dpy, P.root, P.a_selection,

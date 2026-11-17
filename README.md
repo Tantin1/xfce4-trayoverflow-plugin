@@ -23,9 +23,16 @@ icons into a popup**, similar to the notification area in Windows 10/11.
 - **Remember closed applications**: hide an application before it starts;
   its icon will go straight into the popup when it launches.
 - Application **context menus**, including inside the popup.
+- **Text next to an icon** when the application provides one (the
+  AppIndicator label, e.g. a temperature or a keyboard layout), in
+  horizontal panels and in the popup.
+- **Wayland**: applications get an activation token with each click, so
+  they can bring their window to the front.
 - An **attention dot** on the arrow when a hidden application requests
   attention, with a tooltip listing the relevant applications.
-- Optionally send **inactive** icons (the *Passive* status) to the popup.
+- **Inactive** icons (the *Passive* status) are hidden by default, like in
+  the Xfce tray; they can instead go to the popup or be shown like the
+  others.
 - Independent icon size and spacing for the panel and popup, configurable
   popup columns, and additional columns when icons would not fit vertically.
 - Horizontal, vertical, and multi-row panels; HiDPI support. If a manually
@@ -42,8 +49,11 @@ icons into a popup**, similar to the notification area in Windows 10/11.
 - **X11 and Wayland** support, including the Xfce 4.20 Wayland session,
   subject to the limitations below.
 - Multiple instances, such as one per panel, with separate settings.
-- Optional support for **legacy XEmbed tray applications**, including Java
-  and Wine applications, with the same popup and drag-and-drop controls.
+- Support for **legacy XEmbed tray applications** (enabled by default),
+  including Java and Wine applications, with the same popup and
+  drag-and-drop controls.
+- **Screen readers**: the arrow and every icon have an accessible name
+  (the application name, plus its text when it shows one).
 - **Custom application icons**, selected from the icon theme or a file.
 - Built-in icon replacements for applications with problematic tray icons,
   such as JDownloader and Clipman, using your icon theme when available.
@@ -175,19 +185,41 @@ If there are multiple plugin instances, the first with hidden icons responds.
 
 ## Settings
 
-**Panel button:** icon size (automatic or fixed), icon spacing, minimum
-button size (or **Compact**), arrow position, **symbolic icons**
-(monochrome icons using the panel text color, only for applications whose
-icons come from the theme), and single-row layout.
+The Properties window has four tabs:
 
-**Popup:** icon size and spacing, number of columns, and corner style.
+**Items** (first): all applications previously seen, with a checkbox to
+hide each one, reorder controls, an **Icon…** button to choose a
+replacement, and **Forget** to remove an unused application from the list.
+Also here:
 
-**Items:** all applications previously seen, with a checkbox to hide each
-one, reorder controls, an **Icon…** button to choose a replacement, and
-**Forget** to remove an unused application from the list. **Put new
-applications in the popup** starts newly discovered icons hidden, like
-Windows 11; already known applications are not changed. **Move inactive
-icons to the popup** is also configured here.
+- **Put new apps in the popup** starts newly discovered icons hidden, like
+  Windows 11; already known applications are not changed (off by default).
+- **Inactive icons:** *Hide* (default), *In the popup*, or *Like the
+  others*.
+- **Use symbolic icons** (on by default): monochrome icons using the panel
+  text color, in the panel and the popup, only for applications whose icons
+  come from the theme.
+- **Also show older apps (classic XEmbed tray)** (on by default).
+
+**Panel button:** icon size (22 px by default, or **Automatic** to follow
+the panel), icon spacing, minimum button size (or **Compact**), arrow
+position, and single-row layout.
+
+**Popup window:** icon size (22 px by default) and spacing, number of
+columns, and corner style.
+
+**Diagnostics:** a report to copy when something does not work (see
+below).
+
+The text that some applications show next to their icon has no checkbox;
+it can be turned off with:
+
+```bash
+xfconf-query -c xfce4-panel -p /plugins/plugin-N/show-labels -n -t bool -s false
+```
+
+where `plugin-N` is the plugin's number (see
+`xfconf-query -c xfce4-panel -lv | grep trayoverflow`).
 
 Hover over a setting to see its explanation. On shorter displays, the
 settings tabs can be scrolled.
@@ -196,7 +228,7 @@ settings tabs can be scrolled.
 
 Select an application under **Items** and click **Icon…**. Icon names from
 your theme are suggested based on similarity; you can also enter another
-name or select a PNG or SVG file. **Use the application's own icon**
+name or select a PNG or SVG file. **Use the app's own icon**
 restores the original.
 
 When a custom icon is selected, changes to the application's original icon
@@ -256,9 +288,10 @@ those icons.
 Most modern applications (Qt, Electron, Telegram, Discord, Steam,
 AppIndicator, and others) use StatusNotifier and need no special setup.
 Some older applications (GTK `GtkStatusIcon`, Java, Wine) use only the
-classic X11 tray protocol, XEmbed. Enable them under:
+classic X11 tray protocol, XEmbed. They are shown through the option:
 
-**Properties → Items → Show legacy applications too**.
+**Properties → Items → Also show older apps (classic XEmbed tray)**
+(enabled by default).
 
 This starts a separate helper program, `xembed-proxy`, that exposes classic
 tray icons as modern StatusNotifier items. The plugin starts and stops it
@@ -280,11 +313,24 @@ actual resource usage depends on the system.
   /usr/libexec/xfce4-trayoverflow-plugin/xembed-proxy --verbose
   ```
 
+  Alternatively, keep the option enabled and restart the panel with a log
+  file for the helper (useful in Wayland, where the plugin passes extra
+  options to it):
+
+  ```bash
+  xfce4-panel -q; TRAYOVERFLOW_PROXY_LOG=$HOME/trayoverflow-proxy.log xfce4-panel &
+  ```
+
 - Legacy applications do not expose tooltip text through this mechanism;
   the plugin displays the application name. For Java applications the name
   is derived from the command line (for example,
   `java -jar JDownloader.jar` → *JDownloader*). Custom application-drawn
   tooltip windows are not reproduced.
+- Some legacy icons have no transparency (for example, from Wine or Tk).
+  The window shape is used as a mask when the application sets one (Wine
+  does); otherwise the background color is taken from the icon's corners
+  and removed only where it touches the edges, so parts of the icon in
+  that same color are kept.
 - Legacy icons are drawn at the displayed size for the panel or popup.
   GTK applications typically draw at standard sizes: **16, 24, 32, or
   48 px** fill the available space, while other sizes (for example, 22 px)
@@ -310,9 +356,11 @@ Differences from X11:
   may not close it, similarly to the panel clock's calendar popup.
 - Legacy XEmbed applications need the compositor to provide **XWayland**
   (labwc does). Clicking a legacy icon inside the popup always closes the
-  popup so it will not cover the application's menu. Such menus close on
-  Escape or by choosing an item; an outside click does not close them,
-  which is an XWayland limitation.
+  popup so it will not cover the application's menu. Under XWayland, a
+  legacy application's menu cannot see clicks outside X windows, so the
+  plugin closes it for you: when the pointer leaves the menu and does not
+  return within 1.5 seconds, when it is not used within 5 seconds, or when
+  another legacy icon is clicked. Choosing an item works as usual.
 
 ### Flatpak applications with generic IDs
 
@@ -373,10 +421,23 @@ Rebuild using your existing installation or packaging method. Do not run
 
 ## Automated tests
 
+**Quick tests** need no panel, display, or installation and finish in a
+few seconds. They cover the settings (only modified options are written,
+external changes are kept, registry limit, icon defaults), the parsing of
+data sent by applications, and the proxy logic (Java application names,
+icon image conversion):
+
+```bash
+meson test -C build
+```
+
+They use their own D-Bus session and a temporary configuration directory;
+without `dbus-run-session` the settings test is skipped.
+
 After a **manual** source installation, the X11 test suite can be run with:
 
 ```bash
-bash tests/run.sh          # all tests (about a minute)
+bash tests/run.sh          # all tests (about two minutes)
 bash tests/run.sh --lista  # list test names
 bash tests/run.sh popup_rueda
 ```
@@ -385,7 +446,12 @@ Each test starts an isolated Xvfb display with its own panel, D-Bus, and
 temporary configuration; it does not access your regular panel or its
 settings. Test applications include a classic tray app and a modern one.
 The suite exercises popup behavior, scrolling, legacy application menus,
-and the proxy. Only X11 is covered; Wayland needs separate manual testing.
+the proxy, misbehaving applications (repeated registration, early
+registration, change signals without changes), text next to icons,
+screen reader names (skipped without AT-SPI), legacy icons without
+transparency (skipped without a C compiler), clicks and menus of a Wine
+application in the proxy's Wayland mode (skipped without `wine` and
+`x86_64-w64-mingw32-gcc`), and closing legacy menus in that mode. Only X11 is covered; Wayland needs separate manual testing.
 
 Tests require `Xvfb`, `xfwm4`, `xdotool`, ImageMagick, and PyGObject;
 see the header of `tests/run.sh` for the packages. A failed test leaves
@@ -406,6 +472,8 @@ its log directory and the last screenshot for troubleshooting.
 | `src/to-dialog.[ch]` | Settings dialog |
 | `src/to-legacy.[ch]` | Legacy proxy lifecycle |
 | `proxy/xembed-proxy.c` | Standalone XEmbed → StatusNotifier proxy |
+| `proxy/xp-logic.[ch]` | Proxy logic that does not need X11 (Java application names, image conversion) |
+| `tests/unit/` | Quick tests (`meson test`) |
 | `tests/` | Automated test runner and test applications |
 
 The proxy is a separate process by design: an unexpected legacy

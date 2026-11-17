@@ -67,6 +67,8 @@ gint     tray_settings_get_popup_spacing     (TraySettings *s);
 gint     tray_settings_get_popup_columns     (TraySettings *s);
 gint     tray_settings_get_passive_mode      (TraySettings *s);
 gboolean tray_settings_get_new_in_popup      (TraySettings *s);
+/* Texto que algunas apps ponen junto a su ícono (sin casilla en el diálogo) */
+gboolean tray_settings_get_show_labels       (TraySettings *s);
 gboolean tray_settings_get_symbolic_icons    (TraySettings *s);
 gboolean tray_settings_get_single_row        (TraySettings *s);
 gboolean tray_settings_get_compact_buttons   (TraySettings *s);
@@ -81,6 +83,7 @@ void     tray_settings_set_popup_spacing     (TraySettings *s, gint value);
 void     tray_settings_set_popup_columns     (TraySettings *s, gint value);
 void     tray_settings_set_passive_mode      (TraySettings *s, gint value);
 void     tray_settings_set_new_in_popup      (TraySettings *s, gboolean value);
+void     tray_settings_set_show_labels       (TraySettings *s, gboolean value);
 void     tray_settings_set_symbolic_icons    (TraySettings *s, gboolean value);
 void     tray_settings_set_single_row        (TraySettings *s, gboolean value);
 void     tray_settings_set_compact_buttons   (TraySettings *s, gboolean value);

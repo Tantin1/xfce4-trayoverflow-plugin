@@ -162,9 +162,26 @@ proxy_start (void)
     gchar *popup_arg = g_strdup_printf ("--popup-icon-size=%d", popup_size_hint);
     gchar *ids_arg = g_strdup_printf ("--popup-ids=%s", popup_ids_hint != NULL ? popup_ids_hint : "");
 
-    proxy = g_subprocess_launcher_spawn (launcher, &error, PROXY_PATH,
-                                         panel_arg, popup_arg, ids_arg,
-                                         wayland ? "--wayland" : NULL, NULL);
+    /* Diagnóstico: con TRAYOVERFLOW_PROXY_LOG=archivo, el proxy anota lo
+     * que hace (--verbose) en ese archivo */
+    const gchar *log_path = g_getenv ("TRAYOVERFLOW_PROXY_LOG");
+    GPtrArray *argv = g_ptr_array_new ();
+
+    g_ptr_array_add (argv, (gpointer) PROXY_PATH);
+    g_ptr_array_add (argv, panel_arg);
+    g_ptr_array_add (argv, popup_arg);
+    g_ptr_array_add (argv, ids_arg);
+    if (wayland)
+      g_ptr_array_add (argv, (gpointer) "--wayland");
+    if (log_path != NULL && *log_path != '\0')
+      {
+        g_ptr_array_add (argv, (gpointer) "--verbose");
+        g_subprocess_launcher_set_stderr_file_path (launcher, log_path);
+      }
+    g_ptr_array_add (argv, NULL);
+
+    proxy = g_subprocess_launcher_spawnv (launcher, (const gchar * const *) argv->pdata, &error);
+    g_ptr_array_free (argv, TRUE);
     g_free (panel_arg);
     g_free (popup_arg);
     g_free (ids_arg);

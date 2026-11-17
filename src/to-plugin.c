@@ -415,6 +415,7 @@ tray_plugin_relayout (TrayPlugin *p)
   params.popup_spacing = tray_settings_get_popup_spacing (p->settings);
   params.button_min = tray_settings_get_compact_buttons (p->settings)
                       ? 0 : tray_settings_get_button_min_size (p->settings);
+  params.labels = tray_settings_get_show_labels (p->settings);
 
   /* Ordenar los ítems listos según la configuración */
   entries = g_array_new (FALSE, FALSE, sizeof (SortEntry));
@@ -508,6 +509,10 @@ tray_plugin_relayout (TrayPlugin *p)
           tray_button_set_min_size (TRAY_BUTTON (button),
                                     params.horizontal ? params.button_min : 0,
                                     params.horizontal ? 0 : params.button_min);
+          /* En un panel vertical el texto no entra en el ancho: solo se
+           * ve en el popup (o con el ícono oculto ahí) */
+          tray_button_set_show_label (TRAY_BUTTON (button),
+                                      params.labels && params.horizontal);
           if (params.horizontal)
             gtk_grid_attach (GTK_GRID (p->panel_grid), button, major, minor, 1, 1);
           else
@@ -547,6 +552,7 @@ tray_plugin_relayout (TrayPlugin *p)
 
           tray_button_set_icon_size (TRAY_BUTTON (button), params.popup_size);
           tray_button_set_min_size (TRAY_BUTTON (button), params.button_min, params.button_min);
+          tray_button_set_show_label (TRAY_BUTTON (button), params.labels);
           gtk_grid_attach (GTK_GRID (p->popup_grid), button,
                            i % params.columns, i / params.columns, 1, 1);
           gtk_widget_show (button);
@@ -1090,6 +1096,9 @@ tray_plugin_construct (XfcePanelPlugin *panel_plugin)
   gtk_widget_set_can_focus (p->arrow, FALSE);
   p->arrow_tooltip = g_strdup (_("Show hidden icons"));
   gtk_widget_set_tooltip_text (p->arrow, p->arrow_tooltip);
+  /* Para lectores de pantalla: la flecha solo tiene una imagen. El aviso
+   * de apps que piden atención llega con el tooltip (la descripción) */
+  atk_object_set_name (gtk_widget_get_accessible (p->arrow), _("Show hidden icons"));
   gtk_style_context_add_class (gtk_widget_get_style_context (p->arrow),
                                TO_CSS_PREFIX "-arrow");
   gtk_box_pack_start (GTK_BOX (p->box), p->arrow, FALSE, FALSE, 0);

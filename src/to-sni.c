@@ -13,6 +13,7 @@
 #include "to-common.h"
 #include "to-sni.h"
 
+#include <gdk/gdkx.h>
 #include <libdbusmenu-gtk/menu.h>
 #include <string.h>
 #include <unistd.h>
@@ -165,6 +166,55 @@ sni_item_drop_menu (SniItem *item)
 
 
 
+/* Wayland: una app no puede traer su ventana al frente por su cuenta;
+ * necesita un permiso (token de xdg-activation) de quien recibió el clic.
+ * Se lo pasamos antes de cada acción, como hace KDE. Las apps que no lo
+ * entienden ignoran la llamada (no se espera respuesta). En X11 no hace
+ * falta, y las apps antiguas del proxy son ventanas X. */
+static void
+sni_item_provide_activation_token (SniItem *item)
+{
+  GdkDisplay *display = gdk_display_get_default ();
+  GdkAppLaunchContext *context;
+  GAppLaunchContextClass *klass;
+  gchar *token = NULL;
+
+  if (display == NULL || GDK_IS_X11_DISPLAY (display))
+    return;
+  if (item->from_proxy || item->owner == NULL || item->removed || backend == NULL)
+    return;
+
+  /* GDK pide el token al compositor con el número de serie del último
+   * clic. Se llama a la función de la clase y no a
+   * g_app_launch_context_get_startup_notify_id porque esa, en versiones
+   * viejas de GLib, exige una app a lanzar (acá no hay ninguna) */
+  context = gdk_display_get_app_launch_context (display);
+  klass = G_APP_LAUNCH_CONTEXT_GET_CLASS (context);
+  if (klass->get_startup_notify_id != NULL)
+    token = klass->get_startup_notify_id (G_APP_LAUNCH_CONTEXT (context), NULL, NULL);
+  g_object_unref (context);
+
+  if (token != NULL && *token != '\0')
+    g_dbus_connection_call (backend->conn, item->owner, item->object_path,
+                            ITEM_IFACE, "ProvideXdgActivationToken",
+                            g_variant_new ("(s)", token), NULL,
+                            G_DBUS_CALL_FLAGS_NONE, -1, item->cancellable,
+                            NULL, NULL);
+  g_free (token);
+}
+
+
+
+/* El menú se abre: el permiso va ahora, para la opción que se elija
+ * ("Mostrar ventana", etc.) */
+static void
+sni_item_menu_mapped (GtkWidget *menu, SniItem *item)
+{
+  sni_item_provide_activation_token (item);
+}
+
+
+
 static GtkWidget *
 sni_item_get_menu (TrayItem *tray_item)
 {
@@ -182,6 +232,8 @@ sni_item_get_menu (TrayItem *tray_item)
           dbusmenu_gtkclient_set_accel_group (dbusmenu_gtkmenu_get_client (menu), accel);
           g_object_unref (accel);
           item->menu = g_object_ref_sink (GTK_WIDGET (menu));
+          g_signal_connect_object (item->menu, "map",
+                                   G_CALLBACK (sni_item_menu_mapped), item, 0);
         }
     }
 
@@ -249,6 +301,7 @@ sni_item_activate (TrayItem *tray_item, gint x, gint y)
 {
   SniItem *item = SNI_ITEM (tray_item);
 
+  sni_item_provide_activation_token (item);
   sni_item_call (item, "Activate", g_variant_new ("(ii)", x, y),
                  sni_item_activate_done, g_object_ref (item));
 }
@@ -258,6 +311,7 @@ sni_item_activate (TrayItem *tray_item, gint x, gint y)
 static void
 sni_item_secondary_activate (TrayItem *tray_item, gint x, gint y)
 {
+  sni_item_provide_activation_token (SNI_ITEM (tray_item));
   sni_item_call (SNI_ITEM (tray_item), "SecondaryActivate",
                  g_variant_new ("(ii)", x, y), NULL, NULL);
 }
@@ -267,6 +321,7 @@ sni_item_secondary_activate (TrayItem *tray_item, gint x, gint y)
 static void
 sni_item_context_menu (TrayItem *tray_item, gint x, gint y)
 {
+  sni_item_provide_activation_token (SNI_ITEM (tray_item));
   sni_item_call (SNI_ITEM (tray_item), "ContextMenu",
                  g_variant_new ("(ii)", x, y), NULL, NULL);
 }
@@ -694,6 +749,11 @@ sni_item_apply_properties (SniItem  *item,
     {
       tray_item_set_tooltip (tray_item, NULL, NULL);
     }
+
+  /* Extensión de Ayatana/AppIndicator: texto junto al ícono. El aviso
+   * XAyatanaNewLabel llega como cualquier otra señal y hace releer */
+  tray_item_set_label (tray_item, lookup_string (dict, "XAyatanaLabel"),
+                       lookup_string (dict, "XAyatanaLabelGuide"));
 
   if (g_variant_lookup (dict, "ItemIsMenu", "b", &is_menu) || !tray_item_get_is_menu (tray_item))
     tray_item_set_is_menu (tray_item, is_menu);

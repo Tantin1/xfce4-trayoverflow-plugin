@@ -230,14 +230,15 @@ tray_diag_report (TrayPlugin *p)
   g_string_append_printf (out,
                           "Options: inactive icons %s, new in popup %s, "
                           "symbolic %s, single row %s, compact buttons %s, "
-                          "minimum button %d, older apps %s\n",
+                          "minimum button %d, older apps %s, labels %s\n",
                           passive_mode_name (tray_settings_get_passive_mode (p->settings)),
                           yes_no (tray_settings_get_new_in_popup (p->settings)),
                           yes_no (tray_settings_get_symbolic_icons (p->settings)),
                           yes_no (tray_settings_get_single_row (p->settings)),
                           yes_no (tray_settings_get_compact_buttons (p->settings)),
                           tray_settings_get_button_min_size (p->settings),
-                          yes_no (tray_settings_get_legacy_tray (p->settings)));
+                          yes_no (tray_settings_get_legacy_tray (p->settings)),
+                          yes_no (tray_settings_get_show_labels (p->settings)));
 
   /* ── Apps abiertas ── */
   items = tray_model_get_items (p->model);
@@ -266,12 +267,15 @@ tray_diag_report (TrayPlugin *p)
         where = "not placed";
 
       source = icon_source (p, item);
-      g_string_append_printf (out, "- %s \"%s\": %s, %s, %s, icon: %s\n",
+      g_string_append_printf (out, "- %s \"%s\": %s, %s, %s, icon: %s",
                               tray_item_get_key (item),
                               tray_item_get_display_name (item),
                               tray_item_get_is_legacy (item) ? "older app (XEmbed)" : "modern (SNI)",
                               status_name (tray_item_get_status (item)),
                               where, source);
+      if (tray_item_get_label (item) != NULL)
+        g_string_append_printf (out, ", label: \"%s\"", tray_item_get_label (item));
+      g_string_append_c (out, '\n');
       g_free (source);
     }
 
