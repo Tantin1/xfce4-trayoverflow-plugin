@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "_Tussenruimte (px):"
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "Symbolische pictogrammen gebruiken (indien _beschikbaar)"
+
+msgid "_Show text next to the icons"
+msgstr "_Tekst naast de pictogrammen tonen"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "Sommige toepassingen tonen een korte tekst naast hun pictogram, zoals een temperatuur of de toetsenbordindeling. In verticale panelen wordt deze niet getoond."
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "Eenkleurige pictogrammen in de tekstkleur van het paneel, in het paneel en in het pop-upvenster. Alleen voor toepassingen waarvan het pictogram uit het pictogramthema komt; de rest houdt het eigen pictogram."
@@ -91,6 +97,9 @@ msgstr "_Eigen pictogram van de toepassing gebruiken"
 msgid "_OK"
 msgstr "_OK"
 
+msgid "Search icons in your theme"
+msgstr "Pictogrammen in uw thema zoeken"
+
 msgid "Suggested icons from your theme:"
 msgstr "Voorgestelde pictogrammen uit uw thema:"
 
@@ -103,8 +112,8 @@ msgstr "Pictogram_naam of bestand:"
 msgid "Choose _File…"
 msgstr "_Bestand kiezen…"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "Zolang er een eigen pictogram is ingesteld, worden wijzigingen in het pictogram van de toepassing (bijvoorbeeld een melding) niet getoond."
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "Meldingen van de toepassing (het meldingspictogram of een kleine badge) blijven zichtbaar bij een eigen pictogram."
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "Oudere toepassingen die het klassieke systeemvak (XEmbed) gebruiken, worden hier getoond, samen met de andere."
@@ -245,6 +254,57 @@ msgstr "(inactief)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "Sommige toepassingen markeren hun pictogram als inactief als er niets te melden is. Verbergen: nergens getoond tot de toepassing weer actief is, zoals in het systeemvak van XFCE. In het pop-upvenster: pictogrammen die u zelf in het paneel plaatst, blijven daar."
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Dit is geen instellingenbestand van Tray Overflow."
+
+msgid "The file is damaged or too large."
+msgstr "Het bestand is beschadigd of te groot."
+
+msgid "Tray Overflow settings"
+msgstr "Instellingen van Tray Overflow"
+
+msgid "Export settings"
+msgstr "Instellingen exporteren"
+
+msgid "_Save"
+msgstr "Op_slaan"
+
+msgid "Settings exported."
+msgstr "Instellingen geëxporteerd."
+
+msgid "Could not export the settings"
+msgstr "Kan de instellingen niet exporteren"
+
+msgid "Import settings"
+msgstr "Instellingen importeren"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "De huidige instellingen vervangen door die uit het bestand?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "De volgorde, verborgen apps, gekozen pictogrammen en groottes veranderen. Dit kan niet ongedaan worden gemaakt."
+
+msgid "_Replace"
+msgstr "_Vervangen"
+
+msgid "Settings imported."
+msgstr "Instellingen geïmporteerd."
+
+msgid "Could not import the settings"
+msgstr "Kan de instellingen niet importeren"
+
+msgid "I_mport…"
+msgstr "I_mporteren…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "Vervangt de instellingen van deze plug-in door die uit een bestand."
+
+msgid "E_xport…"
+msgstr "E_xporteren…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "Slaat de instellingen van deze plug-in (volgorde, verborgen apps, gekozen pictogrammen, groottes) op in een bestand, als reservekopie of om ze op een andere computer te gebruiken."
 
 #~ msgid "Panel"
 #~ msgstr "Paneel"

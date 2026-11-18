@@ -63,7 +63,9 @@ spawn (const gchar *const *argv)
 
 /* Nombre del programa de @pid, una vez que dejó de ser una copia de esta
  * prueba: justo después de lanzarlo puede no haber cambiado todavía (el
- * hijo existe antes de ejecutar el programa). Espera hasta 2 s */
+ * hijo existe antes de ejecutar el programa), y mientras se reemplaza la
+ * línea de comandos puede leerse vacía un instante (se usa entonces el
+ * nombre corto, "sh"). Espera hasta 2 s */
 static gchar *
 exe_name_after_exec (GPid pid)
 {
@@ -75,7 +77,7 @@ exe_name_after_exec (GPid pid)
     {
       g_free (name);
       name = exe_name_from_pid (pid);
-      if (name != NULL && g_strcmp0 (name, self) != 0)
+      if (name != NULL && g_strcmp0 (name, self) != 0 && g_strcmp0 (name, "sh") != 0)
         break;
       g_usleep (10000);
     }

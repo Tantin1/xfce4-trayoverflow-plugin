@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "アイコンの間隔 (px)(_P):"
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "シンボリックアイコンを使う (利用可能な場合)(_B)"
+
+msgid "_Show text next to the icons"
+msgstr "アイコンの横にテキストを表示する(_S)"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "一部のアプリは、温度やキーボード配列などの短いテキストをアイコンの横に表示します。縦置きのパネルでは表示されません。"
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "パネルの文字色の単色アイコンを、パネルとポップアップで使います。アイコンテーマからアイコンを取得するアプリのみが対象で、それ以外のアプリは独自のアイコンのままです。"
@@ -91,6 +97,9 @@ msgstr "アプリ独自のアイコンを使う(_O)"
 msgid "_OK"
 msgstr "OK(_O)"
 
+msgid "Search icons in your theme"
+msgstr "テーマのアイコンを検索"
+
 msgid "Suggested icons from your theme:"
 msgstr "テーマからのおすすめアイコン:"
 
@@ -103,8 +112,8 @@ msgstr "アイコン名またはファイル(_N):"
 msgid "Choose _File…"
 msgstr "ファイルを選択(_F)…"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "カスタムアイコンを設定している間は、アプリ独自のアイコンの変化 (通知など) は表示されません。"
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "カスタムアイコンを設定していても、アプリからの通知 (通知アイコンや小さなバッジ) は表示されます。"
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "クラシックトレイ (XEmbed) を使う古いアプリも、ほかのアプリと一緒にここに表示されます。"
@@ -245,6 +254,57 @@ msgstr "(非アクティブ)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "知らせることがないとき、アイコンを非アクティブにするアプリがあります。隠す: アプリが再びアクティブになるまでどこにも表示しません (XFCE のシステムトレイと同じ)。ポップアップ内: 自分でパネルに置いたアイコンはそのまま残ります。"
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Tray Overflow の設定ファイルではありません。"
+
+msgid "The file is damaged or too large."
+msgstr "ファイルが壊れているか、大きすぎます。"
+
+msgid "Tray Overflow settings"
+msgstr "Tray Overflow の設定"
+
+msgid "Export settings"
+msgstr "設定のエクスポート"
+
+msgid "_Save"
+msgstr "保存(_S)"
+
+msgid "Settings exported."
+msgstr "設定をエクスポートしました。"
+
+msgid "Could not export the settings"
+msgstr "設定をエクスポートできませんでした"
+
+msgid "Import settings"
+msgstr "設定のインポート"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "現在の設定をファイルの設定で置き換えますか?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "並び順、非表示のアプリ、選んだアイコン、サイズが変わります。元に戻すことはできません。"
+
+msgid "_Replace"
+msgstr "置き換える(_R)"
+
+msgid "Settings imported."
+msgstr "設定をインポートしました。"
+
+msgid "Could not import the settings"
+msgstr "設定をインポートできませんでした"
+
+msgid "I_mport…"
+msgstr "インポート(_M)…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "このプラグインの設定を、ファイルに保存された設定で置き換えます。"
+
+msgid "E_xport…"
+msgstr "エクスポート(_X)…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "このプラグインの設定(並び順、非表示のアプリ、選んだアイコン、サイズ)をファイルに保存します。バックアップや別のコンピューターで使うためです。"
 
 #~ msgid "Panel"
 #~ msgstr "パネル"

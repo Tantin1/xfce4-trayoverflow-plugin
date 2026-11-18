@@ -142,4 +142,21 @@ void     tray_settings_flush                 (TraySettings *s);
 /* El plugin se quitó del panel: descartar lo pendiente y no escribir más */
 void     tray_settings_discard               (TraySettings *s);
 
+/* Exportar e importar: un archivo de texto con las opciones guardadas de
+ * este plugin (solo las que se cambiaron: el resto sigue el valor por
+ * defecto). Importar reemplaza todas las del plugin */
+typedef enum
+{
+  TRAY_SETTINGS_ERROR_NOT_OURS,   /* no es un archivo de Tray Overflow */
+  TRAY_SETTINGS_ERROR_DAMAGED     /* dañado o demasiado grande */
+} TraySettingsError;
+
+#define TRAY_SETTINGS_ERROR (tray_settings_error_quark ())
+GQuark   tray_settings_error_quark           (void);
+
+gboolean tray_settings_export                (TraySettings *s, const gchar *path,
+                                              GError **error);
+gboolean tray_settings_import                (TraySettings *s, const gchar *path,
+                                              GError **error);
+
 G_END_DECLS

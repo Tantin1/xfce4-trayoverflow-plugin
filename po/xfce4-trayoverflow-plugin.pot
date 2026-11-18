@@ -2,7 +2,7 @@
 # Source identifiers validated against po/POTFILES on 2026-11-10.
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-11-12 13:40-0300\n"
 "MIME-Version: 1.0\n"
@@ -238,6 +238,10 @@ msgid "Status notifier area with a popup for hidden icons"
 msgstr ""
 
 #: src/to-dialog.c:852
+msgid "Search icons in your theme"
+msgstr ""
+
+#: src/to-dialog.c:852
 msgid "Suggested icons from your theme:"
 msgstr ""
 
@@ -265,12 +269,20 @@ msgstr ""
 msgid "Use sym_bolic icons (if available)"
 msgstr ""
 
+#: src/to-dialog.c
+msgid "_Show text next to the icons"
+msgstr ""
+
+#: src/to-dialog.c
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr ""
+
 #: src/to-dialog.c:835
 msgid "Use the app's _own icon"
 msgstr ""
 
 #: src/to-dialog.c:911
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
 msgstr ""
 
 #: src/to-dialog.c:406
@@ -311,4 +323,72 @@ msgstr ""
 
 #: src/to-dialog.c:1185
 msgid "_Update"
+msgstr ""
+
+#: src/to-dialog.c:1203
+msgid "This is not a Tray Overflow settings file."
+msgstr ""
+
+#: src/to-dialog.c:1205
+msgid "The file is damaged or too large."
+msgstr ""
+
+#: src/to-dialog.c:1221
+msgid "Tray Overflow settings"
+msgstr ""
+
+#: src/to-dialog.c:1234
+msgid "Export settings"
+msgstr ""
+
+#: src/to-dialog.c:1235
+msgid "_Save"
+msgstr ""
+
+#: src/to-dialog.c:1245
+msgid "Settings exported."
+msgstr ""
+
+#: src/to-dialog.c:1248
+msgid "Could not export the settings"
+msgstr ""
+
+#: src/to-dialog.c:1266
+msgid "Import settings"
+msgstr ""
+
+#: src/to-dialog.c:1283
+msgid "Replace the current settings with the ones in the file?"
+msgstr ""
+
+#: src/to-dialog.c:1286
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr ""
+
+#: src/to-dialog.c:1288
+msgid "_Replace"
+msgstr ""
+
+#: src/to-dialog.c:1301
+msgid "Settings imported."
+msgstr ""
+
+#: src/to-dialog.c:1304
+msgid "Could not import the settings"
+msgstr ""
+
+#: src/to-dialog.c:1324
+msgid "I_mport…"
+msgstr ""
+
+#: src/to-dialog.c:1325
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr ""
+
+#: src/to-dialog.c:1330
+msgid "E_xport…"
+msgstr ""
+
+#: src/to-dialog.c:1331
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
 msgstr ""

@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "Symbol_abstand (px):"
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "Sym_bolische Symbole verwenden (falls vorhanden)"
+
+msgid "_Show text next to the icons"
+msgstr "Text neben den Symbolen _anzeigen"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "Manche Anwendungen zeigen einen kurzen Text neben ihrem Symbol, etwa eine Temperatur oder die Tastaturbelegung. In senkrechten Leisten wird er nicht angezeigt."
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "Einfarbige Symbole in der Textfarbe der Leiste, in der Leiste und im Aufklappfenster. Nur für Anwendungen, deren Symbol aus dem Symbolthema stammt; die übrigen behalten ihr eigenes Symbol."
@@ -91,6 +97,9 @@ msgstr "_Eigenes Symbol der Anwendung verwenden"
 msgid "_OK"
 msgstr "_OK"
 
+msgid "Search icons in your theme"
+msgstr "Symbole in Ihrem Thema suchen"
+
 msgid "Suggested icons from your theme:"
 msgstr "Vorgeschlagene Symbole aus Ihrem Thema:"
 
@@ -103,8 +112,8 @@ msgstr "Symbol_name oder Datei:"
 msgid "Choose _File…"
 msgstr "_Datei auswählen …"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "Solange ein eigenes Symbol gesetzt ist, werden Änderungen am Symbol der Anwendung (zum Beispiel ein Hinweis) nicht angezeigt."
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "Hinweise der Anwendung (ihr Hinweissymbol oder ein kleines Abzeichen) werden auch bei einem eigenen Symbol angezeigt."
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "Ältere Anwendungen, die den klassischen Infobereich (XEmbed) verwenden, werden hier zusammen mit den anderen angezeigt."
@@ -245,6 +254,57 @@ msgstr "(inaktiv)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "Manche Anwendungen markieren ihr Symbol als inaktiv, wenn es nichts zu melden gibt. Ausblenden: wird nirgends angezeigt, bis die Anwendung wieder aktiv ist, wie im Benachrichtigungsbereich von XFCE. Im Aufklappfenster: Symbole, die Sie selbst in die Leiste legen, bleiben dort."
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Dies ist keine Einstellungsdatei von Tray Overflow."
+
+msgid "The file is damaged or too large."
+msgstr "Die Datei ist beschädigt oder zu groß."
+
+msgid "Tray Overflow settings"
+msgstr "Tray-Overflow-Einstellungen"
+
+msgid "Export settings"
+msgstr "Einstellungen exportieren"
+
+msgid "_Save"
+msgstr "_Speichern"
+
+msgid "Settings exported."
+msgstr "Einstellungen exportiert."
+
+msgid "Could not export the settings"
+msgstr "Die Einstellungen konnten nicht exportiert werden"
+
+msgid "Import settings"
+msgstr "Einstellungen importieren"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "Die aktuellen Einstellungen durch die aus der Datei ersetzen?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "Reihenfolge, versteckte Apps, gewählte Symbole und Größen ändern sich. Dies kann nicht rückgängig gemacht werden."
+
+msgid "_Replace"
+msgstr "_Ersetzen"
+
+msgid "Settings imported."
+msgstr "Einstellungen importiert."
+
+msgid "Could not import the settings"
+msgstr "Die Einstellungen konnten nicht importiert werden"
+
+msgid "I_mport…"
+msgstr "I_mportieren…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "Ersetzt die Einstellungen dieses Plugins durch die in einer Datei gespeicherten."
+
+msgid "E_xport…"
+msgstr "E_xportieren…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "Speichert die Einstellungen dieses Plugins (Reihenfolge, versteckte Apps, gewählte Symbole, Größen) in einer Datei, als Sicherung oder für einen anderen Computer."
 
 #~ msgid "Panel"
 #~ msgstr "Leiste"

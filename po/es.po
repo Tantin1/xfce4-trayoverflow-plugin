@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-27 12:20-0300\n"
 "Last-Translator: Juan Pérez <juanperez33840@gmail.com>\n"
@@ -62,6 +62,17 @@ msgstr "Sin compositor, las esquinas siempre son rectas."
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "Usar íconos sim_bólicos (si están disponibles)"
+
+msgid "_Show text next to the icons"
+msgstr "Mostrar el _texto junto a los íconos"
+
+msgid ""
+"Some apps show a short text next to their icon, such as a temperature or the "
+"keyboard layout. It is not shown in vertical panels."
+msgstr ""
+"Algunas aplicaciones muestran un texto corto junto a su ícono, como una "
+"temperatura o la distribución del teclado. No se muestra en paneles "
+"verticales."
 
 msgid ""
 "Monochrome icons in the color of the panel text, in the panel and in the "
@@ -214,6 +225,9 @@ msgstr "_Aceptar"
 msgid "_Open"
 msgstr "_Abrir"
 
+msgid "Search icons in your theme"
+msgstr "Buscar íconos en su tema"
+
 msgid "Suggested icons from your theme:"
 msgstr "Íconos sugeridos de su tema:"
 
@@ -233,11 +247,11 @@ msgid "Images"
 msgstr "Imágenes"
 
 msgid ""
-"While a custom icon is set, changes in the app's own icon (for example a "
-"notice) are not shown."
+"Notices from the app (its notice icon or a small badge) are still shown with "
+"a custom icon."
 msgstr ""
-"Mientras tenga un ícono elegido, no se verán los cambios del ícono propio "
-"de la aplicación (por ejemplo, un aviso)."
+"Los avisos de la aplicación (su ícono de aviso o una pequeña marca) se siguen "
+"viendo con un ícono elegido."
 
 msgid "_Diagnostics"
 msgstr "_Diagnóstico"
@@ -302,6 +316,57 @@ msgstr ""
 "informar. Esconder: no se muestra en ningún lado hasta que la aplicación "
 "vuelva a estar activa, como en la bandeja de XFCE. En la ventana emergente: "
 "los íconos que ubique usted mismo en el panel se quedan ahí."
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Este no es un archivo de configuración de Tray Overflow."
+
+msgid "The file is damaged or too large."
+msgstr "El archivo está dañado o es demasiado grande."
+
+msgid "Tray Overflow settings"
+msgstr "Configuración de Tray Overflow"
+
+msgid "Export settings"
+msgstr "Exportar la configuración"
+
+msgid "_Save"
+msgstr "_Guardar"
+
+msgid "Settings exported."
+msgstr "Configuración exportada."
+
+msgid "Could not export the settings"
+msgstr "No se pudo exportar la configuración"
+
+msgid "Import settings"
+msgstr "Importar una configuración"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "¿Reemplazar la configuración actual por la del archivo?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "Van a cambiar el orden, las apps ocultas, los íconos elegidos y los tamaños. No se puede deshacer."
+
+msgid "_Replace"
+msgstr "_Reemplazar"
+
+msgid "Settings imported."
+msgstr "Configuración importada."
+
+msgid "Could not import the settings"
+msgstr "No se pudo importar la configuración"
+
+msgid "I_mport…"
+msgstr "I_mportar…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "Reemplaza la configuración de este plugin por la guardada en un archivo."
+
+msgid "E_xport…"
+msgstr "E_xportar…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "Guarda la configuración de este plugin (orden, apps ocultas, íconos elegidos, tamaños) en un archivo, como respaldo o para usarla en otra computadora."
 
 #~ msgid "Panel"
 #~ msgstr "Panel"

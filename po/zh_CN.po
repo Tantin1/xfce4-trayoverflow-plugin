@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "图标间距（像素）(_P)："
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "使用符号图标（如果可用）(_B)"
+
+msgid "_Show text next to the icons"
+msgstr "在图标旁显示文字(_S)"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "有些应用会在图标旁显示简短文字，例如温度或键盘布局。在竖直面板中不显示。"
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "使用与面板文字颜色相同的单色图标，包括面板和弹出窗口。仅适用于图标来自图标主题的应用；其他应用保留自己的图标。"
@@ -91,6 +97,9 @@ msgstr "使用应用自己的图标(_O)"
 msgid "_OK"
 msgstr "确定(_O)"
 
+msgid "Search icons in your theme"
+msgstr "在您的主题中搜索图标"
+
 msgid "Suggested icons from your theme:"
 msgstr "您的主题中推荐的图标："
 
@@ -103,8 +112,8 @@ msgstr "图标名称或文件(_N)："
 msgid "Choose _File…"
 msgstr "选择文件(_F)…"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "设置了自定义图标后，应用自身图标的变化（例如提醒）将不会显示。"
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "设置了自定义图标后，应用的提醒（提醒图标或小角标）仍会显示。"
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "使用经典托盘（XEmbed）的旧应用也会和其他应用一起显示在这里。"
@@ -245,6 +254,57 @@ msgstr "（非活动）"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "有些应用在没有消息时会把图标标记为非活动。隐藏：在应用重新变为活动之前不在任何地方显示，与 XFCE 系统托盘相同。在弹出窗口中：您自己放到面板上的图标会留在那里。"
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "这不是 Tray Overflow 的设置文件。"
+
+msgid "The file is damaged or too large."
+msgstr "文件已损坏或太大。"
+
+msgid "Tray Overflow settings"
+msgstr "Tray Overflow 设置"
+
+msgid "Export settings"
+msgstr "导出设置"
+
+msgid "_Save"
+msgstr "保存(_S)"
+
+msgid "Settings exported."
+msgstr "设置已导出。"
+
+msgid "Could not export the settings"
+msgstr "无法导出设置"
+
+msgid "Import settings"
+msgstr "导入设置"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "用文件中的设置替换当前设置吗?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "顺序、隐藏的应用、选择的图标和尺寸都会改变。此操作无法撤销。"
+
+msgid "_Replace"
+msgstr "替换(_R)"
+
+msgid "Settings imported."
+msgstr "设置已导入。"
+
+msgid "Could not import the settings"
+msgstr "无法导入设置"
+
+msgid "I_mport…"
+msgstr "导入(_M)…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "用文件中保存的设置替换此插件的设置。"
+
+msgid "E_xport…"
+msgstr "导出(_X)…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "将此插件的设置(顺序、隐藏的应用、选择的图标、尺寸)保存到文件,用于备份或在另一台电脑上使用。"
 
 #~ msgid "Panel"
 #~ msgstr "面板"

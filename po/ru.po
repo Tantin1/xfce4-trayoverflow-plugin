@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "_Отступ между значками (пикс.):"
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "Использовать символьные значки (_если есть)"
+
+msgid "_Show text next to the icons"
+msgstr "Показывать _текст рядом со значками"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "Некоторые приложения показывают рядом со значком короткий текст, например температуру или раскладку клавиатуры. На вертикальных панелях он не показывается."
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "Одноцветные значки цвета текста панели — на панели и во всплывающем окне. Только для приложений, чей значок берётся из темы значков; остальные сохраняют свой значок."
@@ -91,6 +97,9 @@ msgstr "Использовать _собственный значок прило
 msgid "_OK"
 msgstr "_OK"
 
+msgid "Search icons in your theme"
+msgstr "Поиск значков в вашей теме"
+
 msgid "Suggested icons from your theme:"
 msgstr "Подходящие значки из вашей темы:"
 
@@ -103,8 +112,8 @@ msgstr "_Имя значка или файл:"
 msgid "Choose _File…"
 msgstr "Выбрать _файл…"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "Пока задан свой значок, изменения собственного значка приложения (например, уведомление) не показываются."
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "Уведомления приложения (его значок уведомления или маленькая метка) по-прежнему показываются и со своим значком."
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "Старые приложения, использующие классический лоток (XEmbed), показываются здесь вместе с остальными."
@@ -245,6 +254,57 @@ msgstr "(неактивно)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "Некоторые приложения помечают свой значок как неактивный, когда сообщать нечего. Скрывать: значок нигде не показывается, пока приложение снова не станет активным, как в системном лотке XFCE. Во всплывающем окне: значки, которые вы сами разместили на панели, остаются там."
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Это не файл настроек Tray Overflow."
+
+msgid "The file is damaged or too large."
+msgstr "Файл повреждён или слишком велик."
+
+msgid "Tray Overflow settings"
+msgstr "Настройки Tray Overflow"
+
+msgid "Export settings"
+msgstr "Экспорт настроек"
+
+msgid "_Save"
+msgstr "_Сохранить"
+
+msgid "Settings exported."
+msgstr "Настройки экспортированы."
+
+msgid "Could not export the settings"
+msgstr "Не удалось экспортировать настройки"
+
+msgid "Import settings"
+msgstr "Импорт настроек"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "Заменить текущие настройки настройками из файла?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "Изменятся порядок, скрытые приложения, выбранные значки и размеры. Это нельзя отменить."
+
+msgid "_Replace"
+msgstr "_Заменить"
+
+msgid "Settings imported."
+msgstr "Настройки импортированы."
+
+msgid "Could not import the settings"
+msgstr "Не удалось импортировать настройки"
+
+msgid "I_mport…"
+msgstr "И_мпорт…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "Заменяет настройки этого модуля настройками, сохранёнными в файле."
+
+msgid "E_xport…"
+msgstr "Э_кспорт…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "Сохраняет настройки этого модуля (порядок, скрытые приложения, выбранные значки, размеры) в файл — как резервную копию или для другого компьютера."
 
 #~ msgid "Panel"
 #~ msgstr "Панель"

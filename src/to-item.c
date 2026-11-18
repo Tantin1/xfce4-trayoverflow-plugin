@@ -483,6 +483,19 @@ tray_item_render_icon (TrayItem        *item,
                        GtkStyleContext *context,
                        gboolean         prefer_symbolic)
 {
+  return tray_item_render_icon_with (item, NULL, size, scale, context, prefer_symbolic);
+}
+
+
+
+GdkPixbuf *
+tray_item_render_icon_with (TrayItem        *item,
+                            const gchar     *override,
+                            gint             size,
+                            gint             scale,
+                            GtkStyleContext *context,
+                            gboolean         prefer_symbolic)
+{
   TrayItemPrivate *priv;
   GdkPixbuf *base = NULL;
   GdkPixbuf *overlay;
@@ -493,8 +506,13 @@ tray_item_render_icon (TrayItem        *item,
   size = MAX (size, 1);
   scale = MAX (scale, 1);
 
+  /* El ícono de aviso de la app gana incluso sobre el elegido a mano:
+   * es un aviso, y dura solo mientras la app pide atención */
   if (priv->status == TRAY_ITEM_STATUS_ATTENTION)
     base = render_role (item, TRAY_ITEM_ICON_ATTENTION, size, scale, context, prefer_symbolic);
+  /* El elegido a mano no se pinta como simbólico: es la elección del usuario */
+  if (base == NULL && override != NULL)
+    base = tray_icon_load (override, size, scale, context);
   if (base == NULL)
     base = render_role (item, TRAY_ITEM_ICON_MAIN, size, scale, context, prefer_symbolic);
   if (base == NULL)

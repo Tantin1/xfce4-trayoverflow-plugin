@@ -7,6 +7,8 @@
  */
 #include "../../src/to-settings.c"
 
+#include <glib/gstdio.h>
+
 #define BASE "/plugins/plugin-99"
 
 static XfconfChannel *channel;
@@ -521,6 +523,171 @@ test_cache_path (void)
 
 
 
+/* ── Exportar e importar (0072) ──────────────────────────────────────── */
+
+static gchar *
+temp_file (const gchar *name, const gchar *contents)
+{
+  const gchar *dir = g_getenv ("TRAYOVERFLOW_TEST_DIR");
+  gchar *path = g_build_filename (dir != NULL ? dir : g_get_tmp_dir (), name, NULL);
+
+  if (contents != NULL)
+    g_assert_true (g_file_set_contents (path, contents, -1, NULL));
+  return path;
+}
+
+
+
+static void
+test_export_import (void)
+{
+  TraySettings *s;
+  gchar *path = temp_file ("exportado.ini", NULL), *contents = NULL;
+  GError *error = NULL;
+  GPtrArray *known;
+
+  reset_channel ();
+  xfconf_channel_set_string (channel, BASE, "trayoverflow");   /* tipo del plugin */
+  settle ();
+  s = settings_new ();
+
+  tray_settings_set_popup_columns (s, 6);
+  tray_settings_set_symbolic_icons (s, FALSE);
+  tray_settings_remember (s, "app-a", "App; con punto y coma", "");
+  tray_settings_remember (s, "app-b", "App B", "icono-b");
+  tray_settings_set_hidden (s, "app-a", TRUE);
+  tray_settings_set_icon_override (s, "app-b", "elegido");
+
+  g_assert_true (tray_settings_export (s, path, &error));
+  g_assert_no_error (error);
+  settle ();
+
+  /* Solo lo cambiado; lo que nadie tocó no se exporta */
+  g_assert_true (g_file_get_contents (path, &contents, NULL, NULL));
+  g_assert_nonnull (strstr (contents, "[Tray Overflow]"));
+  g_assert_nonnull (strstr (contents, "popup-columns=6"));
+  g_assert_nonnull (strstr (contents, "symbolic-icons=false"));
+  g_assert_null (strstr (contents, "panel-icon-size"));
+  g_free (contents);
+
+  /* Cambiar todo y volver a lo exportado */
+  tray_settings_set_popup_columns (s, 2);
+  tray_settings_set_panel_icon_size (s, 30);
+  tray_settings_set_hidden (s, "app-a", FALSE);
+  tray_settings_remember (s, "app-c", "C", "");
+  tray_settings_flush (s);
+  settle ();
+
+  g_assert_true (tray_settings_import (s, path, &error));
+  g_assert_no_error (error);
+  settle ();
+  spin (RELOAD_DELAY_MS + 300);
+
+  g_assert_cmpint (tray_settings_get_popup_columns (s), ==, 6);
+  g_assert_cmpint (tray_settings_get_panel_icon_size (s), ==, 22);  /* por defecto */
+  g_assert_false (has ("panel-icon-size"));
+  g_assert_false (tray_settings_get_symbolic_icons (s));
+  g_assert_true (tray_settings_is_hidden (s, "app-a", FALSE));
+  g_assert_cmpint (tray_settings_get_index (s, "app-c"), ==, -1);
+  g_assert_cmpstr (tray_settings_get_icon_choice (s, "app-b"), ==, "elegido");
+  known = tray_settings_get_known (s);
+  g_assert_cmpuint (known->len, ==, 2);
+  g_assert_cmpstr (((TrayKnown *) g_ptr_array_index (known, 0))->title, ==, "App; con punto y coma");
+  g_assert_cmpstr (((TrayKnown *) g_ptr_array_index (known, 1))->icon_name, ==, "icono-b");
+
+  /* El tipo del plugin sigue ahí (si no, el panel lo perdería) */
+  {
+    gchar *type = xfconf_channel_get_string (channel, BASE, NULL);
+
+    g_assert_cmpstr (type, ==, "trayoverflow");
+    g_free (type);
+  }
+
+  /* Y lo importado sobrevive a cerrar y abrir */
+  g_object_unref (s);
+  s = settings_new ();
+  g_assert_cmpint (tray_settings_get_popup_columns (s), ==, 6);
+  g_assert_true (tray_settings_is_hidden (s, "app-a", FALSE));
+  g_object_unref (s);
+
+  g_unlink (path);
+  g_free (path);
+}
+
+
+
+static void
+check_import_fails (const gchar *contents, gint code)
+{
+  gchar *path = temp_file ("malo.ini", contents);
+  GError *error = NULL;
+  TraySettings *s;
+
+  reset_channel ();
+  s = settings_new ();
+  tray_settings_set_popup_columns (s, 7);
+  tray_settings_flush (s);
+  settle ();
+
+  g_assert_false (tray_settings_import (s, path, &error));
+  g_assert_error (error, TRAY_SETTINGS_ERROR, code);
+  g_clear_error (&error);
+
+  /* Nada cambió */
+  g_assert_cmpint (tray_settings_get_popup_columns (s), ==, 7);
+  g_assert_cmpint (stored_int ("popup-columns"), ==, 7);
+
+  g_object_unref (s);
+  g_unlink (path);
+  g_free (path);
+}
+
+
+
+static void
+test_import_bad_files (void)
+{
+  gchar *big = g_strnfill (3 * 1024 * 1024, 'x');
+  gchar *long_text = g_strnfill (5000, 'y');
+  gchar *contents;
+  gchar *missing;
+  GError *error = NULL;
+  TraySettings *s;
+
+  check_import_fails ("hola, no soy una configuración\n", TRAY_SETTINGS_ERROR_NOT_OURS);
+  check_import_fails ("[Otra cosa]\nformat=1\n", TRAY_SETTINGS_ERROR_NOT_OURS);
+  check_import_fails ("[Tray Overflow]\nformat=9\n", TRAY_SETTINGS_ERROR_DAMAGED);
+  check_import_fails ("[Tray Overflow]\nformat=1\n[Integers]\npopup-columns=muchas\n",
+                      TRAY_SETTINGS_ERROR_DAMAGED);
+  check_import_fails ("[Tray Overflow]\nformat=1\n[Integers]\n../otro-plugin=1\n",
+                      TRAY_SETTINGS_ERROR_DAMAGED);
+  check_import_fails ("[Tray Overflow]\nformat=1\n[Booleans]\nPopup-Columns=true\n",
+                      TRAY_SETTINGS_ERROR_DAMAGED);
+
+  contents = g_strdup_printf ("[Tray Overflow]\nformat=1\n[Strings]\nalgo=%s\n", long_text);
+  check_import_fails (contents, TRAY_SETTINGS_ERROR_DAMAGED);
+  g_free (contents);
+
+  contents = g_strdup_printf ("[Tray Overflow]\nformat=1\n#%s\n", big);
+  check_import_fails (contents, TRAY_SETTINGS_ERROR_DAMAGED);
+  g_free (contents);
+
+  /* Un archivo que no existe: el error de GLib */
+  missing = temp_file ("no-existe.ini", NULL);
+  reset_channel ();
+  s = settings_new ();
+  g_assert_false (tray_settings_import (s, missing, &error));
+  g_assert_error (error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+  g_clear_error (&error);
+  g_object_unref (s);
+
+  g_free (missing);
+  g_free (long_text);
+  g_free (big);
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -554,6 +721,8 @@ main (int argc, char **argv)
   g_test_add_func ("/settings/known-limit", test_known_limit);
   g_test_add_func ("/settings/icon-defaults", test_icon_defaults);
   g_test_add_func ("/settings/cache-path", test_cache_path);
+  g_test_add_func ("/settings/export-import", test_export_import);
+  g_test_add_func ("/settings/import-bad-files", test_import_bad_files);
 
   result = g_test_run ();
   reset_channel ();

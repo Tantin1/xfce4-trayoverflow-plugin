@@ -75,6 +75,16 @@ GdkPixbuf      *tray_item_render_icon        (TrayItem        *item,
                                               GtkStyleContext *context,
                                               gboolean         prefer_symbolic);
 
+/* Igual, pero con @override (nombre o archivo elegido por el usuario, o
+ * NULL) en lugar del ícono principal de la app. El ícono de aviso y el
+ * superpuesto de la app se siguen mostrando. */
+GdkPixbuf      *tray_item_render_icon_with   (TrayItem        *item,
+                                              const gchar     *override,
+                                              gint             size,
+                                              gint             scale,
+                                              GtkStyleContext *context,
+                                              gboolean         prefer_symbolic);
+
 /* Carga un ícono por nombre (del tema del usuario) o por ruta de archivo,
  * a (size * scale) píxeles. NULL si no existe. */
 GdkPixbuf      *tray_icon_load               (const gchar     *name,

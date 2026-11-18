@@ -52,6 +52,8 @@ icons into a popup**, similar to the notification area in Windows 10/11.
 - Support for **legacy XEmbed tray applications** (enabled by default),
   including Java and Wine applications, with the same popup and
   drag-and-drop controls.
+- **Export and import** the settings (order, hidden apps, chosen icons,
+  sizes) to a file.
 - **Screen readers**: the arrow and every icon have an accessible name
   (the application name, plus its text when it shows one).
 - **Custom application icons**, selected from the icon theme or a file.
@@ -199,7 +201,16 @@ Also here:
 - **Use symbolic icons** (on by default): monochrome icons using the panel
   text color, in the panel and the popup, only for applications whose icons
   come from the theme.
+- **Show text next to the icons** (on by default): the short text some
+  applications show next to their icon, such as a temperature or the
+  keyboard layout, in horizontal panels and in the popup.
 - **Also show older apps (classic XEmbed tray)** (on by default).
+- **Export…** and **Import…**: save this plugin's settings to a file, as
+  a backup or to use them on another computer, and load them back.
+  Only the options you changed are saved; the rest keep the defaults of
+  the version that imports them. Importing replaces the current settings
+  (after asking). Icons chosen from a file must exist at the same path on
+  the other computer.
 
 **Panel button:** icon size (22 px by default, or **Automatic** to follow
 the panel), icon spacing, minimum button size (or **Compact**), arrow
@@ -211,29 +222,22 @@ columns, and corner style.
 **Diagnostics:** a report to copy when something does not work (see
 below).
 
-The text that some applications show next to their icon has no checkbox;
-it can be turned off with:
-
-```bash
-xfconf-query -c xfce4-panel -p /plugins/plugin-N/show-labels -n -t bool -s false
-```
-
-where `plugin-N` is the plugin's number (see
-`xfconf-query -c xfce4-panel -lv | grep trayoverflow`).
-
 Hover over a setting to see its explanation. On shorter displays, the
 settings tabs can be scrolled.
 
 ### Choose a different icon
 
 Select an application under **Items** and click **Icon…**. Icon names from
-your theme are suggested based on similarity; you can also enter another
+your theme are suggested based on similarity, and the search box filters
+all the icons in your theme as you type; you can also enter another
 name or select a PNG or SVG file. **Use the app's own icon**
 restores the original.
 
-When a custom icon is selected, changes to the application's original icon
-(such as an alert overlay) will no longer be shown. Its tooltip continues
-to come from the application.
+A custom icon replaces the application's normal icon only: while the
+application asks for attention its attention icon is shown, and a small
+overlay badge is drawn on top of the custom icon. Other changes to the
+original icon are not shown. Its tooltip continues to come from the
+application.
 
 ### Applications with problematic icons
 

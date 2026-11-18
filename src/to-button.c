@@ -318,20 +318,17 @@ tray_button_scroll (GtkWidget      *widget,
 
 
 
-/* El ícono elegido por el usuario, si lo hay y existe; si no, el de la app */
+/* El ícono elegido por el usuario, si lo hay y existe; si no, el de la
+ * app. El aviso y el ícono superpuesto de la app se ven igual. */
 static GdkPixbuf *
 render_icon (TrayButton *button,
              gint        scale)
 {
   GtkStyleContext *context = gtk_widget_get_style_context (GTK_WIDGET (button));
-  GdkPixbuf *pixbuf;
 
-  pixbuf = tray_icon_load (button->icon_override, button->icon_size, scale, context);
-  if (pixbuf == NULL)
-    pixbuf = tray_item_render_icon (button->item, button->icon_size, scale, context,
-                                    button->symbolic);
-
-  return pixbuf;
+  return tray_item_render_icon_with (button->item, button->icon_override,
+                                     button->icon_size, scale, context,
+                                     button->symbolic);
 }
 
 

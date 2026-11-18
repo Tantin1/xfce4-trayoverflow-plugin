@@ -4,7 +4,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.69\n"
+"Project-Id-Version: xfce4-trayoverflow-plugin 0.2.72\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2026-10-31 18:00-0300\n"
 "Last-Translator: Traducción automática (revisar)\n"
@@ -26,6 +26,12 @@ msgstr "Simge _aralığı (px):"
 
 msgid "Use sym_bolic icons (if available)"
 msgstr "Sem_bolik simgeler kullan (varsa)"
+
+msgid "_Show text next to the icons"
+msgstr "_Simgelerin yanında metni göster"
+
+msgid "Some apps show a short text next to their icon, such as a temperature or the keyboard layout. It is not shown in vertical panels."
+msgstr "Bazı uygulamalar simgelerinin yanında sıcaklık veya klavye düzeni gibi kısa bir metin gösterir. Dikey panellerde gösterilmez."
 
 msgid "Monochrome icons in the color of the panel text, in the panel and in the popup. Only for apps whose icon comes from the icon theme; the rest keep their own icon."
 msgstr "Panel metninin renginde tek renkli simgeler; panelde ve açılır pencerede. Yalnızca simgesi simge temasından gelen uygulamalar için; diğerleri kendi simgesini korur."
@@ -91,6 +97,9 @@ msgstr "Uygulamanın _kendi simgesini kullan"
 msgid "_OK"
 msgstr "_Tamam"
 
+msgid "Search icons in your theme"
+msgstr "Temanızdaki simgelerde ara"
+
 msgid "Suggested icons from your theme:"
 msgstr "Temanızdan önerilen simgeler:"
 
@@ -103,8 +112,8 @@ msgstr "Simge _adı veya dosya:"
 msgid "Choose _File…"
 msgstr "_Dosya seç…"
 
-msgid "While a custom icon is set, changes in the app's own icon (for example a notice) are not shown."
-msgstr "Özel bir simge ayarlıyken, uygulamanın kendi simgesindeki değişiklikler (örneğin bir uyarı) gösterilmez."
+msgid "Notices from the app (its notice icon or a small badge) are still shown with a custom icon."
+msgstr "Özel bir simge ayarlıyken de uygulamanın uyarıları (uyarı simgesi veya küçük bir rozet) gösterilir."
 
 msgid "Older apps that use the classic tray (XEmbed) are shown here, together with the others."
 msgstr "Klasik tepsiyi (XEmbed) kullanan eski uygulamalar burada, diğerleriyle birlikte gösterilir."
@@ -245,6 +254,57 @@ msgstr "(etkin değil)"
 
 msgid "Some apps mark their icon as inactive when there is nothing to report. Hide: not shown anywhere until the app becomes active again, like the XFCE tray. In the popup: icons you place in the panel yourself stay there."
 msgstr "Bazı uygulamalar bildirecek bir şey olmadığında simgelerini etkin değil olarak işaretler. Gizle: uygulama yeniden etkin olana kadar hiçbir yerde gösterilmez, XFCE sistem tepsisindeki gibi. Açılır pencerede: panele kendiniz yerleştirdiğiniz simgeler orada kalır."
+
+msgid "This is not a Tray Overflow settings file."
+msgstr "Bu bir Tray Overflow ayar dosyası değil."
+
+msgid "The file is damaged or too large."
+msgstr "Dosya bozuk ya da çok büyük."
+
+msgid "Tray Overflow settings"
+msgstr "Tray Overflow ayarları"
+
+msgid "Export settings"
+msgstr "Ayarları dışa aktar"
+
+msgid "_Save"
+msgstr "_Kaydet"
+
+msgid "Settings exported."
+msgstr "Ayarlar dışa aktarıldı."
+
+msgid "Could not export the settings"
+msgstr "Ayarlar dışa aktarılamadı"
+
+msgid "Import settings"
+msgstr "Ayarları içe aktar"
+
+msgid "Replace the current settings with the ones in the file?"
+msgstr "Geçerli ayarlar dosyadakilerle değiştirilsin mi?"
+
+msgid "The order, hidden apps, chosen icons and sizes will change. This cannot be undone."
+msgstr "Sıralama, gizli uygulamalar, seçilen simgeler ve boyutlar değişecek. Bu işlem geri alınamaz."
+
+msgid "_Replace"
+msgstr "_Değiştir"
+
+msgid "Settings imported."
+msgstr "Ayarlar içe aktarıldı."
+
+msgid "Could not import the settings"
+msgstr "Ayarlar içe aktarılamadı"
+
+msgid "I_mport…"
+msgstr "İçe akt_ar…"
+
+msgid "Replace the settings of this plugin with the ones saved in a file."
+msgstr "Bu eklentinin ayarlarını bir dosyaya kaydedilmiş ayarlarla değiştirir."
+
+msgid "E_xport…"
+msgstr "Dışa akta_r…"
+
+msgid "Save the settings of this plugin (order, hidden apps, chosen icons, sizes) to a file, as a backup or to use them on another computer."
+msgstr "Bu eklentinin ayarlarını (sıralama, gizli uygulamalar, seçilen simgeler, boyutlar) bir dosyaya kaydeder; yedek olarak ya da başka bir bilgisayarda kullanmak için."
 
 #~ msgid "Panel"
 #~ msgstr "Panel"

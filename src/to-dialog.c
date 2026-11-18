@@ -22,6 +22,7 @@
 #define CHOOSER_ICON_SIZE 32
 #define PREVIEW_ICON_SIZE 48
 #define MAX_SUGGESTIONS   30
+#define MAX_SEARCH_RESULTS 120
 #define RESPONSE_APP_ICON 1
 
 enum
@@ -50,6 +51,7 @@ typedef struct
   GtkWidget    *passive;
   GtkWidget    *new_in_popup;
   GtkWidget    *symbolic;
+  GtkWidget    *labels;
   GtkWidget    *single_row;
   GtkWidget    *compact;
   GtkWidget    *button_min;
@@ -65,6 +67,8 @@ typedef struct
   GtkWidget    *legacy_image;
   GtkWidget    *legacy_label;
   guint         legacy_refresh_id;
+
+  GtkWidget    *backup_status;
 
   GtkWidget    *diag_view;
   GtkWidget    *diag_status;
@@ -169,6 +173,16 @@ symbolic_toggled (GtkToggleButton *toggle,
 {
   if (!d->syncing)
     tray_settings_set_symbolic_icons (d->p->settings, gtk_toggle_button_get_active (toggle));
+}
+
+
+
+static void
+labels_toggled (GtkToggleButton *toggle,
+                DialogData      *d)
+{
+  if (!d->syncing)
+    tray_settings_set_show_labels (d->p->settings, gtk_toggle_button_get_active (toggle));
 }
 
 
@@ -636,6 +650,10 @@ typedef struct
 {
   GtkWidget *entry;
   GtkWidget *preview;
+  GtkWidget *label;        /* "Sugeridos…" o "Ninguno…" */
+  GtkWidget *flow;
+  GPtrArray *suggestions;
+  GList     *all_icons;    /* todos los del tema, ordenados; al buscar */
 } IconChooser;
 
 
@@ -752,6 +770,92 @@ suggestion_clicked (GtkButton *button, IconChooser *c)
 
 
 
+/* Pone en la cuadrícula los íconos de @names */
+static void
+chooser_fill (IconChooser *c, GPtrArray *names)
+{
+  GList *children = gtk_container_get_children (GTK_CONTAINER (c->flow));
+  GList *l;
+  guint i;
+
+  for (l = children; l != NULL; l = l->next)
+    gtk_widget_destroy (l->data);
+  g_list_free (children);
+
+  for (i = 0; i < names->len; i++)
+    {
+      const gchar *name = g_ptr_array_index (names, i);
+      GtkWidget *b = gtk_button_new ();
+      GtkWidget *image = gtk_image_new_from_icon_name (name, GTK_ICON_SIZE_DND);
+
+      gtk_image_set_pixel_size (GTK_IMAGE (image), CHOOSER_ICON_SIZE);
+      gtk_button_set_image (GTK_BUTTON (b), image);
+      gtk_button_set_relief (GTK_BUTTON (b), GTK_RELIEF_NONE);
+      gtk_widget_set_tooltip_text (b, name);
+      g_object_set_data_full (G_OBJECT (b), "icon-name", g_strdup (name), g_free);
+      g_signal_connect (b, "clicked", G_CALLBACK (suggestion_clicked), c);
+      gtk_widget_show_all (b);
+      gtk_flow_box_insert (GTK_FLOW_BOX (c->flow), b, -1);
+    }
+}
+
+
+
+/* Búsqueda: cada palabra escrita tiene que estar en el nombre. Sin
+ * texto, vuelven las sugerencias. GtkSearchEntry ya espera a que se deje
+ * de escribir antes de avisar. */
+static void
+chooser_search_changed (GtkSearchEntry *search, IconChooser *c)
+{
+  gchar *lower = g_utf8_strdown (gtk_entry_get_text (GTK_ENTRY (search)), -1);
+  gchar **words = g_strsplit_set (g_strstrip (lower), " ", -1);
+  GPtrArray *found;
+  GList *l;
+
+  if (*lower == '\0')
+    {
+      chooser_fill (c, c->suggestions);
+      gtk_label_set_text (GTK_LABEL (c->label),
+                          c->suggestions->len > 0 ? _("Suggested icons from your theme:")
+                                                  : _("No matching icons in your theme."));
+      gtk_widget_show (c->label);
+      g_strfreev (words);
+      g_free (lower);
+      return;
+    }
+
+  if (c->all_icons == NULL)
+    {
+      c->all_icons = gtk_icon_theme_list_icons (gtk_icon_theme_get_default (), NULL);
+      c->all_icons = g_list_sort (c->all_icons, (GCompareFunc) g_strcmp0);
+    }
+
+  found = g_ptr_array_new ();
+  for (l = c->all_icons; l != NULL && found->len < MAX_SEARCH_RESULTS; l = l->next)
+    {
+      gchar *name = g_utf8_strdown (l->data, -1);
+      gboolean match = TRUE;
+      guint i;
+
+      for (i = 0; words[i] != NULL && match; i++)
+        if (*words[i] != '\0' && strstr (name, words[i]) == NULL)
+          match = FALSE;
+      if (match)
+        g_ptr_array_add (found, l->data);
+      g_free (name);
+    }
+
+  chooser_fill (c, found);
+  gtk_label_set_text (GTK_LABEL (c->label), _("No matching icons in your theme."));
+  gtk_widget_set_visible (c->label, found->len == 0);
+
+  g_ptr_array_unref (found);
+  g_strfreev (words);
+  g_free (lower);
+}
+
+
+
 static void
 choose_file_clicked (GtkButton *button, IconChooser *c)
 {
@@ -783,18 +887,16 @@ choose_file_clicked (GtkButton *button, IconChooser *c)
 static void
 icon_clicked (GtkButton *button, DialogData *d)
 {
-  GtkWidget *dialog, *main_dialog, *content, *grid, *label, *flow, *scrolled;
-  GtkWidget *file_button, *hint;
+  GtkWidget *dialog, *main_dialog, *content, *grid, *label, *scrolled;
+  GtkWidget *file_button, *hint, *search;
   GtkTreeSelection *selection;
   GtkTreeModel *model;
   GtkTreeIter iter;
-  GPtrArray *suggestions;
-  IconChooser c;
+  IconChooser c = { NULL };
   const gchar *current, *title = NULL;
   gchar *key = selected_key (d), *heading;
   TrayKnown *k;
   gint index, response;
-  guint i;
 
   if (key == NULL)
     return;
@@ -836,80 +938,74 @@ icon_clicked (GtkButton *button, DialogData *d)
   gtk_container_set_border_width (GTK_CONTAINER (grid), 12);
   gtk_box_pack_start (GTK_BOX (content), grid, TRUE, TRUE, 0);
 
-  /* Sugerencias del tema */
-  suggestions = suggest_icons (key, title);
-  label = gtk_label_new (suggestions->len > 0 ? _("Suggested icons from your theme:")
-                                              : _("No matching icons in your theme."));
-  gtk_label_set_xalign (GTK_LABEL (label), 0.0);
-  gtk_grid_attach (GTK_GRID (grid), label, 0, 0, 3, 1);
+  /* Buscador: filtra todos los íconos del tema */
+  search = gtk_search_entry_new ();
+  gtk_entry_set_placeholder_text (GTK_ENTRY (search), _("Search icons in your theme"));
+  gtk_widget_set_hexpand (search, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), search, 0, 0, 3, 1);
 
-  flow = gtk_flow_box_new ();
-  gtk_flow_box_set_selection_mode (GTK_FLOW_BOX (flow), GTK_SELECTION_NONE);
+  /* Sugerencias del tema (sin búsqueda) */
+  c.suggestions = suggest_icons (key, title);
+  c.label = gtk_label_new (NULL);
+  gtk_label_set_xalign (GTK_LABEL (c.label), 0.0);
+  gtk_grid_attach (GTK_GRID (grid), c.label, 0, 1, 3, 1);
+
+  c.flow = gtk_flow_box_new ();
+  gtk_flow_box_set_selection_mode (GTK_FLOW_BOX (c.flow), GTK_SELECTION_NONE);
   /* Con el mínimo por fila, el alto pedido es el real (si no, GTK lo
    * calcula como si hubiera un solo ícono por fila) */
-  gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (flow), 6);
-  gtk_flow_box_set_max_children_per_line (GTK_FLOW_BOX (flow), 8);
-  gtk_widget_set_valign (flow, GTK_ALIGN_START);
-  for (i = 0; i < suggestions->len; i++)
-    {
-      const gchar *name = g_ptr_array_index (suggestions, i);
-      GtkWidget *b = gtk_button_new ();
-      GtkWidget *image = gtk_image_new_from_icon_name (name, GTK_ICON_SIZE_DND);
-
-      gtk_image_set_pixel_size (GTK_IMAGE (image), CHOOSER_ICON_SIZE);
-      gtk_button_set_image (GTK_BUTTON (b), image);
-      gtk_button_set_relief (GTK_BUTTON (b), GTK_RELIEF_NONE);
-      gtk_widget_set_tooltip_text (b, name);
-      g_object_set_data_full (G_OBJECT (b), "icon-name", g_strdup (name), g_free);
-      g_signal_connect (b, "clicked", G_CALLBACK (suggestion_clicked), &c);
-      gtk_flow_box_insert (GTK_FLOW_BOX (flow), b, -1);
-    }
-  g_ptr_array_unref (suggestions);
+  gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (c.flow), 6);
+  gtk_flow_box_set_max_children_per_line (GTK_FLOW_BOX (c.flow), 8);
+  gtk_widget_set_valign (c.flow, GTK_ALIGN_START);
 
   scrolled = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  /* Alto fijo: con la búsqueda cambia el contenido y la ventana no salta */
+  gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled), 200);
   gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scrolled), 200);
-  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scrolled), TRUE);
-  gtk_container_add (GTK_CONTAINER (scrolled), flow);
+  gtk_container_add (GTK_CONTAINER (scrolled), c.flow);
   gtk_widget_set_hexpand (scrolled, TRUE);
-  gtk_grid_attach (GTK_GRID (grid), scrolled, 0, 1, 3, 1);
+  gtk_grid_attach (GTK_GRID (grid), scrolled, 0, 2, 3, 1);
+
+  g_signal_connect (search, "search-changed", G_CALLBACK (chooser_search_changed), &c);
 
   /* Nombre o archivo, con vista previa */
   label = gtk_label_new_with_mnemonic (_("Icon _name or file:"));
   gtk_label_set_xalign (GTK_LABEL (label), 0.0);
-  gtk_grid_attach (GTK_GRID (grid), label, 0, 2, 3, 1);
+  gtk_grid_attach (GTK_GRID (grid), label, 0, 3, 3, 1);
 
   c.preview = gtk_image_new ();
   gtk_image_set_pixel_size (GTK_IMAGE (c.preview), PREVIEW_ICON_SIZE);
   gtk_widget_set_size_request (c.preview, PREVIEW_ICON_SIZE, PREVIEW_ICON_SIZE);
-  gtk_grid_attach (GTK_GRID (grid), c.preview, 0, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), c.preview, 0, 4, 1, 1);
 
   c.entry = gtk_entry_new ();
   gtk_entry_set_activates_default (GTK_ENTRY (c.entry), TRUE);
   gtk_widget_set_hexpand (c.entry, TRUE);
   gtk_widget_set_valign (c.entry, GTK_ALIGN_CENTER);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), c.entry);
-  gtk_grid_attach (GTK_GRID (grid), c.entry, 1, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), c.entry, 1, 4, 1, 1);
 
   file_button = gtk_button_new_with_mnemonic (_("Choose _File…"));
   gtk_widget_set_valign (file_button, GTK_ALIGN_CENTER);
   g_signal_connect (file_button, "clicked", G_CALLBACK (choose_file_clicked), &c);
-  gtk_grid_attach (GTK_GRID (grid), file_button, 2, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), file_button, 2, 4, 1, 1);
 
-  hint = gtk_label_new (_("While a custom icon is set, changes in the app's own icon "
-                          "(for example a notice) are not shown."));
+  hint = gtk_label_new (_("Notices from the app (its notice icon or a small badge) "
+                          "are still shown with a custom icon."));
   gtk_label_set_line_wrap (GTK_LABEL (hint), TRUE);
   gtk_label_set_max_width_chars (GTK_LABEL (hint), 50);
   gtk_label_set_xalign (GTK_LABEL (hint), 0.0);
   gtk_style_context_add_class (gtk_widget_get_style_context (hint), "dim-label");
-  gtk_grid_attach (GTK_GRID (grid), hint, 0, 4, 3, 1);
+  gtk_grid_attach (GTK_GRID (grid), hint, 0, 5, 3, 1);
 
   g_signal_connect (c.entry, "changed", G_CALLBACK (chooser_update_preview), &c);
   /* El ícono en uso (elegido o por defecto); vacío si es el de la app */
   current = tray_settings_get_icon_override (d->p->settings, key);
   gtk_entry_set_text (GTK_ENTRY (c.entry), current != NULL ? current : "");
   chooser_update_preview (GTK_EDITABLE (c.entry), &c);
+  chooser_search_changed (GTK_SEARCH_ENTRY (search), &c);
 
   /* gtk_dialog_run tiene su propio bucle: si mientras tanto se cierra la
    * configuración (p. ej. se reinicia el panel), @d ya no existe */
@@ -927,6 +1023,8 @@ icon_clicked (GtkButton *button, DialogData *d)
           g_object_remove_weak_pointer (G_OBJECT (dialog), (gpointer *) &dialog);
           gtk_widget_destroy (dialog);
         }
+      g_ptr_array_unref (c.suggestions);
+      g_list_free_full (c.all_icons, g_free);
       g_free (key);
       return;
     }
@@ -950,6 +1048,8 @@ icon_clicked (GtkButton *button, DialogData *d)
       g_object_remove_weak_pointer (G_OBJECT (dialog), (gpointer *) &dialog);
       gtk_widget_destroy (dialog);
     }
+  g_ptr_array_unref (c.suggestions);
+  g_list_free_full (c.all_icons, g_free);
   g_free (key);
 }
 
@@ -1189,6 +1289,154 @@ diag_page (DialogData *d)
 
 
 
+/* ── Exportar e importar la configuración ──────────────────────────────── */
+
+static void
+backup_error (DialogData *d, const gchar *title, GError *error)
+{
+  GtkWidget *msg;
+  const gchar *detail = error->message;
+
+  if (g_error_matches (error, TRAY_SETTINGS_ERROR, TRAY_SETTINGS_ERROR_NOT_OURS))
+    detail = _("This is not a Tray Overflow settings file.");
+  else if (g_error_matches (error, TRAY_SETTINGS_ERROR, TRAY_SETTINGS_ERROR_DAMAGED))
+    detail = _("The file is damaged or too large.");
+
+  msg = gtk_message_dialog_new (GTK_WINDOW (d->dialog), GTK_DIALOG_MODAL,
+                                GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", title);
+  gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (msg), "%s", detail);
+  gtk_dialog_run (GTK_DIALOG (msg));
+  gtk_widget_destroy (msg);
+}
+
+
+
+static GtkFileFilter *
+backup_filter (void)
+{
+  GtkFileFilter *filter = gtk_file_filter_new ();
+
+  gtk_file_filter_set_name (filter, _("Tray Overflow settings"));
+  gtk_file_filter_add_pattern (filter, "*.ini");
+  return filter;
+}
+
+
+
+static void
+export_clicked (GtkButton *button, DialogData *d)
+{
+  GtkFileChooserNative *native;
+  GError *error = NULL;
+
+  native = gtk_file_chooser_native_new (_("Export settings"), GTK_WINDOW (d->dialog),
+                                        GTK_FILE_CHOOSER_ACTION_SAVE, _("_Save"), _("_Cancel"));
+  gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (native), TRUE);
+  gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (native), "trayoverflow-settings.ini");
+  gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (native), backup_filter ());
+
+  if (gtk_native_dialog_run (GTK_NATIVE_DIALOG (native)) == GTK_RESPONSE_ACCEPT)
+    {
+      gchar *path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (native));
+
+      if (path != NULL && tray_settings_export (d->p->settings, path, &error))
+        gtk_label_set_text (GTK_LABEL (d->backup_status), _("Settings exported."));
+      else if (error != NULL)
+        {
+          backup_error (d, _("Could not export the settings"), error);
+          g_error_free (error);
+        }
+      g_free (path);
+    }
+
+  g_object_unref (native);
+}
+
+
+
+static void
+import_clicked (GtkButton *button, DialogData *d)
+{
+  GtkFileChooserNative *native;
+  gchar *path = NULL;
+  GError *error = NULL;
+
+  native = gtk_file_chooser_native_new (_("Import settings"), GTK_WINDOW (d->dialog),
+                                        GTK_FILE_CHOOSER_ACTION_OPEN, _("_Open"), _("_Cancel"));
+  gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (native), backup_filter ());
+  if (gtk_native_dialog_run (GTK_NATIVE_DIALOG (native)) == GTK_RESPONSE_ACCEPT)
+    path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (native));
+  g_object_unref (native);
+
+  if (path == NULL)
+    return;
+
+  /* Reemplaza todo: preguntar antes */
+  {
+    GtkWidget *msg;
+    gint response;
+
+    msg = gtk_message_dialog_new (GTK_WINDOW (d->dialog), GTK_DIALOG_MODAL,
+                                  GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "%s",
+                                  _("Replace the current settings with the ones in the file?"));
+    gtk_message_dialog_format_secondary_text (
+      GTK_MESSAGE_DIALOG (msg), "%s",
+      _("The order, hidden apps, chosen icons and sizes will change. This cannot be undone."));
+    gtk_dialog_add_buttons (GTK_DIALOG (msg), _("_Cancel"), GTK_RESPONSE_CANCEL,
+                            _("_Replace"), GTK_RESPONSE_ACCEPT, NULL);
+    gtk_dialog_set_default_response (GTK_DIALOG (msg), GTK_RESPONSE_CANCEL);
+    response = gtk_dialog_run (GTK_DIALOG (msg));
+    gtk_widget_destroy (msg);
+
+    if (response != GTK_RESPONSE_ACCEPT)
+      {
+        g_free (path);
+        return;
+      }
+  }
+
+  if (tray_settings_import (d->p->settings, path, &error))
+    gtk_label_set_text (GTK_LABEL (d->backup_status), _("Settings imported."));
+  else
+    {
+      backup_error (d, _("Could not import the settings"), error);
+      g_error_free (error);
+    }
+  g_free (path);
+}
+
+
+
+static GtkWidget *
+backup_row (DialogData *d)
+{
+  GtkWidget *row, *button;
+
+  row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+
+  d->backup_status = gtk_label_new (NULL);
+  gtk_label_set_xalign (GTK_LABEL (d->backup_status), 0.0);
+  gtk_label_set_ellipsize (GTK_LABEL (d->backup_status), PANGO_ELLIPSIZE_END);
+  gtk_box_pack_start (GTK_BOX (row), d->backup_status, TRUE, TRUE, 0);
+
+  button = gtk_button_new_with_mnemonic (_("I_mport…"));
+  gtk_widget_set_tooltip_text (button, _("Replace the settings of this plugin with the "
+                                         "ones saved in a file."));
+  g_signal_connect (button, "clicked", G_CALLBACK (import_clicked), d);
+  gtk_box_pack_end (GTK_BOX (row), button, FALSE, FALSE, 0);
+
+  button = gtk_button_new_with_mnemonic (_("E_xport…"));
+  gtk_widget_set_tooltip_text (button, _("Save the settings of this plugin (order, hidden "
+                                         "apps, chosen icons, sizes) to a file, as a backup "
+                                         "or to use them on another computer."));
+  g_signal_connect (button, "clicked", G_CALLBACK (export_clicked), d);
+  gtk_box_pack_end (GTK_BOX (row), button, FALSE, FALSE, 0);
+
+  return row;
+}
+
+
+
 static GtkWidget *
 items_page (DialogData *d)
 {
@@ -1308,7 +1556,19 @@ items_page (DialogData *d)
   g_signal_connect (d->symbolic, "toggled", G_CALLBACK (symbolic_toggled), d);
   gtk_box_pack_start (GTK_BOX (vbox), d->symbolic, FALSE, FALSE, 0);
 
+  /* También vale para el panel y el popup */
+  d->labels = gtk_check_button_new_with_mnemonic (_("_Show text next to the icons"));
+  gtk_widget_set_tooltip_text (d->labels,
+                               _("Some apps show a short text next to their icon, such as a "
+                                 "temperature or the keyboard layout. It is not shown in "
+                                 "vertical panels."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->labels),
+                                tray_settings_get_show_labels (d->p->settings));
+  g_signal_connect (d->labels, "toggled", G_CALLBACK (labels_toggled), d);
+  gtk_box_pack_start (GTK_BOX (vbox), d->labels, FALSE, FALSE, 0);
+
   gtk_box_pack_start (GTK_BOX (vbox), legacy_section (d), FALSE, FALSE, 4);
+  gtk_box_pack_start (GTK_BOX (vbox), backup_row (d), FALSE, FALSE, 4);
 
   rebuild_list (d);
   return vbox;
@@ -1394,6 +1654,8 @@ sync_from_settings (DialogData *d)
                                 tray_settings_get_new_in_popup (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->symbolic),
                                 tray_settings_get_symbolic_icons (s));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->labels),
+                                tray_settings_get_show_labels (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->single_row),
                                 tray_settings_get_single_row (s));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (d->legacy_check),

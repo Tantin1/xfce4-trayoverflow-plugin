@@ -1674,3 +1674,318 @@ tray_settings_set_icon_override (TraySettings *s,
   if (changed)
     notify (s, TRUE);
 }
+
+
+
+/* ── Exportar e importar ─────────────────────────────────────────────────
+ * Un GKeyFile:
+ *   [Tray Overflow]   format=1, version=… (de qué versión salió)
+ *   [Integers]        opción=número
+ *   [Booleans]        opción=true|false
+ *   [Strings]         opción=texto
+ *   [Lists]           opción=a;b;c   (el formato de listas de GKeyFile)
+ * Se copia lo que hay en xfconf, no lo que hay en memoria: una opción que
+ * nadie tocó no se exporta y, al importar, sigue el valor por defecto de
+ * esa computadora. Así también entran opciones de versiones más nuevas. */
+
+#define EXPORT_GROUP      "Tray Overflow"
+#define EXPORT_FORMAT     1
+#define EXPORT_MAX_KEYS   200      /* opciones en total */
+#define EXPORT_MAX_ITEMS  4000     /* elementos de una lista */
+#define EXPORT_MAX_TEXT   4096     /* largo de un texto */
+#define EXPORT_MAX_BYTES  (2 * 1024 * 1024)
+
+G_DEFINE_QUARK (tray-settings-error-quark, tray_settings_error)
+
+static const gchar *export_groups[] = { "Integers", "Booleans", "Strings", "Lists" };
+
+
+
+/* Un nombre de opción que se puede importar: letras, números y guiones */
+static gboolean
+export_name_ok (const gchar *name)
+{
+  const gchar *c;
+
+  if (name == NULL || !g_ascii_islower (name[0]) || strlen (name) > 64)
+    return FALSE;
+  for (c = name; *c != '\0'; c++)
+    if (!g_ascii_islower (*c) && !g_ascii_isdigit (*c) && *c != '-')
+      return FALSE;
+  return TRUE;
+}
+
+
+
+static gboolean
+export_text_ok (const gchar *text)
+{
+  return text != NULL && strlen (text) <= EXPORT_MAX_TEXT && g_utf8_validate (text, -1, NULL);
+}
+
+
+
+gboolean
+tray_settings_export (TraySettings *s, const gchar *path, GError **error)
+{
+  GHashTable *props;
+  GHashTableIter iter;
+  gpointer key, value;
+  GKeyFile *file;
+  gsize prefix;
+  gboolean ok;
+
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  g_return_val_if_fail (path != NULL, FALSE);
+
+  tray_settings_flush (s);
+
+  file = g_key_file_new ();
+  g_key_file_set_integer (file, EXPORT_GROUP, "format", EXPORT_FORMAT);
+  g_key_file_set_string (file, EXPORT_GROUP, "version", PACKAGE_VERSION);
+
+  prefix = strlen (s->base) + 1;
+  props = xfconf_channel_get_properties (s->channel, s->base);
+  if (props != NULL)
+    {
+      g_hash_table_iter_init (&iter, props);
+      while (g_hash_table_iter_next (&iter, &key, &value))
+        {
+          const gchar *full = key, *name;
+          GValue *v = value;
+
+          if (strlen (full) <= prefix)
+            continue;                 /* la propiedad del plugin en sí */
+          name = full + prefix;
+          if (!export_name_ok (name))
+            continue;
+
+          if (G_VALUE_HOLDS_INT (v))
+            g_key_file_set_integer (file, "Integers", name, g_value_get_int (v));
+          else if (G_VALUE_HOLDS_UINT (v))
+            g_key_file_set_integer (file, "Integers", name, (gint) g_value_get_uint (v));
+          else if (G_VALUE_HOLDS_BOOLEAN (v))
+            g_key_file_set_boolean (file, "Booleans", name, g_value_get_boolean (v));
+          else if (G_VALUE_HOLDS_STRING (v))
+            g_key_file_set_string (file, "Strings", name, g_value_get_string (v));
+          else if (G_VALUE_HOLDS (v, G_TYPE_PTR_ARRAY))
+            {
+              gchar **list = xfconf_channel_get_string_list (s->channel, full);
+
+              if (list != NULL)
+                g_key_file_set_string_list (file, "Lists", name,
+                                            (const gchar *const *) list,
+                                            g_strv_length (list));
+              g_strfreev (list);
+            }
+        }
+      g_hash_table_destroy (props);
+    }
+
+  ok = g_key_file_save_to_file (file, path, error);
+  g_key_file_free (file);
+  return ok;
+}
+
+
+
+/* Lo que se va a escribir al importar, ya revisado */
+typedef struct
+{
+  gchar *name;
+  GType  type;      /* G_TYPE_INT, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRV */
+  gint   number;
+  gchar *text;
+  gchar **list;
+} ImportItem;
+
+
+
+static void
+import_item_free (gpointer data)
+{
+  ImportItem *item = data;
+
+  g_free (item->name);
+  g_free (item->text);
+  g_strfreev (item->list);
+  g_free (item);
+}
+
+
+
+static gboolean
+import_damaged (GError **error)
+{
+  g_set_error_literal (error, TRAY_SETTINGS_ERROR, TRAY_SETTINGS_ERROR_DAMAGED,
+                       "damaged");
+  return FALSE;
+}
+
+
+
+/* Lee y revisa todo el archivo antes de tocar nada */
+static gboolean
+import_read (const gchar *path, GPtrArray *items, GError **error)
+{
+  GKeyFile *file = g_key_file_new ();
+  gchar *contents = NULL;
+  gsize length = 0;
+  guint g;
+  gboolean ok = FALSE;
+
+  if (!g_file_get_contents (path, &contents, &length, error))
+    goto out;
+  if (length > EXPORT_MAX_BYTES)
+    {
+      import_damaged (error);
+      goto out;
+    }
+  if (!g_key_file_load_from_data (file, contents, length, G_KEY_FILE_NONE, NULL)
+      || g_key_file_get_integer (file, EXPORT_GROUP, "format", NULL) < 1)
+    {
+      g_set_error_literal (error, TRAY_SETTINGS_ERROR, TRAY_SETTINGS_ERROR_NOT_OURS,
+                           "not ours");
+      goto out;
+    }
+  /* De un formato más nuevo, que esta versión no sabe leer */
+  if (g_key_file_get_integer (file, EXPORT_GROUP, "format", NULL) > EXPORT_FORMAT)
+    {
+      import_damaged (error);
+      goto out;
+    }
+
+  for (g = 0; g < G_N_ELEMENTS (export_groups); g++)
+    {
+      gchar **keys = g_key_file_get_keys (file, export_groups[g], NULL, NULL);
+      guint k;
+
+      for (k = 0; keys != NULL && keys[k] != NULL; k++)
+        {
+          ImportItem *item;
+          GError *local = NULL;
+
+          if (!export_name_ok (keys[k]) || items->len >= EXPORT_MAX_KEYS)
+            {
+              g_strfreev (keys);
+              import_damaged (error);
+              goto out;
+            }
+
+          item = g_new0 (ImportItem, 1);
+          item->name = g_strdup (keys[k]);
+          g_ptr_array_add (items, item);
+
+          switch (g)
+            {
+            case 0:
+              item->type = G_TYPE_INT;
+              item->number = g_key_file_get_integer (file, export_groups[g], keys[k], &local);
+              break;
+            case 1:
+              item->type = G_TYPE_BOOLEAN;
+              item->number = g_key_file_get_boolean (file, export_groups[g], keys[k], &local);
+              break;
+            case 2:
+              item->type = G_TYPE_STRING;
+              item->text = g_key_file_get_string (file, export_groups[g], keys[k], &local);
+              if (local == NULL && !export_text_ok (item->text))
+                local = g_error_new_literal (G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE, "");
+              break;
+            default:
+              {
+                gsize n = 0, i;
+
+                item->type = G_TYPE_STRV;
+                item->list = g_key_file_get_string_list (file, export_groups[g], keys[k],
+                                                         &n, &local);
+                if (local == NULL && n > EXPORT_MAX_ITEMS)
+                  local = g_error_new_literal (G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE, "");
+                for (i = 0; local == NULL && i < n; i++)
+                  if (!export_text_ok (item->list[i]))
+                    local = g_error_new_literal (G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE, "");
+              }
+              break;
+            }
+
+          if (local != NULL)
+            {
+              g_error_free (local);
+              g_strfreev (keys);
+              import_damaged (error);
+              goto out;
+            }
+        }
+      g_strfreev (keys);
+    }
+
+  ok = TRUE;
+
+out:
+  g_free (contents);
+  g_key_file_free (file);
+  return ok;
+}
+
+
+
+gboolean
+tray_settings_import (TraySettings *s, const gchar *path, GError **error)
+{
+  GPtrArray *items = g_ptr_array_new_with_free_func (import_item_free);
+  GHashTable *props;
+  GHashTableIter iter;
+  gpointer key;
+  gsize prefix;
+  guint i;
+
+  g_return_val_if_fail (TRAY_IS_SETTINGS (s), FALSE);
+  g_return_val_if_fail (path != NULL, FALSE);
+
+  if (!import_read (path, items, error))
+    {
+      g_ptr_array_unref (items);
+      return FALSE;
+    }
+
+  /* Lo pendiente se escribe antes, para que no pise lo importado */
+  tray_settings_flush (s);
+
+  /* Borrar las opciones actuales del plugin, de a una: la propiedad del
+   * plugin en sí (su tipo) no se toca, o el panel lo perdería */
+  prefix = strlen (s->base) + 1;
+  props = xfconf_channel_get_properties (s->channel, s->base);
+  if (props != NULL)
+    {
+      g_hash_table_iter_init (&iter, props);
+      while (g_hash_table_iter_next (&iter, &key, NULL))
+        if (strlen ((const gchar *) key) > prefix)
+          xfconf_channel_reset_property (s->channel, key, FALSE);
+      g_hash_table_destroy (props);
+    }
+
+  for (i = 0; i < items->len; i++)
+    {
+      ImportItem *item = g_ptr_array_index (items, i);
+      gchar *p = prop (s, item->name);
+
+      if (item->type == G_TYPE_INT)
+        xfconf_channel_set_int (s->channel, p, item->number);
+      else if (item->type == G_TYPE_BOOLEAN)
+        xfconf_channel_set_bool (s->channel, p, item->number);
+      else if (item->type == G_TYPE_STRING)
+        xfconf_channel_set_string (s->channel, p, item->text);
+      else if (item->list != NULL && item->list[0] != NULL)
+        xfconf_channel_set_string_list (s->channel, p, (const gchar *const *) item->list);
+      g_free (p);
+    }
+
+  g_ptr_array_unref (items);
+
+  /* Leer ya lo importado (sin esperar el aviso de xfconf) */
+  load_all (s);
+  mark_saved (s);
+  notify (s, TRUE);
+  return TRUE;
+}
+
